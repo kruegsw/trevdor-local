@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1" /> <!-- Canvas needs this for correct mobile scaling -->
+	<title>Trevdor</title>
+	<style>
+        html, body { 
+            height: 100%;
+            margin: 0;
+        } /* Make the page fill the screen with no scrollbars */
+
+        body {
+            overflow: hidden; /* no scroll */
+        }
+
+        canvas {
+            display: block; /* Make canvas a true layout box (prevents inline baseline gaps) */
+            width: 100%; height: 100%; /* Canvas fills the entire viewport. Drawing scale is handled in JS. */
+        }
+
+	</style>
+</head>
+<body>
+	<div id="stage">
+        <canvas id="c"></canvas>
+	</div>
+</body>
+<script src="./main.js" type="module"></script>
+<!--
+<script src="./engine/actions.js" type="module"></script>
+<script src="./engine/rules.js" type="module"></script>
+<script src="./engine/state.js" type="module"></script>
+<script src="./models/card.js" type="module"></script>
+<script src="./models/noble.js" type="module"></script>
+<script src="./models/player.js" type="module"></script>
+<script src="./ui/events.js" type="module"></script>
+<script src="./ui/render.js" type="module"></script>
+-->
+</html>

@@ -1,0 +1,985 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Splendor (Vanilla) – UI Skeleton</title>
+  <style>
+    :root{
+      --bg:#0b0f14;
+      --panel:#121a23;
+      --panel2:#0f1620;
+      --text:#e7eef7;
+      --muted:#98a7ba;
+      --border:#223041;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --radius: 14px;
+      --gap: 14px;
+      --focus: 2px solid rgba(135, 206, 250, .8);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      background: radial-gradient(1200px 700px at 35% 10%, #182537, var(--bg));
+      color: var(--text);
+    }
+
+    /* --- App Layout --- */
+    .app{
+      min-height: 100%;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    header{
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(18,26,35,.9), rgba(18,26,35,.6));
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      backdrop-filter: blur(8px);
+    }
+
+    .header-row{
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .title{
+      display:flex;
+      align-items: baseline;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .title h1{
+      margin:0;
+      font-size: 16px;
+      letter-spacing: .4px;
+    }
+    .title .sub{
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .turn-pill{
+      display:inline-flex;
+      align-items:center;
+      gap: 8px;
+      padding: 6px 10px;
+      background: rgba(255,255,255,.04);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    main{
+      padding: 16px;
+      display: grid;
+      grid-template-columns: 270px minmax(520px, 1fr) 320px;
+      gap: var(--gap);
+      align-items: start;
+    }
+
+    @media (max-width: 1100px){
+      main{
+        grid-template-columns: 270px 1fr;
+        grid-template-areas:
+          "left center"
+          "right right";
+      }
+      .col-left{ grid-area: left; }
+      .col-center{ grid-area: center; }
+      .col-right{ grid-area: right; }
+    }
+
+    @media (max-width: 820px){
+      main{
+        grid-template-columns: 1fr;
+        grid-template-areas:
+          "center"
+          "left"
+          "right";
+      }
+    }
+
+    .panel{
+      background: linear-gradient(180deg, rgba(18,26,35,.85), rgba(18,26,35,.65));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel-header{
+      padding: 12px 12px 10px 12px;
+      border-bottom: 1px solid rgba(34,48,65,.7);
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .panel-header h2{
+      margin:0;
+      font-size: 13px;
+      letter-spacing: .35px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .panel-body{ padding: 12px; }
+
+    /* --- Left Column: Bank + Actions --- */
+    .bank-grid{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .token{
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: rgba(0,0,0,.12);
+      padding: 10px 10px;
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 10px;
+      cursor: pointer;
+      user-select: none;
+      min-height: 44px;
+    }
+    .token:hover{ border-color: rgba(152,167,186,.55); }
+    .token[aria-disabled="true"]{
+      opacity:.55;
+      cursor:not-allowed;
+    }
+
+    .token-left{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      min-width: 0;
+    }
+    .swatch{
+      width: 16px;
+      height: 16px;
+      border-radius: 6px;
+      border: 1px solid rgba(255,255,255,.14);
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.25);
+      flex: 0 0 auto;
+    }
+    .token-name{
+      font-size: 13px;
+      color: var(--text);
+      text-transform: capitalize;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .token-count{
+      font-variant-numeric: tabular-nums;
+      font-size: 14px;
+      color: var(--text);
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.08);
+      padding: 4px 8px;
+      border-radius: 999px;
+      flex: 0 0 auto;
+    }
+
+    .actions{
+      display:flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .btn-row{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    button{
+      font: inherit;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.05);
+      color: var(--text);
+      padding: 10px 10px;
+      cursor: pointer;
+      user-select: none;
+    }
+    button:hover{ border-color: rgba(152,167,186,.55); }
+    button:focus-visible{ outline: var(--focus); outline-offset: 2px; }
+    button.primary{
+      background: linear-gradient(180deg, rgba(135,206,250,.18), rgba(135,206,250,.08));
+      border-color: rgba(135,206,250,.25);
+    }
+    button.danger{
+      background: linear-gradient(180deg, rgba(255,99,71,.15), rgba(255,99,71,.06));
+      border-color: rgba(255,99,71,.18);
+    }
+    button[disabled]{
+      opacity:.55;
+      cursor:not-allowed;
+    }
+
+    .hint{
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+      margin: 0;
+    }
+    .chipline{
+      display:flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .chip{
+      display:inline-flex;
+      align-items:center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,.12);
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .chip strong{ color: var(--text); font-weight: 600; }
+
+    /* --- Center Column: Board --- */
+    .board{
+      display:flex;
+      flex-direction: column;
+      gap: var(--gap);
+    }
+
+    .tier{
+      display:grid;
+      grid-template-columns: 110px 1fr;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .tier-label{
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: rgba(0,0,0,.12);
+      padding: 10px;
+      position: sticky;
+      top: 74px; /* below header */
+      z-index: 1;
+    }
+    .tier-label .tname{
+      font-size: 12px;
+      color: var(--muted);
+      margin: 0 0 8px 0;
+      text-transform: uppercase;
+      letter-spacing: .35px;
+    }
+    .tier-label .deck{
+      font-size: 12px;
+      color: var(--muted);
+      display:flex;
+      justify-content: space-between;
+    }
+
+    .card-row{
+      display:grid;
+      grid-template-columns: repeat(4, minmax(140px, 1fr));
+      gap: 12px;
+    }
+
+    @media (max-width: 520px){
+      .card-row{ grid-template-columns: repeat(2, minmax(140px, 1fr)); }
+    }
+
+    .card{
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: linear-gradient(180deg, rgba(15,22,32,.9), rgba(15,22,32,.6));
+      padding: 10px;
+      cursor: pointer;
+      user-select: none;
+      display:flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 132px;
+      position: relative;
+    }
+    .card:hover{ border-color: rgba(152,167,186,.55); }
+    .card:focus-visible{ outline: var(--focus); outline-offset: 2px; }
+    .card[aria-disabled="true"]{
+      opacity:.6;
+      cursor:not-allowed;
+    }
+
+    .card-top{
+      display:flex;
+      align-items:flex-start;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap: 8px;
+      border-radius: 999px;
+      padding: 4px 8px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.05);
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .badge .gemdot{
+      width: 10px;
+      height: 10px;
+      border-radius: 4px;
+      border: 1px solid rgba(255,255,255,.14);
+    }
+    .points{
+      font-variant-numeric: tabular-nums;
+      font-size: 14px;
+      padding: 4px 8px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.06);
+    }
+
+    .cost{
+      margin-top: auto;
+      display:flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .cost .cchip{
+      display:inline-flex;
+      align-items:center;
+      gap: 6px;
+      font-size: 12px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.12);
+      color: var(--muted);
+    }
+    .cchip .mini{
+      width: 9px;
+      height: 9px;
+      border-radius: 4px;
+      border: 1px solid rgba(255,255,255,.12);
+    }
+
+    .nobles{
+      display:grid;
+      grid-template-columns: 110px 1fr;
+      gap: 12px;
+      align-items: start;
+    }
+    .noble-row{
+      display:grid;
+      grid-template-columns: repeat(3, minmax(160px, 1fr));
+      gap: 12px;
+    }
+    @media (max-width: 520px){
+      .noble-row{ grid-template-columns: 1fr; }
+    }
+
+    /* --- Right Column: Players --- */
+    .players{
+      display:flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .player-card{
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: rgba(0,0,0,.12);
+      padding: 12px;
+      display:flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .player-head{
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .pname{
+      font-weight: 650;
+      letter-spacing: .2px;
+    }
+    .pscore{
+      font-size: 12px;
+      color: var(--muted);
+      display:flex;
+      gap: 10px;
+      align-items:center;
+    }
+    .pscore .pill{
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.06);
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-variant-numeric: tabular-nums;
+      color: var(--text);
+    }
+    .smallgrid{
+      display:grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .mini-stat{
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 12px;
+      background: rgba(255,255,255,.04);
+      padding: 8px;
+      min-height: 42px;
+    }
+    .mini-stat .k{
+      font-size: 11px;
+      color: var(--muted);
+      margin: 0 0 6px 0;
+    }
+    .mini-stat .v{
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+      display:flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items:center;
+    }
+
+    /* --- Utility --- */
+    .sr-only{
+      position:absolute;
+      width:1px;
+      height:1px;
+      padding:0;
+      margin:-1px;
+      overflow:hidden;
+      clip: rect(0,0,0,0);
+      white-space:nowrap;
+      border:0;
+    }
+
+    /* Simple color tokens (adjust anytime) */
+    .c-white{ background: #d6dde8; }
+    .c-blue{ background: #4aa3ff; }
+    .c-green{ background: #3ddc97; }
+    .c-red{ background: #ff5c70; }
+    .c-black{ background: #4b5563; }
+    .c-gold{ background: #f6c453; }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <header>
+      <div class="header-row">
+        <div class="title">
+          <h1>Splendor (UI Skeleton)</h1>
+          <span class="sub">Vanilla JS • DOM + CSS Grid • Event Delegation</span>
+        </div>
+        <div class="turn-pill" id="turnPill" aria-live="polite">Turn: —</div>
+      </div>
+    </header>
+
+    <main>
+      <!-- LEFT -->
+      <section class="panel col-left" aria-label="Bank and actions">
+        <div class="panel-header">
+          <h2>Bank</h2>
+          <span class="sub" id="bankSummary">—</span>
+        </div>
+        <div class="panel-body">
+          <div class="bank-grid" id="bankGrid">
+            <!-- rendered -->
+          </div>
+
+          <div style="height: 14px"></div>
+
+          <div class="panel-header" style="border-radius:12px; border:1px solid var(--border); background: rgba(0,0,0,.08);">
+            <h2>Actions</h2>
+            <span class="sub" id="modeLabel">Mode: —</span>
+          </div>
+          <div class="panel-body" style="padding:12px 0 0 0;">
+            <div class="actions">
+              <p class="hint" id="hint">
+                Click tokens/cards to select. Confirm to dispatch an action. (Engine not implemented here.)
+              </p>
+
+              <div class="btn-row">
+                <button class="primary" data-action="confirm">Confirm</button>
+                <button data-action="cancel">Cancel</button>
+              </div>
+
+              <div class="btn-row">
+                <button data-action="set-mode" data-mode="TAKE">Take tokens</button>
+                <button data-action="set-mode" data-mode="BUY">Buy card</button>
+              </div>
+
+              <div class="btn-row">
+                <button data-action="set-mode" data-mode="RESERVE">Reserve</button>
+                <button class="danger" data-action="end-turn">End turn</button>
+              </div>
+
+              <div class="chipline" id="selectionChips"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- CENTER -->
+      <section class="board col-center" aria-label="Board">
+        <section class="panel">
+          <div class="panel-header">
+            <h2>Nobles</h2>
+            <span class="sub" id="nobleSummary">—</span>
+          </div>
+          <div class="panel-body">
+            <div class="nobles">
+              <div class="tier-label">
+                <p class="tname">Pool</p>
+                <div class="deck">
+                  <span>Count</span>
+                  <span id="nobleCount">—</span>
+                </div>
+              </div>
+
+              <div class="noble-row" id="nobleRow">
+                <!-- rendered -->
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <h2>Market</h2>
+            <span class="sub" id="marketSummary">—</span>
+          </div>
+          <div class="panel-body" id="market">
+            <!-- Tiers rendered -->
+          </div>
+        </section>
+      </section>
+
+      <!-- RIGHT -->
+      <section class="panel col-right" aria-label="Players">
+        <div class="panel-header">
+          <h2>Players</h2>
+          <span class="sub" id="playerSummary">—</span>
+        </div>
+        <div class="panel-body">
+          <div class="players" id="playersList">
+            <!-- rendered -->
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script type="module">
+    // ------------------------------------------------------------
+    // UI-only skeleton with a tiny mock state + render + delegation
+    // Replace applyAction(...) with your engine later.
+    // ------------------------------------------------------------
+
+    const COLORS = ["white","blue","green","red","black","gold"];
+
+    /** UI-only selection (keep separate from game state) */
+    const ui = {
+      mode: "TAKE", // TAKE | BUY | RESERVE
+      selectedTokens: new Set(),
+      selectedCardId: null,
+      selectedNobleId: null,
+      message: "",
+    };
+
+    /** Mock state shape that matches what Splendor wants */
+    let state = {
+      turn: { round: 1, currentPlayerIndex: 0 },
+      bank: { white: 7, blue: 7, green: 7, red: 7, black: 7, gold: 5 },
+      nobles: [
+        { id: "N-01", points: 3, req: { red: 4, green: 4 } },
+        { id: "N-02", points: 3, req: { blue: 4, black: 4 } },
+        { id: "N-03", points: 3, req: { white: 4, blue: 4 } },
+      ],
+      decksRemaining: { tier1: 36, tier2: 26, tier3: 16 },
+      market: {
+        tier3: [
+          { id: "T3-01", tier: 3, gem: "red", points: 5, cost: { white: 3, blue: 3, green: 3, black: 3 } },
+          { id: "T3-02", tier: 3, gem: "black", points: 4, cost: { red: 7 } },
+          { id: "T3-03", tier: 3, gem: "green", points: 3, cost: { red: 3, blue: 3, white: 3 } },
+          { id: "T3-04", tier: 3, gem: "blue", points: 4, cost: { green: 6 } },
+        ],
+        tier2: [
+          { id: "T2-01", tier: 2, gem: "white", points: 2, cost: { red: 2, green: 2, blue: 1 } },
+          { id: "T2-02", tier: 2, gem: "blue", points: 1, cost: { black: 3, white: 2 } },
+          { id: "T2-03", tier: 2, gem: "red", points: 2, cost: { green: 5 } },
+          { id: "T2-04", tier: 2, gem: "green", points: 1, cost: { blue: 2, white: 2, red: 1 } },
+        ],
+        tier1: [
+          { id: "T1-01", tier: 1, gem: "black", points: 0, cost: { white: 1, blue: 1, green: 1, red: 1 } },
+          { id: "T1-02", tier: 1, gem: "green", points: 0, cost: { blue: 2 } },
+          { id: "T1-03", tier: 1, gem: "red", points: 1, cost: { black: 4 } },
+          { id: "T1-04", tier: 1, gem: "white", points: 0, cost: { green: 3 } },
+        ],
+      },
+      players: [
+        {
+          id: "P1",
+          name: "Player 1",
+          points: 0,
+          tokens: { white: 0, blue: 0, green: 0, red: 0, black: 0, gold: 0 },
+          bonuses: { white: 0, blue: 0, green: 0, red: 0, black: 0 },
+          reserved: [],
+          nobles: [],
+          cardsPurchased: 0,
+        },
+        {
+          id: "P2",
+          name: "Player 2",
+          points: 0,
+          tokens: { white: 0, blue: 0, green: 0, red: 0, black: 0, gold: 0 },
+          bonuses: { white: 0, blue: 0, green: 0, red: 0, black: 0 },
+          reserved: [],
+          nobles: [],
+          cardsPurchased: 0,
+        }
+      ]
+    };
+
+    // ---------- DOM refs ----------
+    const el = {
+      app: document.getElementById("app"),
+      turnPill: document.getElementById("turnPill"),
+      bankGrid: document.getElementById("bankGrid"),
+      bankSummary: document.getElementById("bankSummary"),
+      modeLabel: document.getElementById("modeLabel"),
+      hint: document.getElementById("hint"),
+      selectionChips: document.getElementById("selectionChips"),
+
+      nobleRow: document.getElementById("nobleRow"),
+      nobleCount: document.getElementById("nobleCount"),
+      nobleSummary: document.getElementById("nobleSummary"),
+
+      market: document.getElementById("market"),
+      marketSummary: document.getElementById("marketSummary"),
+
+      playersList: document.getElementById("playersList"),
+      playerSummary: document.getElementById("playerSummary"),
+    };
+
+    // ---------- Helpers ----------
+    function colorClass(color){
+      return `c-${color}`;
+    }
+
+    function formatCost(cost){
+      // cost is {color: number}
+      const entries = Object.entries(cost);
+      if (!entries.length) return "<span class='cchip'>Free</span>";
+      return entries
+        .sort((a,b)=> a[0].localeCompare(b[0]))
+        .map(([c,n]) => `
+          <span class="cchip">
+            <span class="mini ${colorClass(c)}" aria-hidden="true"></span>
+            ${c} <strong style="color:var(--text); font-weight:650">${n}</strong>
+          </span>
+        `)
+        .join("");
+    }
+
+    function chip(label, value){
+      return `<span class="chip">${label} <strong>${value}</strong></span>`;
+    }
+
+    function currentPlayer(){
+      return state.players[state.turn.currentPlayerIndex];
+    }
+
+    // ---------- Render ----------
+    function render(nextState){
+      state = nextState;
+
+      const cp = currentPlayer();
+      el.turnPill.textContent = `Round ${state.turn.round} • ${cp.name}'s turn`;
+      el.modeLabel.textContent = `Mode: ${ui.mode}`;
+
+      // Bank
+      const bankTotal = COLORS.reduce((sum,c)=> sum + (state.bank[c] ?? 0), 0);
+      el.bankSummary.textContent = `Total tokens: ${bankTotal}`;
+
+      el.bankGrid.innerHTML = COLORS.map(color => {
+        const count = state.bank[color] ?? 0;
+        const disabled = (count <= 0) ? "true" : "false";
+        const selected = ui.selectedTokens.has(color);
+        return `
+          <div
+            class="token"
+            role="button"
+            tabindex="0"
+            aria-disabled="${disabled}"
+            aria-pressed="${selected ? "true" : "false"}"
+            data-action="token-click"
+            data-color="${color}"
+            title="Click to select token (UI only)"
+          >
+            <div class="token-left">
+              <span class="swatch ${colorClass(color)}" aria-hidden="true"></span>
+              <span class="token-name">${color}</span>
+            </div>
+            <span class="token-count">${count}</span>
+          </div>
+        `;
+      }).join("");
+
+      // Selection chips
+      const selTokens = Array.from(ui.selectedTokens);
+      el.selectionChips.innerHTML =
+        chip("Player", cp.name) +
+        chip("Selected tokens", selTokens.length ? selTokens.join(", ") : "none") +
+        chip("Selected card", ui.selectedCardId ?? "none");
+
+      // Nobles
+      el.nobleCount.textContent = String(state.nobles.length);
+      el.nobleSummary.textContent = `${state.nobles.length} available`;
+      el.nobleRow.innerHTML = state.nobles.map(n => {
+        const selected = (ui.selectedNobleId === n.id);
+        return `
+          <div
+            class="card"
+            role="button"
+            tabindex="0"
+            aria-pressed="${selected ? "true" : "false"}"
+            data-action="noble-click"
+            data-noble-id="${n.id}"
+            title="Noble tile"
+            style="min-height:120px"
+          >
+            <div class="card-top">
+              <span class="badge">
+                <span class="gemdot c-gold" aria-hidden="true"></span>
+                Noble
+              </span>
+              <span class="points">${n.points}</span>
+            </div>
+            <div class="cost">
+              ${formatCost(n.req)}
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      // Market tiers (Tier 3, 2, 1 top-to-bottom like physical game)
+      const tiers = [
+        { key: "tier3", label: "Tier 3" },
+        { key: "tier2", label: "Tier 2" },
+        { key: "tier1", label: "Tier 1" },
+      ];
+
+      el.marketSummary.textContent =
+        `Decks remaining: T1 ${state.decksRemaining.tier1} • T2 ${state.decksRemaining.tier2} • T3 ${state.decksRemaining.tier3}`;
+
+      el.market.innerHTML = tiers.map(t => {
+        const cards = state.market[t.key];
+        const remaining = state.decksRemaining[t.key] ?? "—";
+        return `
+          <div class="tier" aria-label="${t.label}">
+            <div class="tier-label">
+              <p class="tname">${t.label}</p>
+              <div class="deck">
+                <span>Deck</span>
+                <span>${remaining}</span>
+              </div>
+              <div class="deck" style="margin-top:6px;">
+                <span>Row</span>
+                <span>${cards.length}/4</span>
+              </div>
+            </div>
+
+            <div class="card-row">
+              ${cards.map(card => {
+                const selected = (ui.selectedCardId === card.id);
+                return `
+                  <div
+                    class="card"
+                    role="button"
+                    tabindex="0"
+                    aria-pressed="${selected ? "true" : "false"}"
+                    data-action="card-click"
+                    data-card-id="${card.id}"
+                    data-tier="${card.tier}"
+                    title="Click to select card (UI only)"
+                  >
+                    <div class="card-top">
+                      <span class="badge">
+                        <span class="gemdot ${colorClass(card.gem)}" aria-hidden="true"></span>
+                        ${card.gem} bonus
+                      </span>
+                      <span class="points">${card.points}</span>
+                    </div>
+                    <div class="cost">
+                      ${formatCost(card.cost)}
+                    </div>
+                  </div>
+                `;
+              }).join("")}
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      // Players panel
+      el.playerSummary.textContent = `${state.players.length} total`;
+      el.playersList.innerHTML = state.players.map((p, idx) => {
+        const isCurrent = idx === state.turn.currentPlayerIndex;
+        const tokensTotal = Object.values(p.tokens).reduce((a,b)=>a+b,0);
+        const bonusStr = Object.entries(p.bonuses)
+          .map(([c,n]) => n ? `${c}:${n}` : null)
+          .filter(Boolean)
+          .join("  ");
+        return `
+          <div class="player-card" style="${isCurrent ? "border-color: rgba(135,206,250,.35)" : ""}">
+            <div class="player-head">
+              <div class="pname">${isCurrent ? "▶ " : ""}${p.name}</div>
+              <div class="pscore">
+                <span class="pill">Pts ${p.points}</span>
+                <span class="pill">Tokens ${tokensTotal}</span>
+              </div>
+            </div>
+            <div class="smallgrid">
+              <div class="mini-stat">
+                <p class="k">Bonuses</p>
+                <div class="v">${bonusStr || "<span style='color:var(--muted)'>none</span>"}</div>
+              </div>
+              <div class="mini-stat">
+                <p class="k">Reserved</p>
+                <div class="v">${p.reserved.length}</div>
+              </div>
+              <div class="mini-stat">
+                <p class="k">Purchased</p>
+                <div class="v">${p.cardsPurchased}</div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    // ---------- Event delegation ----------
+    el.app.addEventListener("click", (e) => {
+      const target = e.target.closest("[data-action]");
+      if (!target) return;
+
+      const action = target.dataset.action;
+
+      if (action === "set-mode"){
+        ui.mode = target.dataset.mode;
+        // Clear selection on mode change (optional)
+        ui.selectedTokens.clear();
+        ui.selectedCardId = null;
+        ui.selectedNobleId = null;
+        render(state);
+        return;
+      }
+
+      if (action === "token-click"){
+        const color = target.dataset.color;
+        // UI-only selection rules (you can make this smarter later)
+        if (ui.mode !== "TAKE") return;
+        if ((state.bank[color] ?? 0) <= 0) return;
+
+        if (ui.selectedTokens.has(color)) ui.selectedTokens.delete(color);
+        else {
+          // Example: allow up to 3 selections for TAKE mode (not full Splendor validation)
+          if (ui.selectedTokens.size >= 3) return;
+          ui.selectedTokens.add(color);
+        }
+        render(state);
+        return;
+      }
+
+      if (action === "card-click"){
+        const cardId = target.dataset.cardId;
+        ui.selectedCardId = (ui.selectedCardId === cardId) ? null : cardId;
+        render(state);
+        return;
+      }
+
+      if (action === "noble-click"){
+        const nobleId = target.dataset.nobleId;
+        ui.selectedNobleId = (ui.selectedNobleId === nobleId) ? null : nobleId;
+        render(state);
+        return;
+      }
+
+      if (action === "cancel"){
+        ui.selectedTokens.clear();
+        ui.selectedCardId = null;
+        ui.selectedNobleId = null;
+        render(state);
+        return;
+      }
+
+      if (action === "confirm"){
+        // Here is where you'd build a real engine action:
+        // e.g. { type:"TAKE_TOKENS", colors:[...ui.selectedTokens] }
+        // Then call: state = applyAction(state, actionObj); render(state);
+        console.log("CONFIRM (UI only):", {
+          mode: ui.mode,
+          tokens: [...ui.selectedTokens],
+          cardId: ui.selectedCardId,
+          nobleId: ui.selectedNobleId,
+        });
+        // For now just clear selection so you see feedback
+        ui.selectedTokens.clear();
+        ui.selectedCardId = null;
+        ui.selectedNobleId = null;
+        render(state);
+        return;
+      }
+
+      if (action === "end-turn"){
+        // UI-only: rotate current player
+        state = {
+          ...state,
+          turn: {
+            round: state.turn.currentPlayerIndex === state.players.length - 1
+              ? state.turn.round + 1
+              : state.turn.round,
+            currentPlayerIndex: (state.turn.currentPlayerIndex + 1) % state.players.length
+          }
+        };
+        ui.selectedTokens.clear();
+        ui.selectedCardId = null;
+        ui.selectedNobleId = null;
+        render(state);
+        return;
+      }
+    });
+
+    // Optional: keyboard activation for "role=button" items
+    el.app.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      const btnLike = e.target.closest("[role='button'][data-action]");
+      if (!btnLike) return;
+      e.preventDefault();
+      btnLike.click();
+    });
+
+    // Initial render
+    render(state);
+  </script>
+</body>
+</html>

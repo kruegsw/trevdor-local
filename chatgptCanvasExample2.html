@@ -1,0 +1,290 @@
+<!doctype html>
+<!--
+  HTML5 doctype.
+  Ensures standards-compliant rendering across browsers.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <!--
+    Use UTF-8 encoding so text renders consistently.
+  -->
+
+  <!--
+    CRITICAL FOR CANVAS + MOBILE:
+    - width=device-width: layout matches the actual screen width
+    - initial-scale=1: prevents browser auto-zoom
+    Without this:
+      • mobile browsers assume ~980px width
+      • canvas is scaled
+      • pointer/touch coordinates become incorrect
+  -->
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>Splendor – Canvas Minimal Setup</title>
+
+  <style>
+    /* Make the page fill the screen with no scrollbars */
+    html, body {
+      height: 100%;
+      margin: 0;
+    }
+
+    body {
+      /*
+        Light gray background around the “tabletop”
+        (matches printed board-game aesthetic)
+      */
+      background: #f3f4f6;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      overflow: hidden; /* no scrolling for a game */
+    }
+
+    canvas {
+      /*
+        Canvas fills the entire viewport.
+        Drawing scale is handled in JS.
+      */
+      display: block; 
+      width: 100%;
+      height: 100%;
+
+      /*
+        White tabletop surface
+      */
+      background: #ffffff;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Single canvas element = entire game surface -->
+  <canvas id="c"></canvas>
+
+<script type="module">
+  /*
+    Use ES modules:
+    - enables clean imports later
+    - enforces strict mode automatically
+  */
+
+  const canvas = document.getElementById("c");
+  const ctx = canvas.getContext("2d");
+
+  /* ---------------------------------------------------------
+     CANVAS RESIZING + DPI HANDLING
+     --------------------------------------------------------- */
+
+  function resize() {
+    /*
+      devicePixelRatio:
+      - 1 on normal screens
+      - 2+ on retina/high-DPI displays
+
+      We scale the internal drawing buffer so:
+      • visuals are sharp
+      • coordinates remain in CSS pixels
+    */
+    const dpr = Math.max(1, Math.floor(window.devicePixelRatio || 1));
+
+    /*
+      getBoundingClientRect():
+      Returns the CSS size of the canvas on screen
+    */
+    const rect = canvas.getBoundingClientRect();
+
+    /*
+      Set the *actual* pixel buffer size
+    */
+    canvas.width  = Math.floor(rect.width  * dpr);
+    canvas.height = Math.floor(rect.height * dpr);
+
+    /*
+      Reset transform so:
+      - we can draw using CSS pixel coordinates
+      - browser handles high-DPI scaling
+    */
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    render();
+  }
+
+  window.addEventListener("resize", resize);
+
+  /* ---------------------------------------------------------
+     MOCK GAME STATE (DRAWING ONLY)
+     ---------------------------------------------------------
+     This is NOT game logic.
+     This is just enough data to draw the setup layout.
+  */
+
+  const state = {
+    nobles: ["N1", "N2", "N3", "N4"],
+
+    decks: [
+      { tier: 3, deckCount: 16, faceUp: ["T3-A","T3-B","T3-C","T3-D"] },
+      { tier: 2, deckCount: 26, faceUp: ["T2-A","T2-B","T2-C","T2-D"] },
+      { tier: 1, deckCount: 36, faceUp: ["T1-A","T1-B","T1-C","T1-D"] }
+    ],
+
+    bank: [
+      { color: "White", count: 7 },
+      { color: "Blue",  count: 7 },
+      { color: "Green", count: 7 },
+      { color: "Red",   count: 7 },
+      { color: "Black", count: 7 },
+      { color: "Gold",  count: 5 }
+    ]
+  };
+
+  /* ---------------------------------------------------------
+     DRAWING HELPERS
+     --------------------------------------------------------- */
+
+  function roundedRectPath(x, y, w, h, r = 10) {
+    /*
+      Draws a rounded rectangle path.
+      This function ONLY creates the path — it does not fill or stroke.
+    */
+    ctx.beginPath();
+    const radius = Math.min(r, w / 2, h / 2);
+    ctx.moveTo(x + radius, y);
+    ctx.arcTo(x + w, y,     x + w, y + h, radius);
+    ctx.arcTo(x + w, y + h, x,     y + h, radius);
+    ctx.arcTo(x,     y + h, x,     y,     radius);
+    ctx.arcTo(x,     y,     x + w, y,     radius);
+    ctx.closePath();
+  }
+
+  function drawCard(x, y, w, h, fill = "#fff", stroke = "rgba(0,0,0,.12)") {
+    /*
+      Draws a soft-edged card or tile
+    */
+    roundedRectPath(x, y, w, h, 14);
+    ctx.fillStyle = fill;
+    ctx.fill();
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  function drawText(text, x, y, size = 12, color = "rgba(0,0,0,.7)", align = "left", baseline = "alphabetic") {
+    /*
+      Simple wrapper for text drawing
+    */
+    ctx.fillStyle = color;
+    ctx.font = `${size}px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
+    ctx.textAlign = align;
+    ctx.textBaseline = baseline;
+    ctx.fillText(text, x, y);
+  }
+
+  /* ---------------------------------------------------------
+     MAIN RENDER FUNCTION
+     ---------------------------------------------------------
+     Draws the entire board from scratch every time.
+     This keeps logic simple and predictable.
+  */
+
+  function render() {
+    const W = canvas.getBoundingClientRect().width;
+    const H = canvas.getBoundingClientRect().height;
+
+    ctx.clearRect(0, 0, W, H);
+
+    /* Outer tabletop margin */
+    const padding = 24;
+    drawCard(
+      padding,
+      padding,
+      W - padding * 2,
+      H - padding * 2,
+      "#ffffff",
+      "rgba(0,0,0,.08)"
+    );
+
+    /* Market area (centered block) */
+    const marketWidth  = Math.min(980, W - padding * 2 - 40);
+    const marketHeight = Math.min(560, H - padding * 2 - 40);
+    const marketX = (W - marketWidth) / 2;
+    const marketY = (H - marketHeight) / 2;
+
+    drawText("GAME SETUP (visual layout)", marketX, marketY - 14, 12, "rgba(0,0,0,.55)");
+
+    /* ---------------- Nobles row ---------------- */
+    const nobleHeight = 70;
+    const nobleGap = 12;
+    const nobleWidth = Math.floor(
+      (marketWidth - nobleGap * (state.nobles.length - 1)) / state.nobles.length
+    );
+
+    drawText("Nobles", marketX, marketY - 6, 12);
+
+    state.nobles.forEach((id, i) => {
+      const x = marketX + i * (nobleWidth + nobleGap);
+      const y = marketY;
+      drawCard(x, y, nobleWidth, nobleHeight, "#fafafa");
+      drawText(id, x + nobleWidth / 2, y + nobleHeight / 2, 14, "rgba(0,0,0,.6)", "center", "middle");
+    });
+
+    /* ---------------- Decks + market cards ---------------- */
+    const rowsY = marketY + nobleHeight + 40;
+    const rowGap = 20;
+    const deckWidth = 86;
+    const deckHeight = 110;
+    const cardWidth = 128;
+    const cardHeight = 110;
+    const cardGap = 12;
+
+    const rowBlockWidth =
+      deckWidth + 16 + (cardWidth * 4) + (cardGap * 3);
+
+    const rowX = marketX + (marketWidth - rowBlockWidth) / 2;
+
+    state.decks.forEach((row, rowIndex) => {
+      const y = rowsY + rowIndex * (deckHeight + rowGap);
+
+      drawText(`Level ${row.tier}`, rowX, y - 6, 12);
+
+      /* Deck stack */
+      drawCard(rowX, y, deckWidth, deckHeight, "#f5f5f5");
+      drawText(String(row.deckCount), rowX + deckWidth / 2, y + deckHeight / 2, 16, "rgba(0,0,0,.5)", "center", "middle");
+
+      /* 4 face-up cards */
+      row.faceUp.forEach((cardId, i) => {
+        const cx = rowX + deckWidth + 16 + i * (cardWidth + cardGap);
+        drawCard(cx, y, cardWidth, cardHeight);
+        drawText(cardId, cx + cardWidth / 2, y + cardHeight / 2, 13, "rgba(0,0,0,.6)", "center", "middle");
+      });
+    });
+
+    /* ---------------- Token bank ---------------- */
+    const tokensY = marketY + marketHeight - 86;
+    drawText("Tokens (bank)", marketX, tokensY - 10, 12);
+
+    const tokenGap = 12;
+    const tokenWidth = Math.floor(
+      (marketWidth - tokenGap * (state.bank.length - 1)) / state.bank.length
+    );
+    const tokenHeight = 54;
+
+    state.bank.forEach((t, i) => {
+      const x = marketX + i * (tokenWidth + tokenGap);
+      drawCard(x, tokensY, tokenWidth, tokenHeight, "#fafafa");
+      drawText(t.color, x + 10, tokensY + 20, 12);
+      drawText(String(t.count), x + tokenWidth - 10, tokensY + 20, 14, "rgba(0,0,0,.7)", "right");
+    });
+
+    drawText(
+      "Minimal canvas setup view • No interaction yet",
+      marketX,
+      marketY + marketHeight + 18,
+      12,
+      "rgba(0,0,0,.45)"
+    );
+  }
+
+  resize();
+</script>
+</body>
+</html>
