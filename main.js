@@ -10,7 +10,7 @@
 
 import { render } from "./ui/render.js";
 import { state } from "./engine/state.js";
-const ui = []; // status of hovering, selections, etc... later
+import { createUIEvents } from "./ui/events.js";
 
 const canvas = document.getElementById("c");
 const ctx = canvas.getContext("2d")
@@ -18,11 +18,26 @@ const ctx = canvas.getContext("2d")
 
 const renderer = render(ctx);
 
+const ui = createUIEvents({
+  canvas,
+  renderer,
+  enableHover: true,
+  requireSameTargetForClick: false, // forgiving
 
+  onAction(action) {
+    if (action.type === "click") {
+      console.log("Clicked:", action.hit);
+      // your game logic: select/buy/etc
+    }
 
+    renderer.draw(state, ui.uiState);
+  },
 
-
-
+  onUIChange() {
+    // hover highlight redraw
+    renderer.draw(state, ui.uiState);
+  }
+});
 
 function resize() {
     const dpr = window.devicePixelRatio || 1;
