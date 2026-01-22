@@ -25,6 +25,12 @@ const ui = createUIEvents({
   requireSameTargetForClick: false, // forgiving
 
   onAction(action) {
+
+    // So onAction should typically do:
+    // map the click hit → a domain action (BUY_CARD / TAKE_TOKENS / SELECT_CARD, etc.)
+    // call dispatch(state, domainAction)
+    // redraw
+    
     if (action.type === "click") {
       console.log("Clicked:", action.hit);
       // your game logic: select/buy/etc

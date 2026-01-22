@@ -1,3 +1,6 @@
+import { DEFS } from "./defs.js";
+import { rules } from "./rules.js";
+
 const initialState = () => ({
   players: [
     // example player shape:

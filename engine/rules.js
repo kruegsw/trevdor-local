@@ -1,4 +1,6 @@
-        //      player takes action
+import { DEFS } from "./defs.js";
+
+//      player takes action
         //          take 3 different tokens
         //          take 2 same color tokens (if bank >= 4 of color)
         //          reserve card (from market or top of deck) & take 1 gold if available
@@ -21,3 +23,4 @@
 // shuffle cards and nobles
 // populate market with cards and nobles
 
+export const rules = {}
