@@ -1,5 +1,4 @@
 import { computeLayout } from "./layout.js";
-import { state } from "../engine/state.js";
 
 /* ---------------------------------------------------------
    HIT TESTING HELPERS (Option A = rectangles / AABB)

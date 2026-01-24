@@ -9,9 +9,11 @@
 */
 
 import { render } from "./ui/render.js";
-import { state } from "./engine/state.js";
+import { initialState } from "./engine/state.js";
 import { createUIEvents } from "./ui/events.js";
 
+const numbersOfPlayers = 2;
+let state = initialState(numbersOfPlayers);
 console.log(state);
 
 const canvas = document.getElementById("c");
