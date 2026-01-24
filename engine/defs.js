@@ -64,6 +64,17 @@ export const TOKEN_POOL_BY_PLAYERS = /** @type {const} */ ({
   4: { white: 7, blue: 7, green: 7, red: 7, black: 7, yellow: 5 },
 });
 
+export const NUMBER_NOBLES_BY_PLAYERS = /** @type {const} */ ({
+  // Official rulebook setup:
+  // - 4 gems/color for 2p
+  // - 5 gems/color for 3p
+  // - 7 gems/color for 4p
+  // - gold stays 5 always :contentReference[oaicite:1]{index=1}
+  2: 3,
+  3: 4,
+  4: 5,
+});
+
 /* ------------------------------------------------------------------
    NOBLES (base game, 10 tiles)
    ------------------------------------------------------------------
@@ -75,19 +86,18 @@ export const TOKEN_POOL_BY_PLAYERS = /** @type {const} */ ({
    - 5 “3 + 3 + 3” nobles (three colors)
 */
 
-export const NOBLES = {
-  n_01: { id: "n_01", points: 3, req: { white: 4, blue: 4 } },
-  n_02: { id: "n_02", points: 3, req: { blue: 4, green: 4 } },
-  n_03: { id: "n_03", points: 3, req: { green: 4, red: 4 } },
-  n_04: { id: "n_04", points: 3, req: { red: 4, black: 4 } },
-  n_05: { id: "n_05", points: 3, req: { black: 4, white: 4 } },
-
-  n_06: { id: "n_06", points: 3, req: { white: 3, blue: 3, green: 3 } },
-  n_07: { id: "n_07", points: 3, req: { blue: 3, green: 3, red: 3 } },
-  n_08: { id: "n_08", points: 3, req: { green: 3, red: 3, black: 3 } },
-  n_09: { id: "n_09", points: 3, req: { red: 3, black: 3, white: 3 } },
-  n_10: { id: "n_10", points: 3, req: { black: 3, white: 3, blue: 3 } },
-};
+export const NOBLES = [
+  { id: "n_01", points: 3, req: { white: 4, blue: 4 } },
+  { id: "n_02", points: 3, req: { blue: 4, green: 4 } },
+  { id: "n_03", points: 3, req: { green: 4, red: 4 } },
+  { id: "n_04", points: 3, req: { red: 4, black: 4 } },
+  { id: "n_05", points: 3, req: { black: 4, white: 4 } },
+  { id: "n_06", points: 3, req: { white: 3, blue: 3, green: 3 } },
+  { id: "n_07", points: 3, req: { blue: 3, green: 3, red: 3 } },
+  { id: "n_08", points: 3, req: { green: 3, red: 3, black: 3 } },
+  { id: "n_09", points: 3, req: { red: 3, black: 3, white: 3 } },
+  { id: "n_10", points: 3, req: { black: 3, white: 3, blue: 3 } },
+];
 
 /*
 Card schema:

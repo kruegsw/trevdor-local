@@ -12,6 +12,8 @@ import { render } from "./ui/render.js";
 import { state } from "./engine/state.js";
 import { createUIEvents } from "./ui/events.js";
 
+console.log(state);
+
 const canvas = document.getElementById("c");
 const ctx = canvas.getContext("2d")
 //ctx.imageSmoothingEnabled = false; // for pixel art, otherwise scaled sprites will blur
