@@ -19,7 +19,7 @@ const initialState = (numbersOfPlayers) => {
         tier3: [],
       },
       nobles: [],
-      bank: [],
+      bank: {},
     },
     // turn control
     turn: 1,

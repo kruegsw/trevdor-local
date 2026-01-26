@@ -61,7 +61,7 @@ function resize() {
 
     ctx.setTransform(sx, 0, 0, sy, 0, 0);
 
-    renderer.resize({ width: rect.width, height: rect.height });
+    renderer.resize({ width: rect.width, height: rect.height }, state);
     renderer.draw(state, ui);
 }
 

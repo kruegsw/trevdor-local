@@ -87,36 +87,23 @@ function render(ctx) {
          EXAMPLE OBJECTS (replace these with your real state later)
          --------------------------------------------------------- */
 
-      // Example card (like a shop card or hand card)
-      const card = { x: 20, y: 20, w: 220, h: 120 };
-      drawCard(ctx, card);
-
-      // Register this card as clickable
-      hitRegions.push({
-        id: "card:test",           // stable identifier (later: state.cards[i].id)
-        kind: "card",              // helps your click handler decide what it hit
-        ...clampRectToViewport(card, viewport),
-        z: 10,                     // top-most priority when overlaps happen
-        meta: {
-          // put any gameplay info you want here
-          // e.g. cost: 3, name: "Sword", canBuy: true
-        }
-      });
-
-      // Example token (like a coin / resource token)
-      // NOTE: tokens might be circular visually, but Option A uses rectangles for hit.
-      const token = { x: 280, y: 40, w: 48, h: 48 };
-      drawToken(ctx, token);
-
-      hitRegions.push({
-        id: "token:gold-1",
-        kind: "token",
-        ...clampRectToViewport(token, viewport),
-        z: 20, // if token overlaps card, make token win
-        meta: {
-          value: 1,
-          currency: "gold"
-        }
+      
+      layout.forEach(e => {
+        drawSelect(ctx, e);
+        
+        hitRegions.push({
+          id: e.id,           // stable identifier (later: state.cards[i].id)
+          kind: e.kind,              // helps your click handler decide what it hit
+          ...clampRectToViewport({ x: e.x, y: e.y, w: e.w, h: e.h }, viewport),
+          z: 10,                     // top-most priority when overlaps happen
+          meta: {
+            // put any gameplay info you want here
+            // e.g. cost: 3, name: "Sword", canBuy: true
+            value: 1,
+            currency: "gold"
+          }
+        });
+        
       });
 
       // In a real game, you’d do something like:
@@ -176,6 +163,23 @@ function render(ctx) {
    DRAWING HELPERS
    --------------------------------------------------------- */
 
+function drawSelect(ctx, { id, kind, color, x, y, w, h }) {
+  switch (kind) {
+    case "card":
+      drawCard(ctx, { x, y, w, h } );
+      break;
+    case "token":
+      drawToken(ctx, color, { x, y, w, h } );
+      break;
+    case "noble":
+      drawCard(ctx, { x, y, w, h } ); // update this later to draw a noble card
+      break;
+    // ... more cases ...
+    default:
+      // Code to execute if none of the cases match
+  }
+}
+
 function roundedRectPath(ctx, x, y, w, h, r = 14) {
   ctx.beginPath();
   const radius = Math.min(r, w / 4, h / 4);
@@ -200,14 +204,14 @@ function drawCard(ctx, { x, y, w, h }, fill = "#000000ff", stroke = "rgba(0,0,0,
   Simple token drawing (circle) for demo.
   Hitbox is still a rectangle from the token object in draw().
 */
-function drawToken(ctx, { x, y, w, h }) {
+function drawToken(ctx, color, { x, y, w, h }) {
   const cx = x + w / 2;
   const cy = y + h / 2;
   const r = Math.min(w, h) / 2;
 
   ctx.beginPath();
   ctx.arc(cx, cy, r, 0, Math.PI * 2);
-  ctx.fillStyle = "rgba(255, 215, 0, 0.9)"; // gold-ish
+  ctx.fillStyle = color;
   ctx.fill();
   ctx.strokeStyle = "rgba(0,0,0,.2)";
   ctx.stroke();
