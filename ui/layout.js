@@ -1,11 +1,12 @@
 export function computeLayout({ width, height }) {
 
-  const MARGIN = 10; // edge of board to tokens
-  const CARD_W = 25;
-  const NOBLE_WH = { w: CARD_W, h: 25};
-  const CARD_WH = { w: CARD_W, h: 35};
-  const TOKEN_WH = { w: 15, h: 15};
-  const GAP = 5; // between cards nobles etc
+  const SCALE = 3
+  const MARGIN = 10 * SCALE; // edge of board to tokens
+  const CARD_W = 25 * SCALE;
+  const NOBLE_WH = { w: CARD_W, h: 25 * SCALE};
+  const CARD_WH = { w: CARD_W, h: 35 * SCALE};
+  const TOKEN_WH = { w: 15 * SCALE, h: 15 * SCALE};
+  const GAP = 5 * SCALE; // between cards nobles etc
   const ROW_CARD_NOBLE_XY = [ MARGIN, MARGIN + GAP + CARD_W, MARGIN + GAP*2 + CARD_W*2, MARGIN + GAP*3 + CARD_W*3, MARGIN + GAP*4 + CARD_W*4 ];
   const BANK_TOKEN_Y = MARGIN + GAP*4 + NOBLE_WH.h + CARD_WH.h*3;
 

@@ -52,9 +52,17 @@ const ui = createUIEvents({
 function resize() {
     const dpr = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
+    console.log(rect);
+    console.log(canvas.clientWidth);
+    console.log(canvas.clientHeight);
+    console.log(canvas.parentElement);
 
     canvas.width  = Math.round(rect.width * dpr);
-    canvas.height = Math.round(rect.height * dpr);
+    canvas.height = Math.round(rect.height * dpr); // rect.height does not match browser height
+    console.log(canvas.width);
+    console.log(canvas.height);
+    console.log(window.innerWidth);
+    console.log(window.innerHeight);
 
     const sx = canvas.width  / rect.width;
     const sy = canvas.height / rect.height;
@@ -63,6 +71,19 @@ function resize() {
 
     renderer.resize({ width: rect.width, height: rect.height }, state);
     renderer.draw(state, ui);
+}
+
+function resizeCanvas() {
+  // Use clientWidth and clientHeight to get the element's actual CSS display size
+  const displayWidth = canvas.clientWidth;
+  const displayHeight = canvas.clientHeight;
+
+  // Check if the canvas buffer size needs to be updated to match the display size
+  if (canvas.width !== displayWidth || canvas.height !== displayHeight) {
+    // Set the canvas buffer size
+    canvas.width = displayWidth;
+    canvas.height = displayHeight;
+  }
 }
 
 window.addEventListener("load", resize);
