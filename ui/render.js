@@ -89,19 +89,15 @@ function render(ctx) {
 
       
       layout.forEach(e => {
-        drawSelect(ctx, e);
+        const stateObject = e.statePath ? getByStatePath(state, e.statePath) : null;
+        drawSelect(ctx, stateObject, e);
         
         hitRegions.push({
           id: e.id,           // stable identifier (later: state.cards[i].id)
           kind: e.kind,              // helps your click handler decide what it hit
           ...clampRectToViewport({ x: e.x, y: e.y, w: e.w, h: e.h }, viewport),
-          z: 10,                     // top-most priority when overlaps happen
-          meta: {
-            // put any gameplay info you want here
-            // e.g. cost: 3, name: "Sword", canBuy: true
-            value: 1,
-            currency: "gold"
-          }
+          //z: 10,                     // top-most priority when overlaps happen
+          meta: stateObject
         });
         
       });
@@ -163,16 +159,32 @@ function render(ctx) {
    DRAWING HELPERS
    --------------------------------------------------------- */
 
-function drawSelect(ctx, { id, kind, color, x, y, w, h }) {
+function getByStatePath(state, statePath) {
+  return statePath.reduce(
+    (acc, key) => (acc == null ? undefined : acc[key]),
+    state
+  );
+}
+
+function drawSelect(ctx, stateObject, { id, kind, color, x, y, w, h }) {
   switch (kind) {
-    case "card":
+    case "decks.tier1":
       drawCard(ctx, { x, y, w, h } );
+      break;
+    case "decks.tier2":
+      drawCard(ctx, { x, y, w, h } );
+      break;
+    case "decks.tier3":
+      drawCard(ctx, { x, y, w, h } );
+      break;
+    case "market.card":
+      stateObject ? drawCard(ctx, { x, y, w, h } ) : null;
       break;
     case "token":
       drawToken(ctx, color, { x, y, w, h } );
       break;
     case "noble":
-      drawCard(ctx, { x, y, w, h } ); // update this later to draw a noble card
+      stateObject ? drawCard(ctx, { x, y, w, h } ) : null // update this later to draw a noble card
       break;
     // ... more cases ...
     default:

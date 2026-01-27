@@ -12,7 +12,7 @@ import { render } from "./ui/render.js";
 import { initialState } from "./engine/state.js";
 import { createUIEvents } from "./ui/events.js";
 
-const numbersOfPlayers = 2;
+const numbersOfPlayers = 3;
 let state = initialState(numbersOfPlayers);
 console.log(state);
 
@@ -52,17 +52,17 @@ const ui = createUIEvents({
 function resize() {
     const dpr = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
-    console.log(rect);
-    console.log(canvas.clientWidth);
-    console.log(canvas.clientHeight);
-    console.log(canvas.parentElement);
+    //console.log(rect);
+    //console.log(canvas.clientWidth);
+    //console.log(canvas.clientHeight);
+    //console.log(canvas.parentElement);
 
     canvas.width  = Math.round(rect.width * dpr);
     canvas.height = Math.round(rect.height * dpr); // rect.height does not match browser height
-    console.log(canvas.width);
-    console.log(canvas.height);
-    console.log(window.innerWidth);
-    console.log(window.innerHeight);
+    //console.log(canvas.width);
+    //console.log(canvas.height);
+    //console.log(window.innerWidth);
+    //console.log(window.innerHeight);
 
     const sx = canvas.width  / rect.width;
     const sy = canvas.height / rect.height;
