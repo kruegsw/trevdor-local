@@ -33,12 +33,12 @@ export function computeLayout({ width, height }) {
     { id: "market.cards.tier3-2", kind: "market.card", x: ROW_CARD_NOBLE_XY[2], y: MARGIN + NOBLE_WH.h + GAP*3 + CARD_WH.h*2, w: CARD_WH.w, h: CARD_WH.h, statePath: ["market", "cards", "tier3", 1] },
     { id: "market.cards.tier3-3", kind: "market.card", x: ROW_CARD_NOBLE_XY[3], y: MARGIN + NOBLE_WH.h + GAP*3 + CARD_WH.h*2, w: CARD_WH.w, h: CARD_WH.h, statePath: ["market", "cards", "tier3", 2] },
     { id: "market.cards.tier3-4", kind: "market.card", x: ROW_CARD_NOBLE_XY[4], y: MARGIN + NOBLE_WH.h + GAP*3 + CARD_WH.h*2, w: CARD_WH.w, h: CARD_WH.h, statePath: ["market", "cards", "tier3", 3] },
-    { id: "bank.yellow", kind: "token", color: "yellow", x: MARGIN + GAP, y: BANK_TOKEN_Y, w: TOKEN_WH.w, h: TOKEN_WH.h },
-    { id: "bank.green", kind: "token", color: "green", x: MARGIN + GAP*5 + TOKEN_WH.w, y: BANK_TOKEN_Y, w: TOKEN_WH.w, h: TOKEN_WH.h },
-    { id: "bank.red", kind: "token", color: "red", x: MARGIN + GAP*6 + TOKEN_WH.w*2, y: BANK_TOKEN_Y, w: TOKEN_WH.w, h: TOKEN_WH.h },
-    { id: "bank.blue", kind: "token", color: "blue", x: MARGIN + GAP*7 + TOKEN_WH.w*3, y: BANK_TOKEN_Y, w: TOKEN_WH.w, h: TOKEN_WH.h },
-    { id: "bank.black", kind: "token", color: "black", x: MARGIN + GAP*8 + TOKEN_WH.w*4, y: BANK_TOKEN_Y, w: TOKEN_WH.w, h: TOKEN_WH.h },
-    { id: "bank.white", kind: "token", color: "white", x: MARGIN + GAP*9 + TOKEN_WH.w*5, y: BANK_TOKEN_Y, w: TOKEN_WH.w, h: TOKEN_WH.h }
+    { id: "bank.yellow", kind: "token", color: "yellow", x: MARGIN + GAP, y: BANK_TOKEN_Y, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["market", "bank", "yellow"] },
+    { id: "bank.green", kind: "token", color: "green", x: MARGIN + GAP*5 + TOKEN_WH.w, y: BANK_TOKEN_Y, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["market", "bank", "green"] },
+    { id: "bank.red", kind: "token", color: "red", x: MARGIN + GAP*6 + TOKEN_WH.w*2, y: BANK_TOKEN_Y, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["market", "bank", "red"] },
+    { id: "bank.blue", kind: "token", color: "blue", x: MARGIN + GAP*7 + TOKEN_WH.w*3, y: BANK_TOKEN_Y, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["market", "bank", "blue"] },
+    { id: "bank.black", kind: "token", color: "black", x: MARGIN + GAP*8 + TOKEN_WH.w*4, y: BANK_TOKEN_Y, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["market", "bank", "black"] },
+    { id: "bank.white", kind: "token", color: "white", x: MARGIN + GAP*9 + TOKEN_WH.w*5, y: BANK_TOKEN_Y, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["market", "bank", "white"] }
   ]
 }
 

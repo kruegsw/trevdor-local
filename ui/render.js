@@ -53,15 +53,6 @@ function render(ctx) {
   /*
     hitRegions is rebuilt each frame.
     Each entry is a clickable thing: card, token, button, etc.
-
-    Suggested shape:
-      {
-        id: "some stable id",
-        kind: "card" | "token" | "button" | ...,
-        x, y, w, h,
-        z: number, // draw order (higher = on top)
-        meta: {...} // anything you want: price, cardName, tokenValue, etc.
-      }
   */
   let hitRegions = [];
 
@@ -82,11 +73,6 @@ function render(ctx) {
 
       // Rebuild clickable regions every frame
       hitRegions.length = 0;
-
-      /* ---------------------------------------------------------
-         EXAMPLE OBJECTS (replace these with your real state later)
-         --------------------------------------------------------- */
-
       
       layout.forEach(e => {
         const stateObject = e.statePath ? structuredClone( getByStatePath(state, e.statePath) ) : {};
@@ -196,10 +182,13 @@ function drawSelect(ctx, stateObject, { id, kind, color, x, y, w, h }) {
       });
       break;
     case "token":
-      drawToken(ctx, color, { x, y, w, h } );
+      drawToken(ctx, color, { x, y, w, h }, {
+        count: stateObject
+      } );
       break;
     case "noble":
-      stateObject ? drawCard(ctx, { x, y, w, h } ) : null // update this later to draw a noble card
+      //stateObject ? drawCard(ctx, { x, y, w, h } ) : null // update this later to draw a noble card
+      stateObject ? drawNoble(ctx, { x, y, w, h }, stateObject ) : null
       break;
     // ... more cases ...
     default:
@@ -231,7 +220,7 @@ function drawCard(ctx, { x, y, w, h }, fill = "#000000ff", stroke = "rgba(0,0,0,
   Simple token drawing (circle) for demo.
   Hitbox is still a rectangle from the token object in draw().
 */
-function drawToken(ctx, color, { x, y, w, h }) {
+function drawToken(ctx, color, { x, y, w, h }, { count } ) {
   const cx = x + w / 2;
   const cy = y + h / 2;
   const r = Math.min(w, h) / 2;
@@ -242,6 +231,12 @@ function drawToken(ctx, color, { x, y, w, h }) {
   ctx.fill();
   ctx.strokeStyle = "rgba(0,0,0,.2)";
   ctx.stroke();
+
+  ctx.fillStyle = ( (color === "blue") || (color === "black") ) ? "#E9EEF3" : "rgba(0,0,0,.85)";
+  ctx.font = `700 ${Math.max(12, Math.floor(r * 0.55))}px system-ui, sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(String(count), cx, cy);
 }
 
 export { render };
@@ -267,8 +262,8 @@ export { render };
  rather messy Chat GPT code for drawing cards cards, clean up later
  */
 const GEM_COLORS = {
-  white: "#E9EEF3",
-  blue:  "#2D6CDF",
+  white: "#fff",
+  blue:  "#0000FF",
   green: "#2E9B5F",
   red:   "#D94A4A",
   black: "#2B2B2B",
@@ -287,7 +282,7 @@ const CARD_BACKGROUND_COLORS = {
   green: "#2E9B5F",
   red:   "#D94A4A",
   black: "#2B2B2B",
-  gold:  "#D6B04C",
+  yellow:  "#D6B04C",
   /*white: "white",
   blue: "blue",
   green: "green",
@@ -308,13 +303,15 @@ function drawGem(ctx, cx, cy, r, color, label = "") {
   ctx.lineWidth = 1;
   ctx.stroke();
 
+  /*
   if (label) {
-    ctx.fillStyle = (color === GEM_COLORS.black) ? "#fff" : "rgba(0,0,0,.75)";
+    ctx.fillStyle = ( (color === GEM_COLORS.blue) || (color === GEM_COLORS.black) ) ? "#fff" : "rgba(0,0,0,.75)";
     ctx.font = `${Math.max(10, Math.floor(r * 1.2))}px system-ui, sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(label, cx, cy);
   }
+  */
 }
 
 function drawPip(ctx, x, y, s, color, text) {
@@ -339,8 +336,8 @@ function drawPip(ctx, x, y, s, color, text) {
   ctx.lineWidth = 1;
   ctx.stroke();
 
-  ctx.fillStyle = (color === GEM_COLORS.black) ? "#fff" : "rgba(0,0,0,.85)";
-  ctx.font = `${Math.max(10, Math.floor(s * 0.55))}px system-ui, sans-serif`;
+  ctx.fillStyle = ( (color === GEM_COLORS.blue) || (color === GEM_COLORS.black) ) ? "#E9EEF3" : "rgba(0,0,0,1)";
+  ctx.font = `700 ${Math.max(10, Math.floor(s * 0.55))}px system-ui, sans-serif`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText(String(text), x + s / 2, y + s / 2);
@@ -405,7 +402,7 @@ function drawDevelopmentCard(ctx, { x, y, w, h }, card = {}) {
   roundedRectPath(ctx, x, y, w, h);
   //ctx.fillStyle = rgbToCss(cardRgb, 1);
   //ctx.fill();
-  ctx.fillStyle = GEM_COLORS[bonus];
+  ctx.fillStyle = CARD_BACKGROUND_COLORS[bonus];
   ctx.fill();
 
   // --- header strip (top quarter) clipped to the rounded card
@@ -491,7 +488,7 @@ function drawDeckCard(ctx, { x, y, w, h }, card = {}) {
   // inner inset
   const pad = Math.max(4, Math.floor(Math.min(w, h) * 0.06));
   roundedRectPath(ctx, x + pad, y + pad, w - pad * 2, h - pad * 2);
-  ctx.fillStyle = GEM_COLORS[color];
+  ctx.fillStyle = CARD_BACKGROUND_COLORS[color];
   ctx.fill();
   ctx.strokeStyle = "rgba(0,0,0,.10)";
   ctx.lineWidth = 1;
@@ -512,8 +509,8 @@ function drawDeckCard(ctx, { x, y, w, h }, card = {}) {
 
     // optional banner text
     if (banner) {
-      ctx.fillStyle = "rgba(0,0,0,.55)";
-      ctx.font = `600 ${Math.max(10, Math.floor(h * 0.10))}px system-ui, sans-serif`;
+      ctx.fillStyle = "rgba(0,0,0,1)";
+      ctx.font = `700 ${Math.max(10, Math.floor(h * 0.15))}px system-ui, sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(banner, artX + artW / 2, artY + artH / 2);
@@ -521,6 +518,205 @@ function drawDeckCard(ctx, { x, y, w, h }, card = {}) {
   }
 }
 
+
+
+function drawNoble(ctx, { x, y, w, h }, noble = {}) {
+  const {
+    points = 3,
+    req = {},      // noble requirements
+    banner = "",   // optional center text
+  } = noble;
+
+  const pad = Math.max(4, Math.floor(Math.min(w, h) * 0.06));
+  const stripW = Math.floor(w * 0.25);
+
+    // --- helpers (local)
+  const drawChickenWithCrown = (ctx, area) => {
+    const { x, y, w, h } = area;
+
+    // Fit icon inside area with some padding
+    const p = Math.min(w, h) * 0.08;
+    const ax = x + p, ay = y + p, aw = w - 2 * p, ah = h - 2 * p;
+    const cx = ax + aw * 0.52;
+    const cy = ay + ah * 0.58;
+
+    // scale unit based on smallest dimension
+    const u = Math.min(aw, ah);
+
+    const bodyR = u * 0.28;
+    const headR = u * 0.16;
+
+    // colors
+    const YELLOW = "#F2D34B";
+    const YELLOW_DK = "rgba(0,0,0,0.18)";
+    const ORANGE = "#E08A2E";
+    const RED = "#D94A4A";
+    const CROWN = "#D6B04C";
+
+    // --- body (big circle)
+    ctx.beginPath();
+    ctx.arc(cx, cy, bodyR, 0, Math.PI * 2);
+    ctx.fillStyle = YELLOW;
+    ctx.fill();
+    ctx.strokeStyle = YELLOW_DK;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // --- wing (small circle on left)
+    ctx.beginPath();
+    ctx.arc(cx - bodyR * 0.35, cy + bodyR * 0.05, bodyR * 0.45, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(255,255,255,0.25)";
+    ctx.fill();
+
+    // --- head (circle above-right)
+    const hx = cx + bodyR * 0.55;
+    const hy = cy - bodyR * 0.55;
+    ctx.beginPath();
+    ctx.arc(hx, hy, headR, 0, Math.PI * 2);
+    ctx.fillStyle = YELLOW;
+    ctx.fill();
+    ctx.strokeStyle = YELLOW_DK;
+    ctx.stroke();
+
+    // --- beak (triangle)
+    ctx.beginPath();
+    ctx.moveTo(hx + headR * 0.95, hy);
+    ctx.lineTo(hx + headR * 1.55, hy - headR * 0.25);
+    ctx.lineTo(hx + headR * 1.55, hy + headR * 0.25);
+    ctx.closePath();
+    ctx.fillStyle = ORANGE;
+    ctx.fill();
+    ctx.strokeStyle = "rgba(0,0,0,0.15)";
+    ctx.stroke();
+
+    // --- comb (3 bumps)
+    const combY = hy - headR * 0.95;
+    ctx.fillStyle = RED;
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.arc(hx - headR * 0.55 + i * headR * 0.45, combY, headR * 0.22, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // --- eye (dot)
+    ctx.beginPath();
+    ctx.arc(hx + headR * 0.2, hy - headR * 0.1, Math.max(1.5, headR * 0.12), 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(0,0,0,0.85)";
+    ctx.fill();
+
+    // --- crown (simple 3-point crown) on top of head
+    const crownW = headR * 1.55;
+    const crownH = headR * 0.9;
+    const crownX = hx - crownW * 0.5;
+    const crownY = hy - headR * 1.45;
+
+    ctx.beginPath();
+    ctx.moveTo(crownX, crownY + crownH);
+    ctx.lineTo(crownX + crownW * 0.15, crownY + crownH * 0.35);
+    ctx.lineTo(crownX + crownW * 0.35, crownY + crownH);
+    ctx.lineTo(crownX + crownW * 0.5, crownY + crownH * 0.25);
+    ctx.lineTo(crownX + crownW * 0.65, crownY + crownH);
+    ctx.lineTo(crownX + crownW * 0.85, crownY + crownH * 0.35);
+    ctx.lineTo(crownX + crownW, crownY + crownH);
+    ctx.closePath();
+    ctx.fillStyle = CROWN;
+    ctx.fill();
+    ctx.strokeStyle = "rgba(0,0,0,0.18)";
+    ctx.stroke();
+
+    // crown jewels (dots)
+    ctx.fillStyle = "rgba(255,255,255,0.65)";
+    const jewelR = Math.max(1.5, headR * 0.12);
+    const jy = crownY + crownH * 0.75;
+    [0.25, 0.5, 0.75].forEach((t) => {
+      ctx.beginPath();
+      ctx.arc(crownX + crownW * t, jy, jewelR, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  };
+
+  // --- base card (light grey)
+  roundedRectPath(ctx, x, y, w, h);
+  ctx.fillStyle = "#E9EEF3";
+  ctx.fill();
+
+  // --- left solid white strip
+  ctx.save();
+  roundedRectPath(ctx, x, y, w, h);
+  ctx.clip();
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillRect(x, y, stripW, h);
+  ctx.restore();
+
+  // --- outer black border
+  roundedRectPath(ctx, x, y, w, h);
+  ctx.strokeStyle = "rgba(0,0,0,1)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // --- points (top of strip)
+  if (points > 0) {
+    ctx.fillStyle = "rgba(0,0,0,0.9)";
+    ctx.font = `700 ${Math.max(12, Math.floor(h * 0.22))}px system-ui, sans-serif`;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    ctx.fillText(String(points), x + pad, y + pad * 0.8);
+  }
+
+  // --- requirements stacked vertically
+  const order = ["white", "blue", "green", "red", "black"];
+  const entries = order
+    .map(c => [c, req[c] ?? 0])
+    .filter(([, n]) => n > 0);
+
+  if (entries.length) {
+    const pipSize = Math.max(12, Math.floor(Math.min(w, h) * 0.16));
+    const gap = Math.max(3, Math.floor(pipSize * 0.18));
+
+    let cy =
+      y +
+      pad +
+      Math.max(16, Math.floor(h * 0.22)) +
+      gap;
+
+    for (const [c, n] of entries) {
+      drawPip(ctx, x + pad, cy, pipSize, GEM_COLORS[c] || "#ccc", n);
+      cy += pipSize + gap;
+
+      if (cy > y + h - pad - pipSize) break;
+    }
+  }
+
+  // --- chicken "art" on the right 3/4
+  {
+    const area = {
+      x: x + stripW,
+      y: y,
+      w: w - stripW,
+      h: h,
+    };
+
+    // clip to the noble rounded rect so the art doesn't spill
+    ctx.save();
+    roundedRectPath(ctx, x, y, w, h);
+    ctx.clip();
+    drawChickenWithCrown(ctx, area);
+    ctx.restore();
+  }
+
+  // --- optional banner (center-right)
+  if (banner) {
+    ctx.fillStyle = "rgba(0,0,0,.35)";
+    ctx.font = `600 ${Math.max(10, Math.floor(h * 0.14))}px system-ui, sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(
+      banner,
+      x + stripW + (w - stripW) / 2,
+      y + h / 2
+    );
+  }
+}
 
 
 /*
