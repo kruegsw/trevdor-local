@@ -169,16 +169,25 @@ function getByStatePath(state, statePath) {
 function drawSelect(ctx, stateObject, { id, kind, color, x, y, w, h }) {
   switch (kind) {
     case "decks.tier1":
-      drawCard(ctx, { x, y, w, h } );
+      //drawCard(ctx, { x, y, w, h } );
+      drawDeckCard(ctx, { x, y, w, h }, {
+        color: "green"
+      } );
       break;
     case "decks.tier2":
-      drawCard(ctx, { x, y, w, h } );
+      //drawCard(ctx, { x, y, w, h } );
+      drawDeckCard(ctx, { x, y, w, h }, {
+        color: "yellow"
+      } );
       break;
     case "decks.tier3":
-      drawCard(ctx, { x, y, w, h } );
+      //drawCard(ctx, { x, y, w, h } );
+      drawDeckCard(ctx, { x, y, w, h }, {
+        color: "blue"
+      } );
       break;
     case "market.card":
-      stateObject ? drawCard(ctx, { x, y, w, h } ) : null;
+      //stateObject ? drawCard(ctx, { x, y, w, h } ) : null;
       drawDevelopmentCard(ctx, { x, y, w, h }, {
         points: stateObject.points,
         bonus: stateObject.bonus,
@@ -238,13 +247,24 @@ function drawToken(ctx, color, { x, y, w, h }) {
 export { render };
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /**
- * Draw a Splendor-like development card (simple):
- * - Base card filled with a low-sat-ish bonus color
- * - Top 1/4 header is a semi-transparent mix of (baseColor + white)
- * - Outer black border only
- * - Points top-left, bonus gem top-right
- * - Cost pips along the bottom
+ rather messy Chat GPT code for drawing cards cards, clean up later
  */
 const GEM_COLORS = {
   white: "#E9EEF3",
@@ -252,7 +272,22 @@ const GEM_COLORS = {
   green: "#2E9B5F",
   red:   "#D94A4A",
   black: "#2B2B2B",
-  //gold:  "#D6B04C",
+  yellow:  "#D6B04C",
+  /*white: "white",
+  blue: "blue",
+  green: "green",
+  red: "red",
+  black: "black",
+  yellow: "yellow",*/
+};
+
+const CARD_BACKGROUND_COLORS = {
+  white: "#E9EEF3",
+  blue:  "#2D6CDF",
+  green: "#2E9B5F",
+  red:   "#D94A4A",
+  black: "#2B2B2B",
+  gold:  "#D6B04C",
   /*white: "white",
   blue: "blue",
   green: "green",
@@ -356,7 +391,7 @@ function drawDevelopmentCard(ctx, { x, y, w, h }, card = {}) {
   const headerH = Math.floor(h * 0.25);
 
   // base color derived from bonus (or overridden via bg)
-  const baseHex = bg || GEM_COLORS[bonus] || "#cccccc";
+  const baseHex = bg || CARD_BACKGROUND_COLORS[bonus] || "#cccccc";
   const baseRgb = hexToRgb(baseHex);
 
   // make the whole card slightly less saturated so it reads "pastel"
@@ -368,7 +403,9 @@ function drawDevelopmentCard(ctx, { x, y, w, h }, card = {}) {
 
   // --- base card
   roundedRectPath(ctx, x, y, w, h);
-  ctx.fillStyle = rgbToCss(cardRgb, 1);
+  //ctx.fillStyle = rgbToCss(cardRgb, 1);
+  //ctx.fill();
+  ctx.fillStyle = GEM_COLORS[bonus];
   ctx.fill();
 
   // --- header strip (top quarter) clipped to the rounded card
@@ -425,7 +462,7 @@ function drawDevelopmentCard(ctx, { x, y, w, h }, card = {}) {
 
     let cx = startX;
     for (const [c, n] of entries) {
-      drawPip(ctx, cx, yBottom, pipSize, c || "#ccc", n);
+      drawPip(ctx, cx, yBottom, pipSize, GEM_COLORS[c] || "#ccc", n);
       cx += pipSize + gap;
       if (cx > x + w - pad - pipSize) break;
     }
@@ -433,8 +470,56 @@ function drawDevelopmentCard(ctx, { x, y, w, h }, card = {}) {
 }
 
 
+function drawDeckCard(ctx, { x, y, w, h }, card = {}) {
+  const {
+    //points = 0,
+    color = "white",
+    //cost = {},
+    banner = "Trevdor",
+    bg = "white",
+  } = card;
+
+  // --- card base
+  roundedRectPath(ctx, x, y, w, h);
+  ctx.fillStyle = bg;
+  ctx.fill();
+  ctx.strokeStyle = "rgba(0,0,0,1)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  
+
+  // inner inset
+  const pad = Math.max(4, Math.floor(Math.min(w, h) * 0.06));
+  roundedRectPath(ctx, x + pad, y + pad, w - pad * 2, h - pad * 2);
+  ctx.fillStyle = GEM_COLORS[color];
+  ctx.fill();
+  ctx.strokeStyle = "rgba(0,0,0,.10)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
 
 
+
+  // --- middle area: faint "art" panel (placeholder)
+  {
+    const artX = x + pad * 1.2;
+    const artY = y + pad * 2.2;
+    const artW = w - pad * 2.4;
+    const artH = h * 0.55;
+
+    roundedRectPath(ctx, artX, artY, artW, artH);
+    ctx.fillStyle = "rgba(0,0,0,.1)";
+    ctx.fill();
+
+    // optional banner text
+    if (banner) {
+      ctx.fillStyle = "rgba(0,0,0,.55)";
+      ctx.font = `600 ${Math.max(10, Math.floor(h * 0.10))}px system-ui, sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(banner, artX + artW / 2, artY + artH / 2);
+    }
+  }
+}
 
 
 
