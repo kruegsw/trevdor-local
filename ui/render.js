@@ -88,9 +88,6 @@ function render(ctx) {
         
       });
 
-      // In a real game, you’d do something like:
-      // for (const card of state.shopCards) { draw + push hit }
-      // for (const token of state.tokens)    { draw + push hit }
     },
 
     /*
