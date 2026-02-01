@@ -81,6 +81,9 @@ function render(ctx) {
         hitRegions.push({
           id: e.id,           // stable identifier (later: state.cards[i].id)
           kind: e.kind,              // helps your click handler decide what it hit
+          tier: e.tier ?? null,
+          index: e.index ?? null,
+          color: e.color ?? null,
           ...clampRectToViewport({ x: e.x, y: e.y, w: e.w, h: e.h }, viewport),
           //z: 10,                     // top-most priority when overlaps happen
           meta: stateObject

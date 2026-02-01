@@ -26,7 +26,7 @@ export function createUIController({ getState, uiState, requestDraw }) {
     onUIAction(uiAction) {
       switch (uiAction.type) {
         case "click": {
-          handleClick(uiState, uiAction.hit);
+          handleClick(getState, uiState, uiAction.hit);
           console.log("Clicked:", uiAction.hit);
           console.log(uiState)
           break;
