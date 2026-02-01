@@ -11,9 +11,12 @@ export function createUIState() {
     pressed: null,   // hitRegion | null
 
     // UI-only selections (never sent to reducer/server)
-    pendingPicks: {},
+    pending: {
+      tokens: { /*white: 0, blue: 0, green: 0, red: 0, black: 0, yellow: 0*/ },
+      card: null
+    },
 
     // Future-proofing:
-    mode: "idle", // "idle" | "pickingTokens" | "selectingCard" | etc
+    mode: "idle", // "idle" | "takeTokens" | "buyCard" | etc
   };
 }

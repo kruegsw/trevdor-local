@@ -24,7 +24,6 @@ const initialState = (numbersOfPlayers) => {
     // turn control
     turn: 1,
     activePlayerIndex: 0,
-    phase: "turn", // or "selectTokens", "buy", etc.
     log: [], // optional: helps debugging
   };
 

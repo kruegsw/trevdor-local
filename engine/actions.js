@@ -10,7 +10,7 @@ export const Actions = {
   // ----- tokens -----
   takeTokens: (picks) => ({
     type: "TAKE_TOKENS",
-    picks, // { red:1, blue:1, green:1 }
+    tokens, // { red:1, blue:1, green:1 }
   }),
 
   // ----- cards -----

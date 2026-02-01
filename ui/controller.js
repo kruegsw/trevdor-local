@@ -1,6 +1,7 @@
 // ui/controller.js
 import { Actions } from "../engine/actions.js";
 import { applyAction } from "../engine/reducer.js";
+import { handleClick } from "./handlers/handleClick.js"
 
 /**
  * UI Controller:
@@ -16,70 +17,7 @@ export function createUIController({ getState, uiState, requestDraw }) {
   if (!requestDraw) throw new Error("createUIController: requestDraw is required");
 
   // Ensure pendingPicks exists (UI-only)
-  uiState.pendingPicks ??= {};
-
-  function clearPendingPicks() {
-    uiState.pendingPicks = {};
-  }
-
-  function totalPicks() {
-    return Object.values(uiState.pendingPicks).reduce((s, n) => s + n, 0);
-  }
-
-  // Simple toggle: 0 -> 1 -> 0
-  function togglePick(color) {
-    const picks = uiState.pendingPicks;
-    if (picks[color]) delete picks[color];
-    else picks[color] = 1;
-  }
-
-  function handleClick(hit) {
-    // 1) Clicked empty space => clear UI selection
-    if (!hit) {
-      clearPendingPicks();
-      requestDraw();
-      return;
-    }
-
-    // 2) Token pile => toggle UI-only picks (limit total to 3)
-    if (hit.kind === "token") {
-      togglePick(hit.color);
-
-      if (totalPicks() > 3) {
-        // undo (simple constraint)
-        togglePick(hit.color);
-      }
-
-      requestDraw();
-      return;
-    }
-
-    // 3) Confirm => commit picks to game state (real action)
-    if (hit.kind === "button" && hit.id === "confirm") {
-      if (totalPicks() > 0) {
-        const action = Actions.takeTokens(uiState.pendingPicks);
-
-        // reducer mutates state in place
-        applyAction(getState(), action);
-
-        clearPendingPicks();
-      }
-
-      requestDraw();
-      return;
-    }
-
-    // 4) Cancel => clear UI-only picks
-    if (hit.kind === "button" && hit.id === "cancel") {
-      clearPendingPicks();
-      requestDraw();
-      return;
-    }
-
-    // 5) Later: cards, nobles, reserve, buy, etc.
-    console.log("Clicked:", hit);
-    requestDraw();
-  }
+  uiState.pendingAction ??= "";
 
   return {
     /**
@@ -88,7 +26,9 @@ export function createUIController({ getState, uiState, requestDraw }) {
     onUIAction(uiAction) {
       switch (uiAction.type) {
         case "click": {
-          handleClick(uiAction.hit);
+          handleClick(uiState, uiAction.hit);
+          console.log("Clicked:", uiAction.hit);
+          console.log(uiState)
           break;
         }
 
@@ -119,7 +59,8 @@ export function createUIController({ getState, uiState, requestDraw }) {
         default: {
           console.warn("Unhandled UI action:", uiAction);
         }
-      }
+      };
+      requestDraw();
     },
 
     /**
@@ -131,7 +72,7 @@ export function createUIController({ getState, uiState, requestDraw }) {
     },
 
     // Optional helpers if you want them elsewhere
-    clearPendingPicks,
-    totalPicks,
+    //clearPendingPicks,
+    //totalPicks,
   };
 }
