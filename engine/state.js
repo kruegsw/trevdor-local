@@ -59,10 +59,10 @@ function filterTier (deck, tier) {
   return filteredDeck;
 };
 
-function createPlayer (index) {
+function createPlayer (number) {
   const player = {
-    id: `p${index + 1}`,
-    name: `Player ${index + 1}`,
+    id: `p${number}`,
+    name: `Player ${number}`,
     cards: [],
     reserved: [],
     nobles: [],
