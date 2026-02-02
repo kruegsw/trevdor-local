@@ -27,15 +27,36 @@ export function handleClick(getState, uiState, hit) {
         return Object.values(tokens).reduce((sum, n) => sum + n, 0);
     }
 
-    function rulesCheck({action, color = null, card = null}) {
+    function countMaxPerColor(tokens) {
+        return Object.values(tokens).reduce((max, n) => Math.max(max, n), 0);
+    }
+
+    function countOfColors(tokens) {
+        return Object.keys(tokens).reduce((count) => {count + 1}, 0);
+    }
+
+    function rulesCheck({action, color, card}) {
+        console.log({action, color, card});
+        let check = true
         switch (action) {
             case "takeToken":
-                return state.market.bank[color] > 0
-            case "takeSecondColorToken":
-                return ( state.market.bank[color] - uiState.pending.tokens[color] ) > 2
+                if (state.market.bank[color] < 1) {check = false} // bank has at least one token of that color
+                if (countPendingTokens(uiState.pending.tokens) > 2) {check = false} // cannot take more than 3 tokens
+                if (countMaxPerColor(uiState.pending.tokens) > 1) {check = false} // cannot have two tokens of the same color in-hand
+                if (uiState.pending.tokens[color] &&  // if taking a second token of the same color already pending ...
+                    countPendingTokens(uiState.pending.tokens) > 1 && // ... the first token must be the only other token in pending
+                    state.market.bank[color] > 3 // ... and the bank must have 4 tokens of that color
+                ) {check = false}
+                // ==================== CANNOT HAVE MORE THAN 10 TOKENS ===========================
+                break;
+            case "buyCard":
+                // max 3 reserved cards
+                // can buy either market or reserved card
+                break;
             default:
                 break;
         }
+        return check
     }
 
     // 1) Clicked empty space => clear UI selection
@@ -55,46 +76,15 @@ export function handleClick(getState, uiState, hit) {
                 addTokenToPending(hit.color);
                 uiState.mode = "reserveCard";
             }
-            return
         // red blue green black white --> take tokens
         } else {
-
-
-
-
-            uiState.mode = "takeTokens";
             delete uiState.pending.tokens.yellow;
             clearPendingCard();
-
-            if ( uiState.pending.tokens[hit.color] ) {
-                // RULE:  cannot take > 2 tokens same color
-                if ( countPendingTokens(uiState.pending.tokens) > 1 ) {
-                    clearPending();
-                    uiState.mode = "idle";
-                    throw new Error("You may only take two of the same color token.");
-                    return
-                } else {
-                    addTokenToPending(hit.color)
-                    return
-                }
-            }
-
-            // RULE:  cannot take > 3 total tokens
-            if ( countPendingTokens(uiState.pending.tokens) < 3 ) {
+            if ( rulesCheck({action: "takeToken", color: hit.color}) ) {
                 addTokenToPending(hit.color);
-                return
-            } else {
-                clearPending();
-                uiState.mode = "idle";
-                throw new Error("You may only take three total tokens.");
-                return
+                uiState.mode = "takeTokens";
             }
         }
-
-
-
-        
-
         return;
     }
 
