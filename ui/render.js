@@ -75,8 +75,8 @@ function render(ctx) {
       hitRegions.length = 0;
       
       layout.forEach(e => {
-        const stateObject = e.statePath ? structuredClone( getByStatePath(state, e.statePath) ) : {};
-        drawSelect(ctx, stateObject, e);
+        const stateObject = e.statePath ? getByStatePath(state, e.statePath) : {};
+        drawSelect(ctx, stateObject, e, uiState);
         
         hitRegions.push({
           id: e.id,           // stable identifier (later: state.cards[i].id)
@@ -152,7 +152,7 @@ function getByStatePath(state, statePath) {
   );
 }
 
-function drawSelect(ctx, stateObject, { id, kind, color, x, y, w, h }) {
+function drawSelect(ctx, stateObject, { id, kind, color, x, y, w, h }, uiState) {
   switch (kind) {
     case "decks.tier1":
       //drawCard(ctx, { x, y, w, h } );
@@ -190,7 +190,9 @@ function drawSelect(ctx, stateObject, { id, kind, color, x, y, w, h }) {
       //stateObject ? drawCard(ctx, { x, y, w, h } ) : null // update this later to draw a noble card
       stateObject ? drawNoble(ctx, { x, y, w, h }, stateObject ) : null
       break;
-    // ... more cases ...
+    case "player.panel.bottom":
+      drawPlayerPanelBottom(ctx, { x, y, w, h }, stateObject);
+      break;
     default:
       // Code to execute if none of the cases match
   }
@@ -719,153 +721,221 @@ function drawNoble(ctx, { x, y, w, h }, noble = {}) {
 }
 
 
-/*
+function drawPlayerPanelBottom(ctx, { x, y, w, h }, player) {
+  // --- Board piece sizes (must match layout.js)
+  const SCALE = 3;
+  const GAP = 5 * SCALE;
+  const CARD_WH  = { w: 25 * SCALE, h: 35 * SCALE };
+  const NOBLE_WH = { w: 25 * SCALE, h: 25 * SCALE };
+  const TOKEN_WH = { w: 15 * SCALE, h: 15 * SCALE };
 
-// Assumes you already have roundedRectPath(ctx, x, y, w, h)
-
-const GEM_COLORS = {
-  white: "#E9EEF3",
-  blue:  "#2D6CDF",
-  green: "#2E9B5F",
-  red:   "#D94A4A",
-  black: "#2B2B2B",
-  gold:  "#D6B04C",
-};
-
-function drawGem(ctx, cx, cy, r, color, label = "") {
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, Math.PI * 2);
-  ctx.fillStyle = color;
+  // --- Panel frame
+  roundedRectPath(ctx, x, y, w, h, 14);
+  ctx.fillStyle = "rgba(245,245,245,1)";
   ctx.fill();
-
-  // subtle outline
-  ctx.strokeStyle = "rgba(0,0,0,.18)";
+  ctx.strokeStyle = "rgba(0,0,0,1)";
   ctx.lineWidth = 1;
   ctx.stroke();
 
-  if (label) {
-    ctx.fillStyle = (color === GEM_COLORS.black) ? "#fff" : "rgba(0,0,0,.75)";
-    ctx.font = `${Math.max(10, Math.floor(r * 1.2))}px system-ui, sans-serif`;
+  const pad = GAP;
+  const innerX = x + pad;
+  const innerY = y + pad;
+  const innerW = w - pad * 2;
+  const innerH = h - pad * 2;
+
+  // --- Title
+  const title = player?.name ?? "Player 1";
+  ctx.fillStyle = "rgba(0,0,0,.9)";
+  ctx.font = `700 ${14 * SCALE}px system-ui, sans-serif`;
+  ctx.textAlign = "left";
+  ctx.textBaseline = "top";
+  ctx.fillText(title, innerX, innerY);
+
+  if (!player) return;
+
+  const tokens   = player.tokens   ?? {};
+  const cards    = player.cards    ?? [];
+  const reserved = player.reserved ?? [];
+  const nobles   = player.nobles   ?? [];
+
+  let cy = innerY + (16 * SCALE) + GAP;
+
+  // ------------------------------------------------------------------
+  // TOKENS ROW (full-size tokens)
+  // ------------------------------------------------------------------
+  const tokenOrder = ["white", "blue", "green", "red", "black", "yellow"];
+  let tx = innerX;
+
+  for (const c of tokenOrder) {
+    drawToken(ctx, c, { x: tx, y: cy, w: TOKEN_WH.w, h: TOKEN_WH.h }, {
+      count: tokens[c] ?? 0
+    });
+    tx += TOKEN_WH.w + GAP;
+  }
+
+  // ------------------------------------------------------------------
+  // RESERVED (full-size cards, fanned)
+  // ------------------------------------------------------------------
+  const reservedX = innerX + Math.min(
+    Math.floor(innerW * 0.55),
+    (TOKEN_WH.w + GAP) * tokenOrder.length + GAP
+  );
+
+  ctx.fillStyle = "rgba(0,0,0,.7)";
+  ctx.font = `600 ${11 * SCALE}px system-ui, sans-serif`;
+  ctx.textBaseline = "top";
+  ctx.fillText("Reserved", reservedX, cy - (12 * SCALE));
+
+  // ------------------------------------------------------------------
+  // RESERVED (sideways, NOT stacked; laid out left-to-right)
+  // ------------------------------------------------------------------
+  const maxReserved = 3;
+
+  ctx.fillStyle = "rgba(0,0,0,.7)";
+  ctx.font = `600 ${11 * SCALE}px system-ui, sans-serif`;
+  ctx.textBaseline = "top";
+  ctx.textAlign = "left";
+  ctx.fillText("Reserved", reservedX, cy - (12 * SCALE));
+
+  // When rotated 90°, a card's bounding box becomes (CARD_WH.h wide) x (CARD_WH.w tall)
+  const rotW = CARD_WH.h;
+  const rotH = CARD_WH.w;
+
+  for (let i = 0; i < maxReserved; i++) {
+    const card = reserved[i]; // may be undefined if fewer than maxReserved
+
+    const slotX = reservedX + i * (rotW + GAP);
+    const slotY = cy;
+
+    ctx.save();
+
+    // Rotate around the center of this reserved "slot"
+    ctx.translate(
+      Math.round(slotX + rotW / 2),
+      Math.round(slotY + rotH / 2)
+    );
+    ctx.rotate(Math.PI / 2);
+
+
+    if (card) {
+      // Draw the full-size card rotated
+      drawDevelopmentCard(
+        ctx,
+        { x: -CARD_WH.w / 2, y: -CARD_WH.h / 2, w: CARD_WH.w, h: CARD_WH.h },
+        card
+      );
+    } else {
+      // Empty placeholder (so you always see 3 slots)
+      roundedRectPath(ctx, -CARD_WH.w / 2, -CARD_WH.h / 2, CARD_WH.w, CARD_WH.h, 10);
+      ctx.strokeStyle = "rgba(0,0,0,.25)";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+
+  cy += Math.max(TOKEN_WH.h, CARD_WH.h) + GAP;
+
+  // ------------------------------------------------------------------
+  // PURCHASED CARD STACKS (grouped by bonus)
+  // ------------------------------------------------------------------
+  ctx.fillStyle = "rgba(0,0,0,.7)";
+  ctx.font = `600 ${11 * SCALE}px system-ui, sans-serif`;
+  ctx.fillText("Cards", innerX, cy);
+
+  const stacksTop = cy + (12 * SCALE);
+  const grouped = groupCardsByBonus(cards, ["white","blue","green","red","black","yellow"]);
+
+  let sx = innerX;
+  for (const color of ["white","blue","green","red","black","yellow"]) {
+    const pile = grouped[color] ?? [];
+
+    drawStackWithPeek(ctx, pile, {
+      x: sx,
+      y: stacksTop,
+      w: CARD_WH.w,
+      h: CARD_WH.h,
+      peek: Math.floor(CARD_WH.h * 0.25),
+      maxVisible: 6,
+    });
+
+    ctx.fillStyle = "rgba(0,0,0,.75)";
+    ctx.font = `600 ${10 * SCALE}px system-ui, sans-serif`;
     ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(label, cx, cy);
-  }
-}
-
-function drawPip(ctx, x, y, s, color, text) {
-  // rounded square pip (cost token)
-  const r = Math.max(2, Math.floor(s * 0.18));
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + s - r, y);
-  ctx.quadraticCurveTo(x + s, y, x + s, y + r);
-  ctx.lineTo(x + s, y + s - r);
-  ctx.quadraticCurveTo(x + s, y + s, x + s - r, y + s);
-  ctx.lineTo(x + r, y + s);
-  ctx.quadraticCurveTo(x, y + s, x, y + s - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x + r, y);
-  ctx.closePath();
-
-  ctx.fillStyle = color;
-  ctx.fill();
-
-  ctx.strokeStyle = "rgba(0,0,0,.18)";
-  ctx.lineWidth = 1;
-  ctx.stroke();
-
-  ctx.fillStyle = (color === GEM_COLORS.black) ? "#fff" : "rgba(0,0,0,.85)";
-  ctx.font = `${Math.max(10, Math.floor(s * 0.55))}px system-ui, sans-serif`;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText(String(text), x + s / 2, y + s / 2);
-}
-
-function drawDevelopmentCard(ctx, { x, y, w, h }, card = {}) {
-  const {
-    points = 0,
-    bonus = "white",
-    cost = {},
-    banner = "",
-    bg = "#F6F2E8",
-  } = card;
-
-  // --- card base
-  roundedRectPath(ctx, x, y, w, h);
-  ctx.fillStyle = bg;
-  ctx.fill();
-  ctx.strokeStyle = "rgba(0,0,0,.18)";
-  ctx.lineWidth = 1;
-  ctx.stroke();
-
-  // inner inset
-  const pad = Math.max(4, Math.floor(Math.min(w, h) * 0.06));
-  roundedRectPath(ctx, x + pad, y + pad, w - pad * 2, h - pad * 2);
-  ctx.strokeStyle = "rgba(0,0,0,.10)";
-  ctx.lineWidth = 1;
-  ctx.stroke();
-
-  // --- top-left: prestige points
-  if (points > 0) {
-    const px = x + pad * 1.2;
-    const py = y + pad * 1.05;
-    ctx.fillStyle = "rgba(0,0,0,.85)";
-    ctx.font = `700 ${Math.max(12, Math.floor(h * 0.20))}px system-ui, sans-serif`;
-    ctx.textAlign = "left";
     ctx.textBaseline = "top";
-    ctx.fillText(String(points), px, py);
+    ctx.fillText(`${pile.length}`, sx + CARD_WH.w / 2, stacksTop + CARD_WH.h + 2);
+
+    sx += CARD_WH.w + GAP;
   }
 
-  // --- top-right: bonus gem icon
-  {
-    const r = Math.max(6, Math.floor(Math.min(w, h) * 0.12));
-    const cx = x + w - pad * 1.2 - r;
-    const cy = y + pad * 1.2 + r;
-    drawGem(ctx, cx, cy, r, GEM_COLORS[bonus] || "#ccc", "");
-  }
+  // ------------------------------------------------------------------
+  // NOBLES ROW (full-size nobles)
+  // ------------------------------------------------------------------
+  const noblesLabelY = y + h - pad - NOBLE_WH.h - (12 * SCALE) - GAP;
+  const noblesRowY = noblesLabelY + (12 * SCALE);
 
-  // --- middle area: faint "art" panel (placeholder)
-  {
-    const artX = x + pad * 1.2;
-    const artY = y + pad * 2.2;
-    const artW = w - pad * 2.4;
-    const artH = h * 0.55;
+  ctx.fillStyle = "rgba(0,0,0,.7)";
+  ctx.font = `600 ${11 * SCALE}px system-ui, sans-serif`;
+  ctx.textAlign = "left";
+  ctx.textBaseline = "top";
+  ctx.fillText("Nobles", innerX, noblesLabelY);
 
-    roundedRectPath(ctx, artX, artY, artW, artH);
-    ctx.fillStyle = "rgba(0,0,0,.04)";
-    ctx.fill();
-
-    // optional banner text
-    if (banner) {
-      ctx.fillStyle = "rgba(0,0,0,.55)";
-      ctx.font = `600 ${Math.max(10, Math.floor(h * 0.10))}px system-ui, sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(banner, artX + artW / 2, artY + artH / 2);
-    }
-  }
-
-  // --- bottom: cost pips (left-to-right like Splendor)
-  // order commonly used visually (you can change)
-  const order = ["white", "blue", "green", "red", "black"];
-  const entries = order
-    .map((c) => [c, cost[c] ?? 0])
-    .filter(([, n]) => n > 0);
-
-  if (entries.length) {
-    const pipSize = Math.max(12, Math.floor(Math.min(w, h) * 0.16));
-    const gap = Math.max(3, Math.floor(pipSize * 0.18));
-    const startX = x + pad * 1.2;
-    const yBottom = y + h - pad * 1.2 - pipSize;
-
-    let cx = startX;
-    for (const [c, n] of entries) {
-      drawPip(ctx, cx, yBottom, pipSize, GEM_COLORS[c] || "#ccc", n);
-      cx += pipSize + gap;
-      // stop if we run out of space
-      if (cx > x + w - pad - pipSize) break;
-    }
+  let nx = innerX;
+  for (let i = 0; i < Math.min(3, nobles.length); i++) {
+    drawNoble(ctx, { x: nx, y: noblesRowY, w: NOBLE_WH.w, h: NOBLE_WH.h }, nobles[i]);
+    nx += NOBLE_WH.w + GAP;
   }
 }
 
-*/
+/* -----------------------
+   Helpers for the panel
+   ----------------------- */
+
+function groupCardsByBonus(cards, colors) {
+  const out = {};
+  for (const c of colors) out[c] = [];
+  for (const card of (cards ?? [])) {
+    const b = card?.bonus ?? "white";
+    (out[b] ??= []).push(card);
+  }
+  return out;
+}
+
+// Draw up to N cards, slightly offset (for reserved)
+function drawFannedCards(ctx, cards, { x, y, w, h, max = 3, dx = 8, dy = 0 }) {
+  const n = Math.min(max, cards?.length ?? 0);
+  for (let i = 0; i < n; i++) {
+    const card = cards[i];
+    drawDevelopmentCard(ctx, { x: x + i * dx, y: y + i * dy, w, h }, card);
+  }
+
+  // If zero, draw placeholder outline
+  if (n === 0) {
+    roundedRectPath(ctx, x, y, w, h, 10);
+    ctx.strokeStyle = "rgba(0,0,0,.25)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+}
+
+// Draw a "stack" where only the top quarter of each below card shows
+function drawStackWithPeek(ctx, cards, { x, y, w, h, peek, maxVisible = 6 }) {
+  const n = Math.min(maxVisible, cards?.length ?? 0);
+
+  // Draw from top -> bottom so the bottom-most (largest y) is drawn last and ends up on top.
+  for (let i = 0; i < n; i++) {
+    const card = cards[i];
+    const yy = y + (i * peek);
+    drawDevelopmentCard(ctx, { x, y: yy, w, h }, card);
+  }
+
+  // placeholder if empty
+  if (n === 0) {
+    roundedRectPath(ctx, x, y, w, h, 10);
+    ctx.strokeStyle = "rgba(0,0,0,.25)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+}
+

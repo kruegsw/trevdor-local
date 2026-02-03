@@ -63,10 +63,23 @@ function createPlayer (number) {
   const player = {
     id: `p${number}`,
     name: `Player ${number}`,
-    cards: [],
-    reserved: [],
+    cards: [{ id: "t2_17", tier: 2, bonus: "blue",  points: 1, cost: { green: 3, blue: 2, black: 3 } },
+      { id: "t2_17", tier: 2, bonus: "blue",  points: 1, cost: { green: 3, blue: 2, black: 3 } },
+      { id: "t1_35", tier: 1, bonus: "black", points: 1, cost: { blue: 4 } },
+      { id: "t1_36", tier: 1, bonus: "green", points: 0, cost: { red: 3 } },
+      { id: "t1_37", tier: 1, bonus: "black", points: 0, cost: { green: 2, white: 2 } },
+      { id: "t1_38", tier: 1, bonus: "black", points: 0, cost: { green: 2, red: 1 } },
+      { id: "t1_39", tier: 1, bonus: "black", points: 0, cost: { green: 1, black: 1, red: 3 } },
+      { id: "t1_40", tier: 1, bonus: "blue",  points: 0, cost: { black: 3 } },
+      { id: "t1_34", tier: 1, bonus: "white", points: 0, cost: { green: 1, blue: 1, black: 1, red: 1 } }
+    ],
+    reserved: [
+      { id: "t2_17", tier: 2, bonus: "blue",  points: 1, cost: { green: 3, blue: 2, black: 3 } },
+      { id: "t1_39", tier: 1, bonus: "black", points: 0, cost: { green: 1, black: 1, red: 3 } },
+      { id: "t1_40", tier: 1, bonus: "blue",  points: 0, cost: { black: 3 } }
+    ],
     nobles: [],
-    tokens: { white: 0, blue: 0, green: 0, red: 0, black: 0, yellow: 0 },
+    tokens: { white: 1, blue: 3, green: 0, red: 0, black: 0, yellow: 0 },
   };
   return player;
     // bonus will be calculated

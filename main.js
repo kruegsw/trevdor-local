@@ -21,6 +21,7 @@ import { createUIController } from "./ui/controller.js";
 
 const numberOfPlayers = 3;
 let state = initialState(numberOfPlayers);
+console.log(state);
 
 const uiState = createUIState();
 
