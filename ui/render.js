@@ -190,8 +190,17 @@ function drawSelect(ctx, stateObject, { id, kind, color, x, y, w, h }, uiState) 
       //stateObject ? drawCard(ctx, { x, y, w, h } ) : null // update this later to draw a noble card
       stateObject ? drawNoble(ctx, { x, y, w, h }, stateObject ) : null
       break;
-    case "player.panel.bottom":
-      drawPlayerPanelBottom(ctx, { x, y, w, h }, stateObject);
+    //case "player.panel.bottom":
+    //  drawPlayerPanelBottom(ctx, { x, y, w, h }, stateObject);
+    //  break;
+    case "reserved":
+      //drawDevelopmentCard(ctx, { x, y, w, h }, {
+      //  points: stateObject.points,
+      //  bonus: stateObject.bonus,
+      //  cost: stateObject.cost,
+      //  //banner: stateObject.id
+      //});
+      stateObject ? drawReserved(ctx, { x, y, w, h }, stateObject ) : null
       break;
     default:
       // Code to execute if none of the cases match
@@ -440,7 +449,7 @@ function drawDevelopmentCard(ctx, { x, y, w, h }, card = {}) {
 
   // --- optional banner in the middle (very subtle)
   if (banner) {
-    ctx.fillStyle = "rgba(0,0,0,.35)";
+    ctx.fillStyle = (bonus == "black") ? "#fff" : "rgba(0,0,0,1)";
     ctx.font = `600 ${Math.max(10, Math.floor(h * 0.10))}px system-ui, sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
@@ -720,7 +729,29 @@ function drawNoble(ctx, { x, y, w, h }, noble = {}) {
   }
 }
 
+function drawReserved(ctx, { x, y, w, h }, stateObject) {
+    // Save the current canvas state (coordinate system)
+    ctx.save();
 
+    // Move the canvas origin (0,0) to the center of the object
+    ctx.translate(x, y);
+
+    // Rotate the context by 90 degrees (Math.PI / 2 radians)
+    ctx.rotate(90 * Math.PI / 180); // or Math.PI / 2
+
+    // Draw card, offset by height so top left corner of rotated card at intended location
+    drawDevelopmentCard(ctx, { x: 0, y: -w, w: h, h: w }, {  // note y, w and h have been adjusted to draw card correctly but line up with layout.js coords
+      points: stateObject.points,
+      bonus: stateObject.bonus,
+      cost: stateObject.cost,
+      banner: "RESERVED"
+    })
+
+    // Restore the canvas to its original state before the translation and rotation
+    ctx.restore();
+}
+
+/*
 function drawPlayerPanelBottom(ctx, { x, y, w, h }, player) {
   // --- Board piece sizes (must match layout.js)
   const SCALE = 3;
@@ -888,9 +919,9 @@ function drawPlayerPanelBottom(ctx, { x, y, w, h }, player) {
   }
 }
 
-/* -----------------------
-   Helpers for the panel
-   ----------------------- */
+//   -----------------------
+//   Helpers for the panel
+//   ----------------------- 
 
 function groupCardsByBonus(cards, colors) {
   const out = {};
@@ -939,3 +970,4 @@ function drawStackWithPeek(ctx, cards, { x, y, w, h, peek, maxVisible = 6 }) {
   }
 }
 
+*/

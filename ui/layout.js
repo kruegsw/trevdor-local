@@ -36,7 +36,7 @@ export function computeLayout({ width, height }) {
   // Make it as wide as the board, taller than a card row so it can show stacks.
   const PLAYER_PANEL = {
     x: board.x,
-    y: board.y + board.h + GAP * 2,
+    y: board.y + board.h + GAP * 4,
     w: board.w,
     h: (TOKEN_WH.h + GAP) + (CARD_WH.h + Math.floor(CARD_WH.h * 0.25) * 5) + (NOBLE_WH.h + GAP * 2),
 
@@ -82,6 +82,10 @@ export function computeLayout({ width, height }) {
     { id: "bank.white",  color: "white",  kind: "token", x: MARGIN + GAP * 9 + TOKEN_WH.w * 5, y: BANK_TOKEN_Y, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["market", "bank", "white"] },
 
     // --- NEW: player panel slot (Player 1 below board)
-    { id: "players.0.panel.bottom", kind: "player.panel.bottom", x: PLAYER_PANEL.x, y: PLAYER_PANEL.y, w: PLAYER_PANEL.w, h: PLAYER_PANEL.h, statePath: ["players", 0] },
+    //{ id: "players.0.panel.bottom", kind: "player.panel.bottom", x: PLAYER_PANEL.x, y: PLAYER_PANEL.y, w: PLAYER_PANEL.w, h: PLAYER_PANEL.h, statePath: ["players", 0] },
+    { id: "player.tokens.yellow", color: "yellow", kind: "token", x: PLAYER_PANEL.x + GAP, y: PLAYER_PANEL.y, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players", 0, "tokens", "yellow"]},
+    { id: "player.bottom.reserved.1", kind: "reserved", x: PLAYER_PANEL.x + GAP * 2 + TOKEN_WH.w, y: PLAYER_PANEL.y, w: CARD_WH.h, h: CARD_WH.w, statePath: ["players", 0, "reserved", 0] }, // notice w h reversed
+    { id: "player.bottom.reserved.2", kind: "reserved", x: PLAYER_PANEL.x + GAP * 3 + TOKEN_WH.w + CARD_WH.h, y: PLAYER_PANEL.y, w: CARD_WH.h, h: CARD_WH.w, statePath: ["players", 0, "reserved", 1] }, // notice w h reversed
+    { id: "player.bottom.reserved.3", kind: "reserved", x: PLAYER_PANEL.x + GAP * 4 + TOKEN_WH.w + CARD_WH.h * 2, y: PLAYER_PANEL.y, w: CARD_WH.h, h: CARD_WH.w, statePath: ["players", 0, "reserved", 2] }, // notice w h reversed
   ];
 }
