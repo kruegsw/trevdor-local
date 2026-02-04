@@ -188,7 +188,7 @@ function drawSelect(ctx, stateObject, { id, kind, color, x, y, w, h }, uiState) 
       break;
     case "noble":
       //stateObject ? drawCard(ctx, { x, y, w, h } ) : null // update this later to draw a noble card
-      stateObject ? drawNoble(ctx, { x, y, w, h }, stateObject ) : null
+      stateObject ? drawNoble(ctx, { color, x, y, w, h }, stateObject ) : null
       break;
     //case "player.panel.bottom":
     //  drawPlayerPanelBottom(ctx, { x, y, w, h }, stateObject);
@@ -201,6 +201,11 @@ function drawSelect(ctx, stateObject, { id, kind, color, x, y, w, h }, uiState) 
       //  //banner: stateObject.id
       //});
       stateObject ? drawReserved(ctx, { x, y, w, h }, stateObject ) : null
+      break;
+    case "fanned.cards":
+      const grouped = groupCardsByBonus(stateObject, ["white","blue","green","red","black"]);
+      const pile = grouped[color] ?? [];
+      stateObject ? drawFannedCards(ctx, { color, x, y, w, h }, pile ) : null
       break;
     default:
       // Code to execute if none of the cases match
@@ -749,6 +754,75 @@ function drawReserved(ctx, { x, y, w, h }, stateObject) {
 
     // Restore the canvas to its original state before the translation and rotation
     ctx.restore();
+}
+
+function drawFannedCards(ctx, { color, x, y, w, h }, stateObject ) {
+
+
+// ------------------------------------------------------------------
+  // PURCHASED CARD STACKS (grouped by bonus)
+  // ------------------------------------------------------------------
+  //ctx.fillStyle = "rgba(0,0,0,.7)";
+  //ctx.font = `600 ${11 * SCALE}px system-ui, sans-serif`;
+  //ctx.fillText("Cards", innerX, cy);
+
+  //const stacksTop = cy + (12 * SCALE);
+  //const grouped = groupCardsByBonus(stateObject, ["white","blue","green","red","black"]);
+  //console.log(grouped);
+
+  //let sx = innerX;
+  //for (const color of ["white","blue","green","red","black"]) {
+  //  const pile = grouped[color] ?? [];
+    
+
+    drawStackWithPeek(ctx, stateObject, {
+      x, //: sx,
+      y, //: stacksTop,
+      w,
+      h,
+      peek: Math.floor(h * 0.25),
+      color,
+    });
+
+    //ctx.fillStyle = "rgba(0,0,0,.75)";
+    //ctx.font = `600 ${10 * SCALE}px system-ui, sans-serif`;
+    //ctx.textAlign = "center";
+    //ctx.textBaseline = "top";
+    //ctx.fillText(`${pile.length}`, sx + CARD_WH.w / 2, stacksTop + CARD_WH.h + 2);
+
+    //sx += CARD_WH.w + GAP;
+
+}
+
+// Draw a "stack" where only the top quarter of each below card shows
+function drawStackWithPeek(ctx, cards, { color, x, y, w, h, peek }) {
+  console.log(cards);
+  const n = cards?.length ?? 0;
+
+  // Draw from top -> bottom so the bottom-most (largest y) is drawn last and ends up on top.
+  for (let i = 0; i < n; i++) {
+    const card = cards[i];
+    const yy = y + (i * peek);
+    drawDevelopmentCard(ctx, { x, y: yy, w, h }, card);
+  }
+
+  // placeholder if empty
+  //if (n === 0) {
+  //  roundedRectPath(ctx, x, y, w, h, 10);
+  //  ctx.strokeStyle = "rgba(0,0,0,.25)";
+  //  ctx.lineWidth = 1;
+  //  ctx.stroke();
+  //}
+}
+
+function groupCardsByBonus(cards, colors) {
+  const out = {};
+  for (const c of colors) out[c] = [];
+  for (const card of (cards ?? [])) {
+    const b = card?.bonus ?? "white";
+    (out[b] ??= []).push(card);
+  }
+  return out;
 }
 
 /*

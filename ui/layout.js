@@ -87,5 +87,15 @@ export function computeLayout({ width, height }) {
     { id: "player.bottom.reserved.1", kind: "reserved", x: PLAYER_PANEL.x + GAP * 2 + TOKEN_WH.w, y: PLAYER_PANEL.y, w: CARD_WH.h, h: CARD_WH.w, statePath: ["players", 0, "reserved", 0] }, // notice w h reversed
     { id: "player.bottom.reserved.2", kind: "reserved", x: PLAYER_PANEL.x + GAP * 3 + TOKEN_WH.w + CARD_WH.h, y: PLAYER_PANEL.y, w: CARD_WH.h, h: CARD_WH.w, statePath: ["players", 0, "reserved", 1] }, // notice w h reversed
     { id: "player.bottom.reserved.3", kind: "reserved", x: PLAYER_PANEL.x + GAP * 4 + TOKEN_WH.w + CARD_WH.h * 2, y: PLAYER_PANEL.y, w: CARD_WH.h, h: CARD_WH.w, statePath: ["players", 0, "reserved", 2] }, // notice w h reversed
+    { id: "playyer.bottom.token.green", color: "green", kind: "token", x: ROW_CARD_NOBLE_XY[0] + GAP, y: PLAYER_PANEL.y + CARD_WH.w + GAP, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players", 0, "tokens", "green"]},
+    { id: "playyer.bottom.token.red", color: "red", kind: "token", x: ROW_CARD_NOBLE_XY[1] + GAP, y: PLAYER_PANEL.y + CARD_WH.w + GAP, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players", 0, "tokens", "red"]},
+    { id: "playyer.bottom.token.blue", color: "blue", kind: "token", x: ROW_CARD_NOBLE_XY[2] + GAP, y: PLAYER_PANEL.y + CARD_WH.w + GAP, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players", 0, "tokens", "blue"]},
+    { id: "playyer.bottom.token.black", color: "black", kind: "token", x: ROW_CARD_NOBLE_XY[3] + GAP, y: PLAYER_PANEL.y + CARD_WH.w + GAP, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players", 0, "tokens", "black"]},
+    { id: "playyer.bottom.token.white", color: "white", kind: "token", x: ROW_CARD_NOBLE_XY[4] + GAP, y: PLAYER_PANEL.y + CARD_WH.w + GAP, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players", 0, "tokens", "white"]},
+    { id: "player.cards.green", color: "green", kind: "fanned.cards", x: ROW_CARD_NOBLE_XY[0], y: PLAYER_PANEL.y + CARD_WH.w + GAP*2 + TOKEN_WH.h, w: CARD_WH.w, h: CARD_WH.h, statePath: ["players", 0, "cards"]},
+    { id: "player.cards.red", color: "red", kind: "fanned.cards", x: ROW_CARD_NOBLE_XY[1], y: PLAYER_PANEL.y + CARD_WH.w + GAP*2 + TOKEN_WH.h, w: CARD_WH.w, h: CARD_WH.h, statePath: ["players", 0, "cards"]},
+    { id: "player.cards.blue", color: "blue", kind: "fanned.cards", x: ROW_CARD_NOBLE_XY[2], y: PLAYER_PANEL.y + CARD_WH.w + GAP*2 + TOKEN_WH.h, w: CARD_WH.w, h: CARD_WH.h, statePath: ["players", 0, "cards"]},
+    { id: "player.cards.black", color: "black", kind: "fanned.cards", x: ROW_CARD_NOBLE_XY[3], y: PLAYER_PANEL.y + CARD_WH.w + GAP*2 + TOKEN_WH.h, w: CARD_WH.w, h: CARD_WH.h, statePath: ["players", 0, "cards"]},
+    { id: "player.cards.white", color: "white", kind: "fanned.cards", x: ROW_CARD_NOBLE_XY[4], y: PLAYER_PANEL.y + CARD_WH.w + GAP*2 + TOKEN_WH.h, w: CARD_WH.w, h: CARD_WH.h, statePath: ["players", 0, "cards"]},
   ];
 }
