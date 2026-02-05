@@ -79,7 +79,7 @@ function render(ctx) {
         drawSelect(ctx, stateObject, e, uiState);
         
         hitRegions.push({
-          id: e.id,           // stable identifier (later: state.cards[i].id)
+          uiID: e.uiID,           // stable identifier (later: state.cards[i].id)
           kind: e.kind,              // helps your click handler decide what it hit
           tier: e.tier ?? null,
           index: e.index ?? null,
@@ -156,39 +156,39 @@ function drawSelect(ctx, stateObject, { id, kind, color, x, y, w, h }, uiState) 
   switch (kind) {
     case "decks.tier1":
       //drawCard(ctx, { x, y, w, h } );
-      drawDeckCard(ctx, { x, y, w, h }, {
+      stateObject[0] ? drawDeckCard(ctx, { x, y, w, h }, {
         color: "green"
-      } );
+      } ) : null;
       break;
     case "decks.tier2":
       //drawCard(ctx, { x, y, w, h } );
-      drawDeckCard(ctx, { x, y, w, h }, {
+      stateObject[0] ? drawDeckCard(ctx, { x, y, w, h }, {
         color: "yellow"
-      } );
+      } ) : null;
       break;
     case "decks.tier3":
       //drawCard(ctx, { x, y, w, h } );
-      drawDeckCard(ctx, { x, y, w, h }, {
+      stateObject[0] ? drawDeckCard(ctx, { x, y, w, h }, {
         color: "blue"
-      } );
+      } ) : null;
       break;
     case "market.card":
       //stateObject ? drawCard(ctx, { x, y, w, h } ) : null;
-      drawDevelopmentCard(ctx, { x, y, w, h }, {
+      stateObject ? drawDevelopmentCard(ctx, { x, y, w, h }, {
         points: stateObject.points,
         bonus: stateObject.bonus,
         cost: stateObject.cost,
         //banner: stateObject.id
-      });
+      }) : null;
       break;
     case "token":
-      drawToken(ctx, color, { x, y, w, h }, {
+      stateObject > 0 ? drawToken(ctx, color, { x, y, w, h }, {
         count: stateObject
-      } );
+      } ) : null;
       break;
     case "noble":
       //stateObject ? drawCard(ctx, { x, y, w, h } ) : null // update this later to draw a noble card
-      stateObject ? drawNoble(ctx, { color, x, y, w, h }, stateObject ) : null
+      stateObject ? drawNoble(ctx, { color, x, y, w, h }, stateObject ) : null;
       break;
     //case "player.panel.bottom":
     //  drawPlayerPanelBottom(ctx, { x, y, w, h }, stateObject);
@@ -200,12 +200,12 @@ function drawSelect(ctx, stateObject, { id, kind, color, x, y, w, h }, uiState) 
       //  cost: stateObject.cost,
       //  //banner: stateObject.id
       //});
-      stateObject ? drawReserved(ctx, { x, y, w, h }, stateObject ) : null
+      stateObject ? drawReserved(ctx, { x, y, w, h }, stateObject ) : null;
       break;
     case "fanned.cards":
       const grouped = groupCardsByBonus(stateObject, ["white","blue","green","red","black"]);
       const pile = grouped[color] ?? [];
-      stateObject ? drawFannedCards(ctx, { color, x, y, w, h }, pile ) : null
+      stateObject ? drawFannedCards(ctx, { color, x, y, w, h }, pile ) : null;
       break;
     default:
       // Code to execute if none of the cases match
@@ -796,7 +796,6 @@ function drawFannedCards(ctx, { color, x, y, w, h }, stateObject ) {
 
 // Draw a "stack" where only the top quarter of each below card shows
 function drawStackWithPeek(ctx, cards, { color, x, y, w, h, peek }) {
-  console.log(cards);
   const n = cards?.length ?? 0;
 
   // Draw from top -> bottom so the bottom-most (largest y) is drawn last and ends up on top.

@@ -76,7 +76,6 @@ function createPlayer (number) {
     reserved: [
       { id: "t2_17", tier: 2, bonus: "blue",  points: 1, cost: { green: 3, blue: 2, black: 3 } },
       { id: "t1_39", tier: 1, bonus: "black", points: 0, cost: { green: 1, black: 1, red: 3 } },
-      { id: "t1_40", tier: 1, bonus: "blue",  points: 0, cost: { black: 3 } }
     ],
     nobles: [],
     tokens: { white: 1, blue: 3, green: 0, red: 0, black: 0, yellow: 0 },

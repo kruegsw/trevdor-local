@@ -35,6 +35,11 @@ export function handleClick(getState, uiState, hit) {
         return Object.keys(tokens).reduce((count) => {count + 1}, 0);
     }
 
+
+    /////////////// NEED A GATE THAT IDENTIFIED IF AN OBJECT (i.e. hit.meta) EXISTS 
+    /////////////// MAYBE A BLANK AREA (e.g. a missing resrved card) SHOULD BE TREATED AS A NULL CLICK
+    /////////////// OR MAYBE THAT IS NOT ALWAYS THE CASE
+
     function rulesCheck({action, color, card}) {
         console.log({action, color, card});
         let check = true
@@ -50,8 +55,15 @@ export function handleClick(getState, uiState, hit) {
                 // ==================== CANNOT HAVE MORE THAN 10 TOKENS ===========================
                 break;
             case "buyCard":
+                console.log(card)
+                if (!(card.meta)) {check = false} // card exists at location
                 // max 3 reserved cards
                 // can buy either market or reserved card
+                break;
+            case "reserveCard":
+                // if card exists
+                // must have yellow token pending
+                //
                 break;
             default:
                 break;
@@ -65,6 +77,8 @@ export function handleClick(getState, uiState, hit) {
         uiState.mode = "idle";
         return;
     }
+
+    console.log(hit);
 
     // 2) Token pile => toggle UI-only picks (limit total to 3)
     if (hit.kind === "token") {
@@ -85,6 +99,7 @@ export function handleClick(getState, uiState, hit) {
                 uiState.mode = "takeTokens";
             }
         }
+        console.log(uiState);
         return;
     }
 
@@ -94,14 +109,32 @@ export function handleClick(getState, uiState, hit) {
 
         // yellow token --> reserve card
         if (uiState.mode === "reserveCard") {
-            uiState.pending.card = card
-        // 
+            if ( rulesCheck({action: "reserveCard", card}) ) {
+                addCardToPending(card);
+                uiState.mode = "reserveCard";
+            }
         } else {
+            if ( rulesCheck({action: "buyCard", card}) ) {
+                uiState.mode = "buyCard";
+                clearPending();
+                addCardToPending(card);
+            }
+        }
+
+        console.log(uiState);
+        return;
+    }
+
+    if (hit.kind === "reserved") {
+
+        const card = {meta: hit.meta, tier: hit.tier, index: hit.index};
+
+        if ( rulesCheck({action: "buyCard", card}) ) {
             uiState.mode = "buyCard";
             clearPending();
             addCardToPending(card);
         }
-
+        console.log(uiState);
     }
 
     // 3) Confirm => commit picks to game state (real action)
