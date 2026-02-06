@@ -209,6 +209,45 @@ function drawSelect(ctx, stateObject, { id, kind, color, x, y, w, h }, uiState) 
       const pile = grouped[color] ?? [];
       stateObject ? drawFannedCards(ctx, { color, x, y, w, h }, pile ) : null;
       break;
+
+    ////////////////////////
+    case "ui.prompt": {
+      const pendingTokens = uiState?.pending?.tokens ?? {};
+      const hasPending = Object.values(pendingTokens).some(n => n > 0);
+      if (!hasPending) break;
+
+      drawUIPanel(ctx, { x, y, w, h });
+
+      ctx.save();
+      ctx.fillStyle = "#111";
+      ctx.font = "14px sans-serif";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.fillText(
+        `Pending: ${pendingTokensToText(pendingTokens)}`,
+        x + 10,
+        y + h / 2
+      );
+      ctx.restore();
+      break;
+    }
+
+    case "button": {
+      const pendingTokens = uiState?.pending?.tokens ?? {};
+      const hasPending = Object.values(pendingTokens).some(n => n > 0);
+      if (!hasPending) break;
+
+      const label =
+        id === "confirm" ? "Confirm" :
+        id === "cancel"  ? "Cancel"  :
+        id;
+
+      drawUIButton(ctx, { x, y, w, h }, label);
+      break;
+    }
+    ////////////////////////
+
+
     default:
       // Code to execute if none of the cases match
   }
@@ -825,6 +864,38 @@ function groupCardsByBonus(cards, colors) {
   }
   return out;
 }
+
+function drawUIPanel(ctx, r, { fill = "rgba(255,255,255,0.9)", stroke = "#111" } = {}) {
+  ctx.save();
+  ctx.fillStyle = fill;
+  ctx.strokeStyle = stroke;
+  ctx.lineWidth = 2;
+  ctx.fillRect(r.x, r.y, r.w, r.h);
+  ctx.strokeRect(r.x, r.y, r.w, r.h);
+  ctx.restore();
+}
+
+function drawUIButton(ctx, r, label, { fill = "#E9EEF3", stroke = "#111" } = {}) {
+  drawUIPanel(ctx, r, { fill, stroke });
+  ctx.save();
+  ctx.fillStyle = "#111";
+  ctx.font = "14px sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(label, r.x + r.w / 2, r.y + r.h / 2);
+  ctx.restore();
+}
+
+function pendingTokensToText(picks) {
+  if (!picks) return "";
+  const parts = [];
+  for (const [color, n] of Object.entries(picks)) {
+    if (!n) continue;
+    parts.push(`${color}:${n}`);
+  }
+  return parts.join("  ");
+}
+
 
 /*
 function drawPlayerPanelBottom(ctx, { x, y, w, h }, player) {

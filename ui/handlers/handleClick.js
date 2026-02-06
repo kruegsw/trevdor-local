@@ -49,20 +49,22 @@ export function handleClick(getState, uiState, hit) {
     }
 
     function availableFundsForCard(card) {
-        const check = true;
+        let check = true;
         const cost = card.meta.cost;
-        console.log(cost)
-        console.log(Object.values(cost))
+
         const bonus = bonusByColor(currentPlayer.cards, ["white","blue","green","red","black"]);
-        const short = 0;
-        for (const c of cost) {
-            if ( bonus[c] + currentPlayer.tokens[c] < cost[c]) {
-                short += cost[c] - bonus[c] - currentPlayer.tokens[c];
-            }
+
+        let short = 0;
+
+        for (const [c, need] of Object.entries(cost)) {
+            const have = (bonus[c] ?? 0) + (currentPlayer.tokens[c] ?? 0);
+            if (have < need) short += (need - have);
         }
-        if (currentPlayer.token["yellow"] < short) {check = false};
-        return check
+
+        if ((currentPlayer.tokens["yellow"] ?? 0) < short) check = false;
+        return check;
     }
+
 
     function rulesCheck({action, color, card}) {
         console.log({action, color, card});
@@ -83,9 +85,7 @@ export function handleClick(getState, uiState, hit) {
                 if (!availableFundsForCard(card)) {check = false} // player has sufficient bonus and tokens to buy card
                 break;
             case "reserveCard":
-                // if card exists
-                // must have yellow token pending
-                // max 3 reserved cards
+                if (currentPlayer.reserved.length > 2) {check = false} // max 3 reserved cards
                 break;
             default:
                 break;

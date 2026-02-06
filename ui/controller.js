@@ -1,6 +1,5 @@
 // ui/controller.js
 import { Actions } from "../engine/actions.js";
-import { applyAction } from "../engine/reducer.js";
 import { handleClick } from "./handlers/handleClick.js"
 
 /**

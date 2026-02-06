@@ -97,5 +97,32 @@ export function computeLayout({ width, height }) {
     { uiID: "player.cards.blue", color: "blue", kind: "fanned.cards", x: ROW_CARD_NOBLE_XY[2], y: PLAYER_PANEL.y + CARD_WH.w + GAP*2 + TOKEN_WH.h, w: CARD_WH.w, h: CARD_WH.h, statePath: ["players", 0, "cards"]},
     { uiID: "player.cards.black", color: "black", kind: "fanned.cards", x: ROW_CARD_NOBLE_XY[3], y: PLAYER_PANEL.y + CARD_WH.w + GAP*2 + TOKEN_WH.h, w: CARD_WH.w, h: CARD_WH.h, statePath: ["players", 0, "cards"]},
     { uiID: "player.cards.white", color: "white", kind: "fanned.cards", x: ROW_CARD_NOBLE_XY[4], y: PLAYER_PANEL.y + CARD_WH.w + GAP*2 + TOKEN_WH.h, w: CARD_WH.w, h: CARD_WH.h, statePath: ["players", 0, "cards"]},
+
+    {
+      uiID: "ui.prompt",
+      kind: "ui.prompt",
+      x: board.x,
+      y: BANK_TOKEN_Y + TOKEN_WH.h + GAP,
+      w: board.w - (CARD_WH.w + GAP) * 2,
+      h: TOKEN_WH.h + GAP
+    },
+    {
+      uiID: "ui.button.confirm",
+      kind: "button",
+      id: "confirm",
+      x: board.x + board.w - (CARD_WH.w + GAP) * 2,
+      y: BANK_TOKEN_Y + TOKEN_WH.h + GAP,
+      w: CARD_WH.w,
+      h: TOKEN_WH.h + GAP
+    },
+    {
+      uiID: "ui.button.cancel",
+      kind: "button",
+      id: "cancel",
+      x: board.x + board.w - (CARD_WH.w + GAP),
+      y: BANK_TOKEN_Y + TOKEN_WH.h + GAP,
+      w: CARD_WH.w,
+      h: TOKEN_WH.h + GAP
+    },
   ];
 }
