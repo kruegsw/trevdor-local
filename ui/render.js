@@ -76,6 +76,8 @@ function render(ctx) {
       
       layout.forEach(e => {
         const stateObject = e.statePath ? getByStatePath(state, e.statePath) : {};
+        if (!stateObject) return;
+        
         drawSelect(ctx, stateObject, e, uiState);
         
         hitRegions.push({

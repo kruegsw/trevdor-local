@@ -2,6 +2,8 @@ export function handleClick(getState, uiState, hit) {
 
     let state = getState();
 
+    const currentPlayer = state.players[state.activePlayerIndex];
+
     function clearPendingTokens() {
         uiState.pending.tokens = {};
     }
@@ -31,14 +33,36 @@ export function handleClick(getState, uiState, hit) {
         return Object.values(tokens).reduce((max, n) => Math.max(max, n), 0);
     }
 
-    function countOfColors(tokens) {
-        return Object.keys(tokens).reduce((count) => {count + 1}, 0);
+    function countBonusColorFromCards(cards, color) { 
+        const grouped = bonusByColor(cards, ["white","blue","green","red","black"]);
+        return grouped[color];
+    }
+    
+    function bonusByColor(cards, colors) {
+        const out = {};
+        for (const c of colors) out[c] = 0;
+            for (const card of (cards ?? [])) {
+                const b = card?.bonus;
+                (out[b]++);
+            }
+        return out;
     }
 
-
-    /////////////// NEED A GATE THAT IDENTIFIED IF AN OBJECT (i.e. hit.meta) EXISTS 
-    /////////////// MAYBE A BLANK AREA (e.g. a missing resrved card) SHOULD BE TREATED AS A NULL CLICK
-    /////////////// OR MAYBE THAT IS NOT ALWAYS THE CASE
+    function availableFundsForCard(card) {
+        const check = true;
+        const cost = card.meta.cost;
+        console.log(cost)
+        console.log(Object.values(cost))
+        const bonus = bonusByColor(currentPlayer.cards, ["white","blue","green","red","black"]);
+        const short = 0;
+        for (const c of cost) {
+            if ( bonus[c] + currentPlayer.tokens[c] < cost[c]) {
+                short += cost[c] - bonus[c] - currentPlayer.tokens[c];
+            }
+        }
+        if (currentPlayer.token["yellow"] < short) {check = false};
+        return check
+    }
 
     function rulesCheck({action, color, card}) {
         console.log({action, color, card});
@@ -52,18 +76,16 @@ export function handleClick(getState, uiState, hit) {
                     countPendingTokens(uiState.pending.tokens) > 1 && // ... the first token must be the only other token in pending
                     state.market.bank[color] > 3 // ... and the bank must have 4 tokens of that color
                 ) {check = false}
-                // ==================== CANNOT HAVE MORE THAN 10 TOKENS ===========================
+                if ( (countPendingTokens(currentPlayer.tokens) + countPendingTokens(uiState.pending.tokens)) > 9
+                ) {check = false} // prevent player from picking up more than 10 tokens
                 break;
             case "buyCard":
-                console.log(card)
-                if (!(card.meta)) {check = false} // card exists at location
-                // max 3 reserved cards
-                // can buy either market or reserved card
+                if (!availableFundsForCard(card)) {check = false} // player has sufficient bonus and tokens to buy card
                 break;
             case "reserveCard":
                 // if card exists
                 // must have yellow token pending
-                //
+                // max 3 reserved cards
                 break;
             default:
                 break;
