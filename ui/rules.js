@@ -15,13 +15,11 @@
         //          end game if winner
         //      next Player turn
         
-export function rulesCheck({state, action}) {
-        
+export function rulesCheck({getState, pending, action, color, card}) {
+        console.log({action, color, card});
+        const state = getState();
         const currentPlayer = state.players[state.activePlayerIndex];
 
-
-
-        /*
         function bonusByColor(cards, colors) {
                 const out = {};
                 for (const c of colors) out[c] = 0;
@@ -61,13 +59,10 @@ export function rulesCheck({state, action}) {
                 if ((currentPlayer.tokens["yellow"] ?? 0) < short) check = false;
                 return check;
         }
-        */
 
         let check = true
-        switch (action.type) {
-                case "TAKE_TOKENS":
-
-                        /*
+        switch (action) {
+                case "takeToken":
                         if (state.market.bank[color] < 1) {check = false} // bank has at least one token of that color
                         if (countPendingTokens(pending.tokens) > 2) {check = false} // cannot take more than 3 tokens
                         if (countMaxPerColor(pending.tokens) > 1) {check = false} // cannot have two tokens of the same color in-hand
@@ -77,13 +72,12 @@ export function rulesCheck({state, action}) {
                         ) {check = false}
                         if ( (countPendingTokens(currentPlayer.tokens) + countPendingTokens(pending.tokens)) > 9
                         ) {check = false} // prevent player from picking up more than 10 tokens
-                         */
                         break;
-                case "BUY_CARD":
-                        //if (!availableFundsForCard(card)) {check = false} // player has sufficient bonus and tokens to buy card
+                case "buyCard":
+                        if (!availableFundsForCard(card)) {check = false} // player has sufficient bonus and tokens to buy card
                         break;
-                case "RESERVE_CARD":
-                        //if (currentPlayer.reserved.length > 2) {check = false} // max 3 reserved cards
+                case "reserveCard":
+                        if (currentPlayer.reserved.length > 2) {check = false} // max 3 reserved cards
                         break;
                 default:
                         break;

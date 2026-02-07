@@ -40,7 +40,7 @@ export function handleClick({rulesCheck, getState, uiState, hit}) {
         // yellow token --> reserve card
         if (hit.color == "yellow") {
             clearPending();
-            if ( rulesCheck({getState, uiState, action: "takeToken", color: hit.color}) ) {
+            if ( rulesCheck({getState, pending: uiState.pending, action: "takeToken", color: hit.color}) ) {
                 addTokenToPending(hit.color);
                 uiState.mode = "reserveCard";
             }
@@ -48,7 +48,7 @@ export function handleClick({rulesCheck, getState, uiState, hit}) {
         } else {
             delete uiState.pending.tokens.yellow;
             clearPendingCard();
-            if ( rulesCheck({getState, uiState, action: "takeToken", color: hit.color}) ) {
+            if ( rulesCheck({getState, pending: uiState.pending, action: "takeToken", color: hit.color}) ) {
                 addTokenToPending(hit.color);
                 uiState.mode = "takeTokens";
             }
@@ -63,12 +63,12 @@ export function handleClick({rulesCheck, getState, uiState, hit}) {
 
         // yellow token --> reserve card
         if (uiState.mode === "reserveCard") {
-            if ( rulesCheck({getState, uiState, action: "reserveCard", card}) ) {
+            if ( rulesCheck({getState, pending: uiState.pending, action: "reserveCard", card}) ) {
                 addCardToPending(card);
                 uiState.mode = "reserveCard";
             }
         } else {
-            if ( rulesCheck({getState, uiState, action: "buyCard", card}) ) {
+            if ( rulesCheck({getState, pending: uiState.pending, action: "buyCard", card}) ) {
                 uiState.mode = "buyCard";
                 clearPending();
                 addCardToPending(card);
@@ -83,7 +83,7 @@ export function handleClick({rulesCheck, getState, uiState, hit}) {
 
         const card = {meta: hit.meta, tier: hit.tier, index: hit.index};
 
-        if ( rulesCheck({getState, uiState, action: "buyCard", card}) ) {
+        if ( rulesCheck({getState, pending: uiState.pending, action: "buyCard", card}) ) {
             uiState.mode = "buyCard";
             clearPending();
             addCardToPending(card);

@@ -14,13 +14,13 @@ export const Actions = {
   }),
 
   // ----- cards -----
-  buyCard: (cardId) => ({
+  buyCard: (card) => ({
     type: "BUY_CARD",
-    cardId
+    card
   }),
 
-  reserveCard: (cardId) => ({
+  reserveCard: (card) => ({
     type: "RESERVE_CARD",
-    cardId
+    card
   })
 };
