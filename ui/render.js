@@ -213,8 +213,17 @@ function drawSelect(ctx, stateObject, { uiID, kind, color, x, y, w, h }, uiState
     ////////////////////////
     case "ui.prompt": {
       const pendingTokens = uiState?.pending?.tokens ?? {};
-      const hasPending = Object.values(pendingTokens).some(n => n > 0);
-      if (!hasPending) break;
+      const pendingCard = uiState?.pending?.card ?? {};
+      const hasPendingToken = (
+        Object.values(pendingTokens).some(n => n > 0)
+      );
+      const hasPendingCard = (
+        pendingCard
+      );
+      if (!hasPendingToken && !hasPendingCard) break;
+      let pendingText = "";
+      if (hasPendingToken) { pendingText = pendingTokens }
+      if (hasPendingCard) { pendingText = pendingCard}
 
       drawUIPanel(ctx, { x, y, w, h });
 
@@ -224,7 +233,7 @@ function drawSelect(ctx, stateObject, { uiID, kind, color, x, y, w, h }, uiState
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
       ctx.fillText(
-        `Pending: ${pendingTokensToText(pendingTokens)}`,
+        `Pending: ${pendingTokensToText(pendingText)}`,
         x + 10,
         y + h / 2
       );
@@ -234,8 +243,14 @@ function drawSelect(ctx, stateObject, { uiID, kind, color, x, y, w, h }, uiState
 
     case "button.confirm": {
       const pendingTokens = uiState?.pending?.tokens ?? {};
-      const hasPending = Object.values(pendingTokens).some(n => n > 0);
-      if (!hasPending) break;
+      const pendingCard = uiState?.pending?.card ?? {};
+      const hasPendingToken = (
+        Object.values(pendingTokens).some(n => n > 0)
+      );
+      const hasPendingCard = (
+        pendingCard
+      );
+      if (!hasPendingToken && !hasPendingCard) break;
 
       const label = "Confirm";
 
@@ -245,8 +260,14 @@ function drawSelect(ctx, stateObject, { uiID, kind, color, x, y, w, h }, uiState
 
     case "button.cancel": {
       const pendingTokens = uiState?.pending?.tokens ?? {};
-      const hasPending = Object.values(pendingTokens).some(n => n > 0);
-      if (!hasPending) break;
+      const pendingCard = uiState?.pending?.card ?? {};
+      const hasPendingToken = (
+        Object.values(pendingTokens).some(n => n > 0)
+      );
+      const hasPendingCard = (
+        pendingCard
+      );
+      if (!hasPendingToken && !hasPendingCard) break;
 
       const label = "Cancel";
 
