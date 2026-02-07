@@ -101,8 +101,8 @@ export function createUIEvents({
     let isClick = true;
 
     if (requireSameTargetForClick) {
-      const downId = ui.pressed?.id ?? null;
-      const upId = hitUp?.id ?? null;
+      const downId = ui.pressed?.uiID ?? ui.pressed?.id ?? null;
+      const upId   = hitUp?.uiID   ?? hitUp?.id   ?? null;
       isClick = downId !== null && downId === upId;
     }
 

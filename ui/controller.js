@@ -1,75 +1,76 @@
 // ui/controller.js
-import { Actions } from "../engine/actions.js";
-import { handleClick } from "./handlers/handleClick.js"
+import { handleClick } from "./handlers/handleClick.js";
+import { applyAction } from "../engine/reducer.js"; // local-only for now
+import { Intent } from "./intent.js";
 
 /**
- * UI Controller:
- * - Receives UI events (hover/click)
- * - Updates uiState (hover, pending picks, etc.)
- * - Optionally commits game actions to state (confirm button)
- *
- * main.js stays as "wiring only".
+ * UI Controller
+ * -------------
+ * - Receives UI events
+ * - Lets handleClick mutate uiState
+ * - Uses Intent to decide when a real game action exists
+ * - Dispatches that action (local now, server later)
  */
 export function createUIController({ getState, uiState, requestDraw }) {
   if (!getState) throw new Error("createUIController: getState is required");
   if (!uiState) throw new Error("createUIController: uiState is required");
   if (!requestDraw) throw new Error("createUIController: requestDraw is required");
 
-  // Ensure pendingPicks exists (UI-only)
-  uiState.pendingAction ??= "";
+  // Initialize UI intent state
+  Intent.ensure(uiState);
+
+  function dispatchGameAction(action) {
+    
+    applyAction(getState(), action); // LOCAL MODE
+
+    // socket.send(action); // SERVER MODE (later)
+  }
 
   return {
-    /**
-     * Plug this into ui/events.js onAction
-     */
     onUIAction(uiAction) {
+      const state = getState();
+
       switch (uiAction.type) {
         case "click": {
-          handleClick(getState, uiState, uiAction.hit);
+          // UI-only mutations
+          let actionRequested = handleClick(getState, uiState, uiAction.hit);
+
+          // Confirm
+          if (actionRequested) {
+            const gameAction = Intent.buildCommitAction(state, uiState);
+            if (gameAction) {
+              dispatchGameAction(gameAction);
+              Intent.clear(uiState);
+            }
+          }
+
           break;
         }
 
-        case "hover": {
-          // Hover state is already updated in ui/events.js
-          // You might later add tooltips, previews, etc.
-          // For now, nothing to do.
+        case "hover":
+          // hover already handled by events.js
           break;
-        }
 
-        case "pointer_down": {
-          // Reserved for future drag / long-press behavior
+        case "cancel":
+          Intent.clear(uiState);
           break;
-        }
 
-        case "pointer_up": {
-          // Reserved for future drag end behavior
+        case "pointer_down":
           break;
-        }
 
-        case "cancel": {
-          // Pointer canceled (e.g. lost capture)
-          // Safe default: clear UI-only transient state
-          uiState.pendingPicks = {};
+        case "pointer_up":
           break;
-        }
 
         default: {
           console.warn("Unhandled UI action:", uiAction);
         }
-      };
+      }
+
       requestDraw();
     },
 
-    /**
-     * Plug this into ui/events.js onUIChange
-     * For now: just redraw on hover change / pointer changes
-     */
     onUIChange() {
       requestDraw();
-    },
-
-    // Optional helpers if you want them elsewhere
-    //clearPendingPicks,
-    //totalPicks,
+    }
   };
 }

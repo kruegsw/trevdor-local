@@ -1,14 +1,14 @@
 export function applyAction(state, action) {
   switch (action.type) {
     case "TAKE_TOKENS": {
-      const picks = action.picks; // {red:1, blue:1, green:1}
+      const picks = action.tokens; // {red:1, blue:1, green:1}
 
       // validate bank has enough
       for (const [color, n] of Object.entries(picks)) {
         if ((state.market.bank[color] ?? 0) < n) return state;
       }
 
-      const player = state.players[state.currentPlayerIndex];
+      const player = state.players[state.activePlayerIndex];
 
       for (const [color, n] of Object.entries(picks)) {
         state.market.bank[color] -= n;
@@ -18,10 +18,11 @@ export function applyAction(state, action) {
       state.currentPlayerIndex =
         (state.currentPlayerIndex + 1) % state.players.length;
 
-      return state;
+      break;
     }
 
     default:
-      return state;
-  }
+      break;
+  };
+  return state;
 }

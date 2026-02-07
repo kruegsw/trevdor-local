@@ -1,3 +1,5 @@
+//  not used yet, this will handle the communication to the server
+
 import { state } from "./state.js";
 
 export function dispatch(action) {

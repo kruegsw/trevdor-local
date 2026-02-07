@@ -1,3 +1,5 @@
+import { rules } from '../../engine.js'
+
 export function handleClick(getState, uiState, hit) {
 
     let state = getState();
@@ -160,8 +162,9 @@ export function handleClick(getState, uiState, hit) {
     }
 
     // 3) Confirm => commit picks to game state (real action)
-    if (hit.kind === "button" && hit.id === "confirm") {
+    if (hit.kind === "button.confirm") {
 
+        /*
         if (totalPicks() > 0) {
             const action = Actions.takeTokens(uiState.pendingPicks);
 
@@ -170,14 +173,14 @@ export function handleClick(getState, uiState, hit) {
 
             clearPendingPicks();
         }
-
-        return;
+        */
+        return true;  // action requested
     }
 
     // 4) Cancel => clear UI-only picks
-    if (hit.kind === "button" && hit.id === "cancel") {
-      clearPendingPicks();
-      return;
+    if (hit.kind === "button.cancel") {
+        clearPending();
+        return;
     }
 
     // 5) Later: cards, nobles, reserve, buy, etc.

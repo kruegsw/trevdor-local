@@ -8,7 +8,7 @@ export const Actions = {
   }),
 
   // ----- tokens -----
-  takeTokens: (picks) => ({
+  takeTokens: (tokens) => ({
     type: "TAKE_TOKENS",
     tokens, // { red:1, blue:1, green:1 }
   }),

@@ -108,8 +108,8 @@ export function computeLayout({ width, height }) {
     },
     {
       uiID: "ui.button.confirm",
-      kind: "button",
-      id: "confirm",
+      kind: "button.confirm",
+      //id: "confirm",
       x: board.x + board.w - (CARD_WH.w + GAP) * 2,
       y: BANK_TOKEN_Y + TOKEN_WH.h + GAP,
       w: CARD_WH.w,
@@ -117,8 +117,8 @@ export function computeLayout({ width, height }) {
     },
     {
       uiID: "ui.button.cancel",
-      kind: "button",
-      id: "cancel",
+      kind: "button.cancel",
+      //id: "cancel",
       x: board.x + board.w - (CARD_WH.w + GAP),
       y: BANK_TOKEN_Y + TOKEN_WH.h + GAP,
       w: CARD_WH.w,

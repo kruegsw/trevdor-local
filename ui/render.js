@@ -154,7 +154,7 @@ function getByStatePath(state, statePath) {
   );
 }
 
-function drawSelect(ctx, stateObject, { id, kind, color, x, y, w, h }, uiState) {
+function drawSelect(ctx, stateObject, { uiID, kind, color, x, y, w, h }, uiState) {
   switch (kind) {
     case "decks.tier1":
       //drawCard(ctx, { x, y, w, h } );
@@ -232,15 +232,23 @@ function drawSelect(ctx, stateObject, { id, kind, color, x, y, w, h }, uiState) 
       break;
     }
 
-    case "button": {
+    case "button.confirm": {
       const pendingTokens = uiState?.pending?.tokens ?? {};
       const hasPending = Object.values(pendingTokens).some(n => n > 0);
       if (!hasPending) break;
 
-      const label =
-        id === "confirm" ? "Confirm" :
-        id === "cancel"  ? "Cancel"  :
-        id;
+      const label = "Confirm";
+
+      drawUIButton(ctx, { x, y, w, h }, label);
+      break;
+    }
+
+    case "button.cancel": {
+      const pendingTokens = uiState?.pending?.tokens ?? {};
+      const hasPending = Object.values(pendingTokens).some(n => n > 0);
+      if (!hasPending) break;
+
+      const label = "Cancel";
 
       drawUIButton(ctx, { x, y, w, h }, label);
       break;
