@@ -26,3 +26,5 @@ export function applyAction(state, action) {
   };
   return state;
 }
+
+/////////////// NEED TO INCORPORATE RULES ON SERVER SIDE IN THE FUTURE, RIGHT NOW IMPLEMENTED ON CLIENT SIDE ONLY

@@ -1,6 +1,4 @@
-import { rules } from '../../engine.js'
-
-export function handleClick(getState, uiState, hit) {
+export function handleClick({rulesCheck, getState, uiState, hit}) {
 
     let state = getState();
 
@@ -27,74 +25,6 @@ export function handleClick(getState, uiState, hit) {
         uiState.pending.card = card
     }
 
-    function countPendingTokens(tokens) {
-        return Object.values(tokens).reduce((sum, n) => sum + n, 0);
-    }
-
-    function countMaxPerColor(tokens) {
-        return Object.values(tokens).reduce((max, n) => Math.max(max, n), 0);
-    }
-
-    function countBonusColorFromCards(cards, color) { 
-        const grouped = bonusByColor(cards, ["white","blue","green","red","black"]);
-        return grouped[color];
-    }
-    
-    function bonusByColor(cards, colors) {
-        const out = {};
-        for (const c of colors) out[c] = 0;
-            for (const card of (cards ?? [])) {
-                const b = card?.bonus;
-                (out[b]++);
-            }
-        return out;
-    }
-
-    function availableFundsForCard(card) {
-        let check = true;
-        const cost = card.meta.cost;
-
-        const bonus = bonusByColor(currentPlayer.cards, ["white","blue","green","red","black"]);
-
-        let short = 0;
-
-        for (const [c, need] of Object.entries(cost)) {
-            const have = (bonus[c] ?? 0) + (currentPlayer.tokens[c] ?? 0);
-            if (have < need) short += (need - have);
-        }
-
-        if ((currentPlayer.tokens["yellow"] ?? 0) < short) check = false;
-        return check;
-    }
-
-
-    function rulesCheck({action, color, card}) {
-        console.log({action, color, card});
-        let check = true
-        switch (action) {
-            case "takeToken":
-                if (state.market.bank[color] < 1) {check = false} // bank has at least one token of that color
-                if (countPendingTokens(uiState.pending.tokens) > 2) {check = false} // cannot take more than 3 tokens
-                if (countMaxPerColor(uiState.pending.tokens) > 1) {check = false} // cannot have two tokens of the same color in-hand
-                if (uiState.pending.tokens[color] &&  // if taking a second token of the same color already pending ...
-                    countPendingTokens(uiState.pending.tokens) > 1 && // ... the first token must be the only other token in pending
-                    state.market.bank[color] > 3 // ... and the bank must have 4 tokens of that color
-                ) {check = false}
-                if ( (countPendingTokens(currentPlayer.tokens) + countPendingTokens(uiState.pending.tokens)) > 9
-                ) {check = false} // prevent player from picking up more than 10 tokens
-                break;
-            case "buyCard":
-                if (!availableFundsForCard(card)) {check = false} // player has sufficient bonus and tokens to buy card
-                break;
-            case "reserveCard":
-                if (currentPlayer.reserved.length > 2) {check = false} // max 3 reserved cards
-                break;
-            default:
-                break;
-        }
-        return check
-    }
-
     // 1) Clicked empty space => clear UI selection
     if (!hit) {
         clearPending();
@@ -110,7 +40,7 @@ export function handleClick(getState, uiState, hit) {
         // yellow token --> reserve card
         if (hit.color == "yellow") {
             clearPending();
-            if ( rulesCheck({action: "takeToken", color: hit.color}) ) {
+            if ( rulesCheck({getState, uiState, action: "takeToken", color: hit.color}) ) {
                 addTokenToPending(hit.color);
                 uiState.mode = "reserveCard";
             }
@@ -118,7 +48,7 @@ export function handleClick(getState, uiState, hit) {
         } else {
             delete uiState.pending.tokens.yellow;
             clearPendingCard();
-            if ( rulesCheck({action: "takeToken", color: hit.color}) ) {
+            if ( rulesCheck({getState, uiState, action: "takeToken", color: hit.color}) ) {
                 addTokenToPending(hit.color);
                 uiState.mode = "takeTokens";
             }
@@ -133,12 +63,12 @@ export function handleClick(getState, uiState, hit) {
 
         // yellow token --> reserve card
         if (uiState.mode === "reserveCard") {
-            if ( rulesCheck({action: "reserveCard", card}) ) {
+            if ( rulesCheck({getState, uiState, action: "reserveCard", card}) ) {
                 addCardToPending(card);
                 uiState.mode = "reserveCard";
             }
         } else {
-            if ( rulesCheck({action: "buyCard", card}) ) {
+            if ( rulesCheck({getState, uiState, action: "buyCard", card}) ) {
                 uiState.mode = "buyCard";
                 clearPending();
                 addCardToPending(card);
@@ -153,7 +83,7 @@ export function handleClick(getState, uiState, hit) {
 
         const card = {meta: hit.meta, tier: hit.tier, index: hit.index};
 
-        if ( rulesCheck({action: "buyCard", card}) ) {
+        if ( rulesCheck({getState, uiState, action: "buyCard", card}) ) {
             uiState.mode = "buyCard";
             clearPending();
             addCardToPending(card);

@@ -2,6 +2,7 @@
 import { handleClick } from "./handlers/handleClick.js";
 import { applyAction } from "../engine/reducer.js"; // local-only for now
 import { Intent } from "./intent.js";
+import { rulesCheck } from "../engine/rules.js"
 
 /**
  * UI Controller
@@ -33,7 +34,7 @@ export function createUIController({ getState, uiState, requestDraw }) {
       switch (uiAction.type) {
         case "click": {
           // UI-only mutations
-          let actionRequested = handleClick(getState, uiState, uiAction.hit);
+          let actionRequested = handleClick({rulesCheck, getState, uiState, hit: uiAction.hit});
 
           // Confirm
           if (actionRequested) {

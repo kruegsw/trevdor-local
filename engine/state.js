@@ -1,5 +1,4 @@
 import { DEFS } from "./defs.js";
-import { rules } from "./rules.js";
 
 const initialState = (numbersOfPlayers) => {
   const state = {
