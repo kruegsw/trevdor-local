@@ -304,6 +304,49 @@ wss.on("connection", (ws, req) => {
       return;
     }
 
+
+    /////////// TEMPORARY MANUAL RESET BUTTON FOR TO RESET SERVER GAME STATE from CLIENT ////////////
+    if (msg.type === "RESET_GAME") {
+
+      safeSend(ws, { type: "ERROR", message: "RESET REQUEST RECEIVED BY SERVER" })
+
+      if (!info.roomId) {
+        safeSend(ws, { type: "ERROR", message: "You must JOIN a room first" });
+        return;
+      }
+      //if (!msg.action?.type) {
+      //  safeSend(ws, { type: "ERROR", message: "ACTION requires action.type" });
+      //  return;
+      //}
+
+      const room = rooms.get(info.roomId);
+      if (!room) return;
+
+      const prev = room.state;
+      const next = initialState(3);
+
+      // Convention: if reducer returns same state reference, treat as invalid/no-op
+      if (next === prev) {
+        safeSend(ws, { type: "REJECTED", roomId: info.roomId, reason: "INVALID_ACTION" });
+        // resync sender
+        safeSend(ws, {
+          type: "STATE",
+          roomId: info.roomId,
+          version: room.version,
+          state: room.state,
+        });
+        return;
+      }
+
+      room.state = next;
+      room.version = 0;
+
+      broadcastState(info.roomId);
+      return;
+    }
+    /////////// TEMPORARY MANUAL RESET BUTTON FOR TO RESET SERVER GAME STATE from CLIENT ////////////
+
+
     // Optional: keep SAY for debugging/chat
     if (msg.type === "SAY") {
       if (!info.roomId) {

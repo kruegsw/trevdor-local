@@ -58,6 +58,7 @@ export function createTransport({
   }
 
   function sendRaw(obj) {
+    console.log("sendRaw()")
     if (!ws || ws.readyState !== WebSocket.OPEN) return false;
     ws.send(JSON.stringify(obj));
     return true;

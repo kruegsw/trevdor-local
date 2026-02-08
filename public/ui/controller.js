@@ -32,6 +32,7 @@ export function createUIController({ getState, uiState, requestDraw, dispatchGam
           if (actionRequested) {
             const gameAction = Intent.buildCommitAction(state, uiState);
             if (gameAction) {
+              console.log(gameAction)
               dispatchGameAction(gameAction);
               Intent.clear(uiState);
             }

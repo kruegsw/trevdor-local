@@ -91,11 +91,24 @@ const transport = createTransport({
 });
 
 function dispatchGameAction(gameAction) {
-  transport.sendRaw({
+  console.log(gameAction)
+
+  /////////// TEMPORARY MANUAL RESET BUTTON FOR TO RESET SERVER GAME STATE from CLIENT ////////////
+  if (gameAction.type == "RESET_GAME") {
+    console.log("gameAction.type = RESET_GAME")
+    transport.sendRaw({
+    type: "RESET_GAME",
+    roomId: ROOM_ID,
+    action: null,
+  });
+  /////////// TEMPORARY MANUAL RESET BUTTON FOR TO RESET SERVER GAME STATE from CLIENT ////////////
+  } else {
+    transport.sendRaw({
     type: "ACTION",
     roomId: ROOM_ID,
     action: gameAction,
   });
+  }
 }
 
 /* ---------------------------------------------------------

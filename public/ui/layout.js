@@ -129,8 +129,8 @@ export function computeLayout({ width, height }) {
       kind: "button.reset",
       x: 0,
       y: 0,
-      w: 10,
-      h: 30
+      w: 100,
+      h: 25
     }
   ];
 }

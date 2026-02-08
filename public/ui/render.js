@@ -274,7 +274,15 @@ function drawSelect(ctx, stateObject, { uiID, kind, color, x, y, w, h }, uiState
       drawUIButton(ctx, { x, y, w, h }, label);
       break;
     }
-    ////////////////////////
+
+    /////////// TEMPORARY MANUAL RESET BUTTON FOR TO RESET SERVER GAME STATE from CLIENT ////////////
+    case "button.reset": {
+      const label = "test reset";
+
+      drawUIButton(ctx, { x, y, w, h }, label);
+      break;
+    }
+    /////////// TEMPORARY MANUAL RESET BUTTON FOR TO RESET SERVER GAME STATE from CLIENT ////////////
 
 
     default:
