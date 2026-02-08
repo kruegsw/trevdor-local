@@ -1,4 +1,5 @@
 export function computeLayout({ width, height }) {
+
   const SCALE = 3;
   const MARGIN = 10 * SCALE; // edge of board to tokens
   const CARD_W = 25 * SCALE;
