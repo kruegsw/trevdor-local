@@ -1,28 +1,69 @@
 // server.js
-// Minimal WebSocket server with "rooms" (multiple game instances) + authoritative state
-// - No Express
-// - One dependency: ws
-// - ES Modules (requires package.json: { "type": "module" })
+// WebSocket server with rooms + authoritative state
+// PLUS: static file hosting from ./public (no Express)
 //
-// Protocol (JSON messages):
-//   Client -> { type:"JOIN", roomId:"abc", name?:"Sam" }
-//   Client -> { type:"SAY",  text:"hi" }                 // demo broadcast
-//   Client -> { type:"ACTION", action:{ type:"TAKE_TOKENS", ... } }
-//   Server -> { type:"WELCOME", roomId, clientId }
-//   Server -> { type:"ROOM", roomId, clients:[{clientId,name}] }
-//   Server -> { type:"MSG", from, text }
-//   Server -> { type:"STATE", roomId, version, state }
-//   Server -> { type:"REJECTED", roomId, reason }
-
-//    FROM COMMAND LINE START SERVER WITH "node server.js"
+// Run: node server.js
+//
+// HTTP:
+//   GET /health -> "ok"
+//   GET /       -> serves ./public/index.html
+//   GET /...    -> serves files under ./public
+//
+// WS:
+//   ws://<host>:8787
+//   Protocol:
+//     Client -> { type:"JOIN", roomId:"abc", name?:"Sam" }
+//     Client -> { type:"ACTION", action:{...} }
+//     Server -> { type:"WELCOME", roomId, clientId }
+//     Server -> { type:"ROOM", roomId, clients:[{clientId,name}] }
+//     Server -> { type:"STATE", roomId, version, state }
+//     Server -> { type:"REJECTED", roomId, reason }
 
 import http from "http";
 import { WebSocketServer } from "ws";
 
-import { initialState } from "./engine/state.js";
-import { applyAction } from "./engine/reducer.js";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+import { initialState } from "../engine/state.js";
+import { applyAction } from "../engine/reducer.js";
 
 const PORT = Number(process.env.PORT || 8787);
+
+// -------------------------
+// Static hosting config
+// -------------------------
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Put your client here:
+//   public/index.html
+//   public/trevdor.js
+//   public/ui/... etc
+const PUBLIC_DIR = path.join(__dirname, "..", "public");
+const ENGINE_DIR = path.join(__dirname, "..", "engine");
+
+
+// Minimal MIME map (important for ES modules)
+const MIME = {
+  ".html": "text/html; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".mjs": "text/javascript; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
+  ".svg": "image/svg+xml; charset=utf-8",
+  ".ico": "image/x-icon",
+};
+
+// -------------------------
+// Rooms + client registry
+// -------------------------
 
 // roomId -> { clients:Set(ws), state:any, version:number }
 const rooms = new Map();
@@ -143,18 +184,56 @@ function joinRoom(ws, roomId, name) {
 }
 
 // -------------------------
-// HTTP server (optional health + info)
+// HTTP server (health + static hosting)
 // -------------------------
 
 const server = http.createServer((req, res) => {
-  if (req.url === "/health") {
-    res.writeHead(200, { "Content-Type": "text/plain" });
+  const urlPath = (req.url || "/").split("?")[0];
+
+  // Health check
+  if (urlPath === "/health") {
+    res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
     res.end("ok");
     return;
   }
-  res.writeHead(200, { "Content-Type": "text/plain" });
-  res.end("Trevdor WS server running");
+
+  // Decide which root to serve from
+  let rootDir = PUBLIC_DIR;
+  let rel = urlPath === "/" ? "/index.html" : urlPath;
+
+  // If requesting engine files, switch root
+  if (rel.startsWith("/engine/")) {
+    rootDir = ENGINE_DIR;
+    rel = rel.slice("/engine".length); // "/engine/state.js" -> "/state.js"
+  }
+
+  // Prevent directory traversal
+  rel = path.posix.normalize(rel).replace(/^(\.\.(\/|\\|$))+/, "");
+
+  const filePath = path.join(rootDir, rel);
+
+  // Ensure path stays inside chosen root
+  if (!filePath.startsWith(rootDir)) {
+    res.writeHead(403, { "Content-Type": "text/plain; charset=utf-8" });
+    res.end("Forbidden");
+    return;
+  }
+
+  fs.readFile(filePath, (err, data) => {
+    if (err) {
+      res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+      res.end("Not found");
+      return;
+    }
+
+    const ext = path.extname(filePath).toLowerCase();
+    res.writeHead(200, {
+      "Content-Type": MIME[ext] || "application/octet-stream",
+    });
+    res.end(data);
+  });
 });
+
 
 // -------------------------
 // WebSocket server
@@ -186,21 +265,6 @@ wss.on("connection", (ws, req) => {
         return;
       }
       joinRoom(ws, roomId, msg.name);
-      return;
-    }
-
-    if (msg.type === "SAY") {
-      if (!info.roomId) {
-        safeSend(ws, { type: "ERROR", message: "You must JOIN a room first" });
-        return;
-      }
-      const text = String(msg.text || "");
-      broadcastToRoom(info.roomId, {
-        type: "MSG",
-        roomId: info.roomId,
-        from: info.clientId,
-        text,
-      });
       return;
     }
 
@@ -240,6 +304,22 @@ wss.on("connection", (ws, req) => {
       return;
     }
 
+    // Optional: keep SAY for debugging/chat
+    if (msg.type === "SAY") {
+      if (!info.roomId) {
+        safeSend(ws, { type: "ERROR", message: "You must JOIN a room first" });
+        return;
+      }
+      const text = String(msg.text || "");
+      broadcastToRoom(info.roomId, {
+        type: "MSG",
+        roomId: info.roomId,
+        from: info.clientId,
+        text,
+      });
+      return;
+    }
+
     safeSend(ws, { type: "ERROR", message: `Unknown type: ${msg.type}` });
   });
 
@@ -255,4 +335,5 @@ server.listen(PORT, () => {
   console.log(`HTTP  : http://localhost:${PORT}`);
   console.log(`Health: http://localhost:${PORT}/health`);
   console.log(`WS    : ws://localhost:${PORT}`);
+  console.log(`Static: ${PUBLIC_DIR}`);
 });

@@ -124,5 +124,13 @@ export function computeLayout({ width, height }) {
       w: CARD_WH.w,
       h: TOKEN_WH.h + GAP
     },
+    {
+      uiID: "ui.button.reset",  // temporary button to rest state on server
+      kind: "button.reset",
+      x: 0,
+      y: 0,
+      w: 10,
+      h: 30
+    }
   ];
 }

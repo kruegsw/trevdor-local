@@ -1,6 +1,5 @@
 // ui/controller.js
 import { handleClick } from "./handlers/handleClick.js";
-import { applyAction } from "../engine/reducer.js"; // local-only for now
 import { Intent } from "./intent.js";
 import { rulesCheck } from "./rules.js"
 
