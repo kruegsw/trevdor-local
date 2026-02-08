@@ -14,6 +14,8 @@ import { initialState } from "./engine/state.js";
 import { createUIEvents } from "./ui/events.js";
 import { createUIState } from "./ui/state.js";
 import { createUIController } from "./ui/controller.js";
+import { createTransport } from "./net/transport.js";
+
 
 /* ---------------------------------------------------------
    Game + UI state
@@ -43,6 +45,40 @@ function draw() {
   renderer.draw(state, uiState);
 }
 
+
+// web socket connection
+
+const ROOM_ID = "room1";
+const PLAYER_NAME = "playerA";
+const WS_URL = "ws://localhost:8787";
+
+const transport = createTransport({
+  url: WS_URL,
+  roomId: ROOM_ID,
+  name: PLAYER_NAME,
+  onMessage: (msg) => {
+    if (msg.type === "STATE" && msg.roomId === ROOM_ID) {
+      state = msg.state;
+      draw();
+    };
+    console.log("[server]", msg); // temporary
+  },
+  onOpen: () => {
+    console.log("[ws] open");
+    transport.send("SAY", { text: "hello from trevdor client" });  // test for server
+  },
+  onClose: () => console.log("[ws] close"),
+  onError: (e) => console.log("[ws] error", e),
+});
+
+function dispatchGameAction(gameAction) {
+  transport.sendRaw({
+    type: "ACTION",
+    roomId: ROOM_ID,
+    action: gameAction,
+  });
+}
+
 /* ---------------------------------------------------------
    UI events + controller
    --------------------------------------------------------- */
@@ -59,6 +95,7 @@ const controller = createUIController({
   getState: () => state,
   uiState,
   requestDraw: draw,
+  dispatchGameAction
 });
 
 // Wire controller into event system

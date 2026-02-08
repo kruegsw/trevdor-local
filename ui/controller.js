@@ -12,21 +12,14 @@ import { rulesCheck } from "./rules.js"
  * - Uses Intent to decide when a real game action exists
  * - Dispatches that action (local now, server later)
  */
-export function createUIController({ getState, uiState, requestDraw }) {
+export function createUIController({ getState, uiState, requestDraw, dispatchGameAction }) {
   if (!getState) throw new Error("createUIController: getState is required");
   if (!uiState) throw new Error("createUIController: uiState is required");
   if (!requestDraw) throw new Error("createUIController: requestDraw is required");
 
   // Initialize UI intent state
   Intent.ensure(uiState);
-
-  function dispatchGameAction(action) {
-    
-    applyAction(getState(), action); // LOCAL MODE
-
-    // socket.send(action); // SERVER MODE (later)
-  }
-
+  
   return {
     onUIAction(uiAction) {
       const state = getState();
