@@ -55,12 +55,12 @@ const ROOM_ID = "room1";
 const PLAYER_NAME = "playerA";
 
 // Prefer this when client is served from the same host as server:
-// const WS_URL = (location.protocol === "https:" ? "wss://" : "ws://") + location.host;
+const WS_URL = (location.protocol === "https:" ? "wss://" : "ws://") + location.host;
 
 // Local dev:
-const WS_URL = "ws://localhost:8787";
+// const WS_URL = "ws://localhost:8787";  //  this is no longer necessary since static files are served by the server
 // Remote example:
-// const WS_URL = "ws://charlization.com:8787";
+// const WS_URL = "ws://charlization.com:8787"; // if server is running but need to point client to server, no necessary if server is also sending client
 
 const transport = createTransport({
   url: WS_URL,
