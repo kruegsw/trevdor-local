@@ -282,7 +282,9 @@ wss.on("connection", (ws, req) => {
       if (!room) return;
 
       const prev = room.state;
-      const next = applyAction(prev, msg.action);
+      const { next, message } = applyAction(prev, msg.action);
+
+      safeSend(ws, { type: "ERROR", message: message });
 
       // Convention: if reducer returns same state reference, treat as invalid/no-op
       if (next === prev) {
