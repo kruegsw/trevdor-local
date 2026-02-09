@@ -17,7 +17,13 @@ const initialState = (numbersOfPlayers) => {
         tier2: [],
         tier3: [],
       },
-      nobles: [],
+      nobles: [/*
+        { id: "n_01", points: 3, req: { white: 4, blue: 4 } },
+        { id: "n_02", points: 3, req: { blue: 4, green: 4 } },
+        { id: "n_03", points: 3, req: { green: 4, red: 4 } },
+        { id: "n_04", points: 3, req: { red: 4, black: 4 } },
+        { id: "n_05", points: 3, req: { black: 4, white: 4 } }
+      */],
       bank: {},
     },
     // turn control
