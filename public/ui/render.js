@@ -78,7 +78,7 @@ function render(ctx) {
         const stateObject = e.statePath ? getByStatePath(state, e.statePath) : {};
         if (!stateObject) return;
         
-        drawSelect(ctx, stateObject, e, uiState);
+        drawSelect(ctx, state, uiState, stateObject, e);
         
         hitRegions.push({
           uiID: e.uiID,           // stable identifier (later: state.cards[i].id)
@@ -154,7 +154,7 @@ function getByStatePath(state, statePath) {
   );
 }
 
-function drawSelect(ctx, stateObject, { uiID, kind, color, x, y, w, h, text }, uiState) {
+function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, playerIndex, x, y, w, h, text }) {
   switch (kind) {
     case "decks.tier1":
       //drawCard(ctx, { x, y, w, h } );
@@ -296,12 +296,14 @@ function drawSelect(ctx, stateObject, { uiID, kind, color, x, y, w, h, text }, u
       break;
 
     case "summary.card":
+      if (!state.players[playerIndex]) {break};
       drawSummaryCard(ctx, { x, y, w, h });
       break;
 
     case "summary.text.name": {
+      if (!state.players[playerIndex]) {break};
       // stateObject could later be the name string; for now use slot.text
-      const label = text ?? "";
+      const label = state.players[playerIndex].name ?? text ?? "";
 
       ctx.save();
       ctx.fillStyle = "#111";
@@ -314,7 +316,9 @@ function drawSelect(ctx, stateObject, { uiID, kind, color, x, y, w, h, text }, u
     }
 
     case "summary.text.bonus": {
-      const label = text ?? "";
+      if (!state.players[playerIndex]) {break};
+      const points = state.players[playerIndex].cards.reduce((sum, {points}) => sum + points, 0); 
+      const label = points ? (text + ": " + points) : (text + ": 0");
 
       ctx.save();
       ctx.fillStyle = "#111";
@@ -326,10 +330,18 @@ function drawSelect(ctx, stateObject, { uiID, kind, color, x, y, w, h, text }, u
       break;
     }
 
-    case "summary.gems":
-    case "summary.tokens": {
+    case "summary.gems": {
+      if (!state.players[playerIndex]) {break};
       // stateObject could later be a number; for now use slot.text
-      const value = text ?? "0";
+      const value = state.players[playerIndex].gems/*[color]*/ ?? text ?? "0";
+      drawPipValue(ctx, color, { x, y, w, h }, value);
+      break;
+    }
+
+    case "summary.tokens": {
+      if (!state.players[playerIndex]) {break};
+      // stateObject could later be a number; for now use slot.text
+      const value = state.players[playerIndex].tokens[color] ?? text ?? "0";
       drawPipValue(ctx, color, { x, y, w, h }, value);
       break;
     }
@@ -1025,17 +1037,17 @@ function drawSummaryCard(ctx, { x, y, w, h }) {
 
 const COLOR_FILL = {
   yellow: "#D6B04C",
-  white:  "#E9EEF3",
-  blue:   "#2E6BE6",
   green:  "#2E9B5F",
   red:    "#D94A4A",
+  blue:   "#2E6BE6",
   black:  "#2B2B2B",
+  white:  "#E9EEF3",
 };
 
 function drawPipValue(ctx, color, { x, y, w, h }, valueText = "0") {
-  const cx = x + 10;
-  const cy = y + h / 2;
-  const r = Math.min(7, h * 0.35);
+  const cx = x;
+  const cy = y;
+  const r = Math.min(h * 0.35);
 
   ctx.save();
   // pip
@@ -1048,11 +1060,11 @@ function drawPipValue(ctx, color, { x, y, w, h }, valueText = "0") {
   ctx.stroke();
 
   // text
-  ctx.fillStyle = "#111";
+  if (color == "black") { ctx.fillStyle = "#ccc"} else { ctx.fillStyle = "#111"};
   ctx.font = "14px sans-serif";
-  ctx.textAlign = "left";
+  ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(String(valueText ?? ""), cx + r + 6, cy);
+  ctx.fillText(String(valueText ?? ""), cx, cy);
   ctx.restore();
 }
 

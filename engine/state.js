@@ -66,6 +66,8 @@ function createPlayer (number) {
     reserved: [],
     nobles: [],
     tokens: { white: 0, blue: 0, green: 0, red: 0, black: 0, yellow: 0 },
+    bonus: () => 1,
+    gems: () => 1,
   };
   return player;
     // bonus will be calculated
@@ -73,11 +75,11 @@ function createPlayer (number) {
 }
 
 function createPlayers (numbersOfPlayers) {
-    const players = [];
-    for (let i = 0; i < numbersOfPlayers; i++) {
-      players.push(createPlayer(i+1));
-    }
-    return players
+  const players = [];
+  for (let i = 0; i < numbersOfPlayers; i++) {
+    players.push(createPlayer(i+1));
+  }
+  return players
 }
 
 export { initialState };

@@ -81,20 +81,15 @@ export function computeLayout({ width, height }) {
   const GEMS_Y   = PAD + TOKEN_WH.h + GAP * 2;     // after header
   const TOKENS_Y = GEMS_Y + TOKEN_WH.h + GAP;      // below gems row
 
+
+
   // Column layout:
-  // col0 = yellow token only
-  // col1..5 = white blue green red black
-  const CELL_W = TOKEN_WH.w + GAP * 2;            // spacing between columns
-  //const COL0_X = PAD;                              // yellow
-  //const COL1_X = COL0_X + CELL_W;                  // white column starts after yellow
+  const SUMMARY_GEM_WH = GAP;
+  const CELL_W = SUMMARY_GEM_WH * 2.5;            // spacing between columns
 
   const LABEL_W = CELL_W;
   const COL0_X = PAD + LABEL_W;   // yellow token column
   const COL1_X = COL0_X + CELL_W; // white column starts after yellow
-
-
-  const GEM_COLORS   = ["white", "blue", "green", "red", "black"];
-  const TOKEN_COLORS = ["yellow", "white", "blue", "green", "red", "black"];
 
   // local helpers: convert (dx,dy) to absolute
   const B = (dx, dy) => ({ x: BOARD.x + dx, y: BOARD.y + dy });
