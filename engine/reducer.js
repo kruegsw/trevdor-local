@@ -68,46 +68,6 @@ export function applyAction(prev, action) {
     return { ok: true, pay };
   }
 
-  function nobleCost(noble) {
-    // support either {cost:{...}} or {meta:{cost:{...}}}
-    return noble?.cost ?? noble?.meta?.cost ?? {};
-  }
-
-  function canClaimNoble(player, noble) {
-    const need = nobleCost(noble);
-    const bonus = bonusByColor(player.cards);
-
-    for (const color of ["white","blue","green","red","black"]) {
-      if ((bonus[color] ?? 0) < (need[color] ?? 0)) return false;
-    }
-    return true;
-  }
-
-  function claimOneEligibleNoble(state, player) {
-    // Market nobles live here (based on your state shape earlier)
-    const nobles = state.market?.nobles ?? [];
-    if (!nobles.length) return false;
-
-    // Find all eligible
-    const eligible = [];
-    for (let i = 0; i < nobles.length; i++) {
-      const n = nobles[i];
-      if (n && canClaimNoble(player, n)) eligible.push({ i, n });
-    }
-    if (!eligible.length) return false;
-
-    // Deterministic pick: lowest id (or fallback to left-to-right)
-    eligible.sort((a, b) => String(a.n?.id ?? "").localeCompare(String(b.n?.id ?? "")));
-
-    const pick = eligible[0];
-    const claimed = nobles.splice(pick.i, 1)[0];
-
-    player.nobles ??= [];
-    player.nobles.push(claimed);
-
-    return true;
-  }
-
   function implementAction(state, action) {
     switch (action.type) {
       case "TAKE_TOKENS": {
@@ -206,17 +166,6 @@ export function applyAction(prev, action) {
 
   // If something went sideways, preserve reducer contract: invalid => prev
   if (!changed) return prev;
-
-    // End-of-turn noble claim (Splendor-style: at most 1 noble per turn)
-  const endsTurn = (action.type === "TAKE_TOKENS" ||
-    action.type === "RESERVE_CARD" ||
-    action.type === "BUY_CARD"
-  );
-
-  if (endsTurn) {
-    const player = state.players[state.activePlayerIndex];
-    claimOneEligibleNoble(state, player);
-  };
 
   return state;
 }
