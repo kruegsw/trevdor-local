@@ -209,6 +209,9 @@ function drawSelect(ctx, stateObject, { uiID, kind, color, x, y, w, h }, uiState
       const pile = grouped[color] ?? [];
       stateObject ? drawFannedCards(ctx, { color, x, y, w, h }, pile ) : null;
       break;
+    case "fanned.nobles":
+      stateObject ? drawFannedNobles(ctx, { color, x, y, w, h }, stateObject ) : null;
+      break;
 
     ////////////////////////
     case "ui.prompt": {
@@ -832,6 +835,19 @@ function drawReserved(ctx, { x, y, w, h }, stateObject) {
 
     // Restore the canvas to its original state before the translation and rotation
     ctx.restore();
+}
+
+function drawFannedNobles(ctx, { color, x, y, w, h }, stateObject ) {
+
+  const peek = Math.floor(h * 0.30);
+  const n = stateObject?.length ?? 0;
+
+  // Draw from top -> bottom so the bottom-most (largest y) is drawn last and ends up on top.
+  for (let i = 0; i < n; i++) {
+    const noble = stateObject[i];
+    const yy = y + (i * peek);
+    drawNoble(ctx, { x, y: yy, w, h }, noble);
+  }
 }
 
 function drawFannedCards(ctx, { color, x, y, w, h }, stateObject ) {

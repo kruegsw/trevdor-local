@@ -64,7 +64,8 @@ function createPlayer (number) {
     name: `Player ${number}`,
     cards: [],
     reserved: [],
-    nobles: [],
+    nobles: [{ id: "n_01", points: 3, req: { white: 4, blue: 4 } },
+  { id: "n_02", points: 3, req: { blue: 4, green: 4 } },],
     tokens: { white: 0, blue: 0, green: 0, red: 0, black: 0, yellow: 0 },
   };
   return player;

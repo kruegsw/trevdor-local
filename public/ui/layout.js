@@ -84,13 +84,14 @@ export function computeLayout({ width, height }) {
 
     // --- NEW: player panel slot (Player 1 below board)
     //{ id: "players.0.panel.bottom", kind: "player.panel.bottom", x: PLAYER_PANEL.x, y: PLAYER_PANEL.y, w: PLAYER_PANEL.w, h: PLAYER_PANEL.h, statePath: ["players", 0] },
+    { uiID: "player.nobles", kind: "fanned.nobles", x: PLAYER_PANEL.x + GAP * 5 + TOKEN_WH.w + CARD_WH.h * 3, y: PLAYER_PANEL.y, w: NOBLE_WH.w, h: NOBLE_WH.h, statePath: ["players", 0, "nobles"]},
     { uiID: "player.tokens.yellow", color: "yellow", kind: "token", x: PLAYER_PANEL.x + GAP, y: PLAYER_PANEL.y, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players", 0, "tokens", "yellow"]},
-    { uiID: "player.bottom.reserved.1", kind: "reserved", tier: "reserved", index: 0, x: PLAYER_PANEL.x + GAP * 2 + TOKEN_WH.w, y: PLAYER_PANEL.y, w: CARD_WH.h, h: CARD_WH.w, statePath: ["players", 0, "reserved", 0] }, // notice w h reversed
-    { uiID: "player.bottom.reserved.2", kind: "reserved", tier: "reserved", index: 1, x: PLAYER_PANEL.x + GAP * 3 + TOKEN_WH.w + CARD_WH.h, y: PLAYER_PANEL.y, w: CARD_WH.h, h: CARD_WH.w, statePath: ["players", 0, "reserved", 1] }, // notice w h reversed
-    { uiID: "player.bottom.reserved.3", kind: "reserved", tier: "reserved", index: 2, x: PLAYER_PANEL.x + GAP * 4 + TOKEN_WH.w + CARD_WH.h * 2, y: PLAYER_PANEL.y, w: CARD_WH.h, h: CARD_WH.w, statePath: ["players", 0, "reserved", 2] }, // notice w h reversed
-    { uiID: "playyer.bottom.token.green", color: "green", kind: "token", x: ROW_CARD_NOBLE_XY[0] + GAP, y: PLAYER_PANEL.y + CARD_WH.w + GAP, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players", 0, "tokens", "green"]},
-    { uiID: "playyer.bottom.token.red", color: "red", kind: "token", x: ROW_CARD_NOBLE_XY[1] + GAP, y: PLAYER_PANEL.y + CARD_WH.w + GAP, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players", 0, "tokens", "red"]},
-    { uiID: "playyer.bottom.token.blue", color: "blue", kind: "token", x: ROW_CARD_NOBLE_XY[2] + GAP, y: PLAYER_PANEL.y + CARD_WH.w + GAP, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players", 0, "tokens", "blue"]},
+    { uiID: "player.reserved.1", kind: "reserved", tier: "reserved", index: 0, x: PLAYER_PANEL.x + GAP * 2 + TOKEN_WH.w, y: PLAYER_PANEL.y, w: CARD_WH.h, h: CARD_WH.w, statePath: ["players", 0, "reserved", 0] }, // notice w h reversed
+    { uiID: "player.reserved.2", kind: "reserved", tier: "reserved", index: 1, x: PLAYER_PANEL.x + GAP * 3 + TOKEN_WH.w + CARD_WH.h, y: PLAYER_PANEL.y, w: CARD_WH.h, h: CARD_WH.w, statePath: ["players", 0, "reserved", 1] }, // notice w h reversed
+    { uiID: "player.reserved.3", kind: "reserved", tier: "reserved", index: 2, x: PLAYER_PANEL.x + GAP * 4 + TOKEN_WH.w + CARD_WH.h * 2, y: PLAYER_PANEL.y, w: CARD_WH.h, h: CARD_WH.w, statePath: ["players", 0, "reserved", 2] }, // notice w h reversed
+    { uiID: "playyer.token.green", color: "green", kind: "token", x: ROW_CARD_NOBLE_XY[0] + GAP, y: PLAYER_PANEL.y + CARD_WH.w + GAP, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players", 0, "tokens", "green"]},
+    { uiID: "playyer.token.red", color: "red", kind: "token", x: ROW_CARD_NOBLE_XY[1] + GAP, y: PLAYER_PANEL.y + CARD_WH.w + GAP, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players", 0, "tokens", "red"]},
+    { uiID: "playyer.token.blue", color: "blue", kind: "token", x: ROW_CARD_NOBLE_XY[2] + GAP, y: PLAYER_PANEL.y + CARD_WH.w + GAP, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players", 0, "tokens", "blue"]},
     { uiID: "playyer.bottom.token.black", color: "black", kind: "token", x: ROW_CARD_NOBLE_XY[3] + GAP, y: PLAYER_PANEL.y + CARD_WH.w + GAP, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players", 0, "tokens", "black"]},
     { uiID: "playyer.bottom.token.white", color: "white", kind: "token", x: ROW_CARD_NOBLE_XY[4] + GAP, y: PLAYER_PANEL.y + CARD_WH.w + GAP, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players", 0, "tokens", "white"]},
     { uiID: "player.cards.green", color: "green", kind: "fanned.cards", x: ROW_CARD_NOBLE_XY[0], y: PLAYER_PANEL.y + CARD_WH.w + GAP*2 + TOKEN_WH.h, w: CARD_WH.w, h: CARD_WH.h, statePath: ["players", 0, "cards"]},
