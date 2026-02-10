@@ -317,7 +317,8 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, playe
 
     case "summary.text.bonus": {
       if (!state.players[playerIndex]) {break};
-      const points = state.players[playerIndex].cards.reduce((sum, {points}) => sum + points, 0); 
+      const noblesAndCard = [...state.players[playerIndex].cards, ...state.players[playerIndex].nobles]
+      const points = noblesAndCard.reduce((sum, {points}) => sum + points, 0); 
       const label = points ? (text + ": " + points) : (text + ": 0");
 
       ctx.save();
