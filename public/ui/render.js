@@ -154,7 +154,7 @@ function getByStatePath(state, statePath) {
   );
 }
 
-function drawSelect(ctx, stateObject, { uiID, kind, color, x, y, w, h }, uiState) {
+function drawSelect(ctx, stateObject, { uiID, kind, color, x, y, w, h, text }, uiState) {
   switch (kind) {
     case "decks.tier1":
       //drawCard(ctx, { x, y, w, h } );
@@ -286,6 +286,53 @@ function drawSelect(ctx, stateObject, { uiID, kind, color, x, y, w, h }, uiState
       break;
     }
     /////////// TEMPORARY MANUAL RESET BUTTON FOR TO RESET SERVER GAME STATE from CLIENT ////////////
+
+    // ----------------------------
+    // SUMMARY UI (right of board)
+    // ----------------------------
+    case "summary.container":
+      // optional: draw nothing, or a faint outline for debugging
+      // drawSummaryCard(ctx, { x, y, w, h }); // uncomment if you want container visible
+      break;
+
+    case "summary.card":
+      drawSummaryCard(ctx, { x, y, w, h });
+      break;
+
+    case "summary.text.name": {
+      // stateObject could later be the name string; for now use slot.text
+      const label = text ?? "";
+
+      ctx.save();
+      ctx.fillStyle = "#111";
+      ctx.font = "16px sans-serif";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "top";
+      ctx.fillText(label, x, y);
+      ctx.restore();
+      break;
+    }
+
+    case "summary.text.bonus": {
+      const label = text ?? "";
+
+      ctx.save();
+      ctx.fillStyle = "#111";
+      ctx.font = "16px sans-serif";
+      ctx.textAlign = "right";
+      ctx.textBaseline = "top";
+      ctx.fillText(label, x + w, y);
+      ctx.restore();
+      break;
+    }
+
+    case "summary.gems":
+    case "summary.tokens": {
+      // stateObject could later be a number; for now use slot.text
+      const value = text ?? "0";
+      drawPipValue(ctx, color, { x, y, w, h }, value);
+      break;
+    }
 
 
     default:
@@ -950,223 +997,62 @@ function pendingTokensToText(picks) {
 }
 
 
-/*
-function drawPlayerPanelBottom(ctx, { x, y, w, h }, player) {
-  // --- Board piece sizes (must match layout.js)
-  const SCALE = 3;
-  const GAP = 5 * SCALE;
-  const CARD_WH  = { w: 25 * SCALE, h: 35 * SCALE };
-  const NOBLE_WH = { w: 25 * SCALE, h: 25 * SCALE };
-  const TOKEN_WH = { w: 15 * SCALE, h: 15 * SCALE };
+//////////////////////////////////////////////
+//////////// FOR SUMMARY CARDS ///////////////
+//////////////////////////////////////////////
 
-  // --- Panel frame
-  roundedRectPath(ctx, x, y, w, h, 14);
-  ctx.fillStyle = "rgba(245,245,245,1)";
+function roundRectPath(ctx, x, y, w, h, r) {
+  const rr = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + rr, y);
+  ctx.arcTo(x + w, y, x + w, y + h, rr);
+  ctx.arcTo(x + w, y + h, x, y + h, rr);
+  ctx.arcTo(x, y + h, x, y, rr);
+  ctx.arcTo(x, y, x + w, y, rr);
+  ctx.closePath();
+}
+
+function drawSummaryCard(ctx, { x, y, w, h }) {
+  ctx.save();
+  roundRectPath(ctx, x, y, w, h, 10);
+  ctx.fillStyle = "#f3f3f3";
   ctx.fill();
-  ctx.strokeStyle = "rgba(0,0,0,1)";
-  ctx.lineWidth = 1;
+  ctx.strokeStyle = "#111";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.restore();
+}
+
+const COLOR_FILL = {
+  yellow: "#D6B04C",
+  white:  "#E9EEF3",
+  blue:   "#2E6BE6",
+  green:  "#2E9B5F",
+  red:    "#D94A4A",
+  black:  "#2B2B2B",
+};
+
+function drawPipValue(ctx, color, { x, y, w, h }, valueText = "0") {
+  const cx = x + 10;
+  const cy = y + h / 2;
+  const r = Math.min(7, h * 0.35);
+
+  ctx.save();
+  // pip
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fillStyle = COLOR_FILL[color] ?? "#ccc";
+  ctx.fill();
+  ctx.strokeStyle = "#111";
+  ctx.lineWidth = 1.5;
   ctx.stroke();
 
-  const pad = GAP;
-  const innerX = x + pad;
-  const innerY = y + pad;
-  const innerW = w - pad * 2;
-  const innerH = h - pad * 2;
-
-  // --- Title
-  const title = player?.name ?? "Player 1";
-  ctx.fillStyle = "rgba(0,0,0,.9)";
-  ctx.font = `700 ${14 * SCALE}px system-ui, sans-serif`;
+  // text
+  ctx.fillStyle = "#111";
+  ctx.font = "14px sans-serif";
   ctx.textAlign = "left";
-  ctx.textBaseline = "top";
-  ctx.fillText(title, innerX, innerY);
-
-  if (!player) return;
-
-  const tokens   = player.tokens   ?? {};
-  const cards    = player.cards    ?? [];
-  const reserved = player.reserved ?? [];
-  const nobles   = player.nobles   ?? [];
-
-  let cy = innerY + (16 * SCALE) + GAP;
-
-  // ------------------------------------------------------------------
-  // TOKENS ROW (full-size tokens)
-  // ------------------------------------------------------------------
-  const tokenOrder = ["white", "blue", "green", "red", "black", "yellow"];
-  let tx = innerX;
-
-  for (const c of tokenOrder) {
-    drawToken(ctx, c, { x: tx, y: cy, w: TOKEN_WH.w, h: TOKEN_WH.h }, {
-      count: tokens[c] ?? 0
-    });
-    tx += TOKEN_WH.w + GAP;
-  }
-
-  // ------------------------------------------------------------------
-  // RESERVED (full-size cards, fanned)
-  // ------------------------------------------------------------------
-  const reservedX = innerX + Math.min(
-    Math.floor(innerW * 0.55),
-    (TOKEN_WH.w + GAP) * tokenOrder.length + GAP
-  );
-
-  ctx.fillStyle = "rgba(0,0,0,.7)";
-  ctx.font = `600 ${11 * SCALE}px system-ui, sans-serif`;
-  ctx.textBaseline = "top";
-  ctx.fillText("Reserved", reservedX, cy - (12 * SCALE));
-
-  // ------------------------------------------------------------------
-  // RESERVED (sideways, NOT stacked; laid out left-to-right)
-  // ------------------------------------------------------------------
-  const maxReserved = 3;
-
-  ctx.fillStyle = "rgba(0,0,0,.7)";
-  ctx.font = `600 ${11 * SCALE}px system-ui, sans-serif`;
-  ctx.textBaseline = "top";
-  ctx.textAlign = "left";
-  ctx.fillText("Reserved", reservedX, cy - (12 * SCALE));
-
-  // When rotated 90°, a card's bounding box becomes (CARD_WH.h wide) x (CARD_WH.w tall)
-  const rotW = CARD_WH.h;
-  const rotH = CARD_WH.w;
-
-  for (let i = 0; i < maxReserved; i++) {
-    const card = reserved[i]; // may be undefined if fewer than maxReserved
-
-    const slotX = reservedX + i * (rotW + GAP);
-    const slotY = cy;
-
-    ctx.save();
-
-    // Rotate around the center of this reserved "slot"
-    ctx.translate(
-      Math.round(slotX + rotW / 2),
-      Math.round(slotY + rotH / 2)
-    );
-    ctx.rotate(Math.PI / 2);
-
-
-    if (card) {
-      // Draw the full-size card rotated
-      drawDevelopmentCard(
-        ctx,
-        { x: -CARD_WH.w / 2, y: -CARD_WH.h / 2, w: CARD_WH.w, h: CARD_WH.h },
-        card
-      );
-    } else {
-      // Empty placeholder (so you always see 3 slots)
-      roundedRectPath(ctx, -CARD_WH.w / 2, -CARD_WH.h / 2, CARD_WH.w, CARD_WH.h, 10);
-      ctx.strokeStyle = "rgba(0,0,0,.25)";
-      ctx.lineWidth = 1;
-      ctx.stroke();
-    }
-
-    ctx.restore();
-  }
-
-  cy += Math.max(TOKEN_WH.h, CARD_WH.h) + GAP;
-
-  // ------------------------------------------------------------------
-  // PURCHASED CARD STACKS (grouped by bonus)
-  // ------------------------------------------------------------------
-  ctx.fillStyle = "rgba(0,0,0,.7)";
-  ctx.font = `600 ${11 * SCALE}px system-ui, sans-serif`;
-  ctx.fillText("Cards", innerX, cy);
-
-  const stacksTop = cy + (12 * SCALE);
-  const grouped = groupCardsByBonus(cards, ["white","blue","green","red","black","yellow"]);
-
-  let sx = innerX;
-  for (const color of ["white","blue","green","red","black","yellow"]) {
-    const pile = grouped[color] ?? [];
-
-    drawStackWithPeek(ctx, pile, {
-      x: sx,
-      y: stacksTop,
-      w: CARD_WH.w,
-      h: CARD_WH.h,
-      peek: Math.floor(CARD_WH.h * 0.25),
-      maxVisible: 6,
-    });
-
-    ctx.fillStyle = "rgba(0,0,0,.75)";
-    ctx.font = `600 ${10 * SCALE}px system-ui, sans-serif`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "top";
-    ctx.fillText(`${pile.length}`, sx + CARD_WH.w / 2, stacksTop + CARD_WH.h + 2);
-
-    sx += CARD_WH.w + GAP;
-  }
-
-  // ------------------------------------------------------------------
-  // NOBLES ROW (full-size nobles)
-  // ------------------------------------------------------------------
-  const noblesLabelY = y + h - pad - NOBLE_WH.h - (12 * SCALE) - GAP;
-  const noblesRowY = noblesLabelY + (12 * SCALE);
-
-  ctx.fillStyle = "rgba(0,0,0,.7)";
-  ctx.font = `600 ${11 * SCALE}px system-ui, sans-serif`;
-  ctx.textAlign = "left";
-  ctx.textBaseline = "top";
-  ctx.fillText("Nobles", innerX, noblesLabelY);
-
-  let nx = innerX;
-  for (let i = 0; i < Math.min(3, nobles.length); i++) {
-    drawNoble(ctx, { x: nx, y: noblesRowY, w: NOBLE_WH.w, h: NOBLE_WH.h }, nobles[i]);
-    nx += NOBLE_WH.w + GAP;
-  }
+  ctx.textBaseline = "middle";
+  ctx.fillText(String(valueText ?? ""), cx + r + 6, cy);
+  ctx.restore();
 }
 
-//   -----------------------
-//   Helpers for the panel
-//   ----------------------- 
-
-function groupCardsByBonus(cards, colors) {
-  const out = {};
-  for (const c of colors) out[c] = [];
-  for (const card of (cards ?? [])) {
-    const b = card?.bonus ?? "white";
-    (out[b] ??= []).push(card);
-  }
-  return out;
-}
-
-// Draw up to N cards, slightly offset (for reserved)
-function drawFannedCards(ctx, cards, { x, y, w, h, max = 3, dx = 8, dy = 0 }) {
-  const n = Math.min(max, cards?.length ?? 0);
-  for (let i = 0; i < n; i++) {
-    const card = cards[i];
-    drawDevelopmentCard(ctx, { x: x + i * dx, y: y + i * dy, w, h }, card);
-  }
-
-  // If zero, draw placeholder outline
-  if (n === 0) {
-    roundedRectPath(ctx, x, y, w, h, 10);
-    ctx.strokeStyle = "rgba(0,0,0,.25)";
-    ctx.lineWidth = 1;
-    ctx.stroke();
-  }
-}
-
-// Draw a "stack" where only the top quarter of each below card shows
-function drawStackWithPeek(ctx, cards, { x, y, w, h, peek, maxVisible = 6 }) {
-  const n = Math.min(maxVisible, cards?.length ?? 0);
-
-  // Draw from top -> bottom so the bottom-most (largest y) is drawn last and ends up on top.
-  for (let i = 0; i < n; i++) {
-    const card = cards[i];
-    const yy = y + (i * peek);
-    drawDevelopmentCard(ctx, { x, y: yy, w, h }, card);
-  }
-
-  // placeholder if empty
-  if (n === 0) {
-    roundedRectPath(ctx, x, y, w, h, 10);
-    ctx.strokeStyle = "rgba(0,0,0,.25)";
-    ctx.lineWidth = 1;
-    ctx.stroke();
-  }
-}
-
-*/
