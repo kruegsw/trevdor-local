@@ -64,7 +64,7 @@ export function createUIEvents({
 
     const hit = renderer.getHitAt(x, y);
 
-    if (hit?.id !== ui.hovered?.id) {
+    if (hit?.uiID !== ui.hovered?.uiID) {
       ui.hovered = hit;
 
       _onAction({ type: "hover", hit, x, y });

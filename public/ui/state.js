@@ -17,6 +17,8 @@ export function createUIState() {
     },
 
     // Future-proofing:
-    mode: "idle", // "idle" | "takeTokens" | "buyCard" | etc
+    mode: "idle", // "idle" | "takeTokens" | "buyCard" | etc,
+
+    playerPanelPlayerIndex: 0,
   };
 }

@@ -1,4 +1,7 @@
-export function computeLayout({ width, height }) {
+export function computeLayout(viewport = { width, height }, uiState) {
+
+  const ui = uiState;
+
   const SCALE = 3;
   const MARGIN = 10 * SCALE;
   const GAP = 5 * SCALE;
@@ -54,11 +57,15 @@ export function computeLayout({ width, height }) {
 
   const SUMMARY_CARD = {
     w: SUMMARY.w,
-    h: TOKEN_WH.h * 3 + GAP * 6, // header + 2 rows + padding
+    h: TOKEN_WH.h * 2 + GAP * 3, // header + 2 rows + padding
   };
 
   const S = (dx, dy) => ({ x: SUMMARY.x + dx, y: SUMMARY.y + dy });
   const slotS = (obj) => ({ ...obj, ...S(obj.dx ?? 0, obj.dy ?? 0) });
+
+  function getplayerPanelPlayerIndex() {
+    return ui.playerPanelPlayerIndex
+  }
 
   function summaryCardRect(i) {
     return {
@@ -78,17 +85,17 @@ export function computeLayout({ width, height }) {
   // ---- Layout inside each card (local coordinates)
   const PAD = GAP;                 // padding inside each card
   const HEADER_Y = PAD;
-  const GEMS_Y   = PAD + TOKEN_WH.h + GAP * 2;     // after header
-  const TOKENS_Y = GEMS_Y + TOKEN_WH.h + GAP;      // below gems row
+  const GEMS_Y   = PAD + TOKEN_WH.h;     // after header
+  const TOKENS_Y = GEMS_Y + TOKEN_WH.h;      // below gems row
 
 
 
   // Column layout:
-  const SUMMARY_GEM_WH = GAP;
-  const CELL_W = SUMMARY_GEM_WH * 2.5;            // spacing between columns
+  const SUMMARY_GEM_WH = GAP * 2.5;
+  const CELL_W = SUMMARY_GEM_WH;            // spacing between columns
 
   const LABEL_W = CELL_W;
-  const COL0_X = PAD + LABEL_W;   // yellow token column
+  const COL0_X = GAP * 4 + LABEL_W;   // yellow token column
   const COL1_X = COL0_X + CELL_W; // white column starts after yellow
 
   // local helpers: convert (dx,dy) to absolute
@@ -145,27 +152,27 @@ export function computeLayout({ width, height }) {
     slot(B, { uiID: "bank.white",  color: "white",  kind: "token", dx: GAP * 9 + TOKEN_WH.w * 5, dy: BANK_Y, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["market","bank","white"] }),
 
     // ---- player panel items (panel-relative)
-    slot(P, { uiID: "player.nobles", kind: "fanned.nobles", dx: GAP * 5 + TOKEN_WH.w + CARD_WH.h * 3, dy: 0, w: NOBLE_WH.w, h: NOBLE_WH.h, statePath: ["players",0,"nobles"] }),
-    slot(P, { uiID: "player.tokens.yellow", color: "yellow", kind: "token", dx: GAP, dy: 0, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players",0,"tokens","yellow"] }),
+    slot(P, { uiID: "player.nobles", kind: "fanned.nobles", dx: GAP * 5 + TOKEN_WH.w + CARD_WH.h * 3, dy: 0, w: NOBLE_WH.w, h: NOBLE_WH.h, statePath: ["players",ui.playerPanelPlayerIndex,"nobles"] }),
+    slot(P, { uiID: "player.tokens.yellow", color: "yellow", kind: "token", dx: GAP, dy: 0, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players",ui.playerPanelPlayerIndex,"tokens","yellow"] }),
 
     // reserved (still sideways)
-    slot(P, { uiID: "player.reserved.1", kind: "reserved", tier: "reserved", index: 0, dx: GAP * 2 + TOKEN_WH.w,               dy: 0, w: CARD_WH.h, h: CARD_WH.w, statePath: ["players",0,"reserved",0] }),
-    slot(P, { uiID: "player.reserved.2", kind: "reserved", tier: "reserved", index: 1, dx: GAP * 3 + TOKEN_WH.w + CARD_WH.h,   dy: 0, w: CARD_WH.h, h: CARD_WH.w, statePath: ["players",0,"reserved",1] }),
-    slot(P, { uiID: "player.reserved.3", kind: "reserved", tier: "reserved", index: 2, dx: GAP * 4 + TOKEN_WH.w + CARD_WH.h*2, dy: 0, w: CARD_WH.h, h: CARD_WH.w, statePath: ["players",0,"reserved",2] }),
+    slot(P, { uiID: "player.reserved.1", kind: "reserved", tier: "reserved", index: 0, dx: GAP * 2 + TOKEN_WH.w,               dy: 0, w: CARD_WH.h, h: CARD_WH.w, statePath: ["players",getplayerPanelPlayerIndex(),"reserved",0] }),
+    slot(P, { uiID: "player.reserved.2", kind: "reserved", tier: "reserved", index: 1, dx: GAP * 3 + TOKEN_WH.w + CARD_WH.h,   dy: 0, w: CARD_WH.h, h: CARD_WH.w, statePath: ["players",ui.playerPanelPlayerIndex,"reserved",1] }),
+    slot(P, { uiID: "player.reserved.3", kind: "reserved", tier: "reserved", index: 2, dx: GAP * 4 + TOKEN_WH.w + CARD_WH.h*2, dy: 0, w: CARD_WH.h, h: CARD_WH.w, statePath: ["players",ui.playerPanelPlayerIndex,"reserved",2] }),
 
     // player token row 2 aligned to board columns BUT expressed as panel-local
-    slot(P, { uiID: "player.tokens.green", color: "green", kind: "token", dx: COL_X[0] + GAP, dy: CARD_WH.w + GAP, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players",0,"tokens","green"] }),
-    slot(P, { uiID: "player.tokens.red",   color: "red",   kind: "token", dx: COL_X[1] + GAP, dy: CARD_WH.w + GAP, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players",0,"tokens","red"] }),
-    slot(P, { uiID: "player.tokens.blue",  color: "blue",  kind: "token", dx: COL_X[2] + GAP, dy: CARD_WH.w + GAP, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players",0,"tokens","blue"] }),
-    slot(P, { uiID: "player.tokens.black", color: "black", kind: "token", dx: COL_X[3] + GAP, dy: CARD_WH.w + GAP, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players",0,"tokens","black"] }),
-    slot(P, { uiID: "player.tokens.white", color: "white", kind: "token", dx: COL_X[4] + GAP, dy: CARD_WH.w + GAP, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players",0,"tokens","white"] }),
+    slot(P, { uiID: "player.tokens.green", color: "green", kind: "token", dx: COL_X[0] + GAP, dy: CARD_WH.w + GAP, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players",ui.playerPanelPlayerIndex,"tokens","green"] }),
+    slot(P, { uiID: "player.tokens.red",   color: "red",   kind: "token", dx: COL_X[1] + GAP, dy: CARD_WH.w + GAP, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players",ui.playerPanelPlayerIndex,"tokens","red"] }),
+    slot(P, { uiID: "player.tokens.blue",  color: "blue",  kind: "token", dx: COL_X[2] + GAP, dy: CARD_WH.w + GAP, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players",ui.playerPanelPlayerIndex,"tokens","blue"] }),
+    slot(P, { uiID: "player.tokens.black", color: "black", kind: "token", dx: COL_X[3] + GAP, dy: CARD_WH.w + GAP, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players",ui.playerPanelPlayerIndex,"tokens","black"] }),
+    slot(P, { uiID: "player.tokens.white", color: "white", kind: "token", dx: COL_X[4] + GAP, dy: CARD_WH.w + GAP, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players",ui.playerPanelPlayerIndex,"tokens","white"] }),
 
     // fanned cards (same statePath)
-    slot(P, { uiID: "player.cards.green", color: "green", kind: "fanned.cards", dx: COL_X[0], dy: CARD_WH.w + GAP*2 + TOKEN_WH.h, w: CARD_WH.w, h: CARD_WH.h, statePath: ["players",0,"cards"] }),
-    slot(P, { uiID: "player.cards.red",   color: "red",   kind: "fanned.cards", dx: COL_X[1], dy: CARD_WH.w + GAP*2 + TOKEN_WH.h, w: CARD_WH.w, h: CARD_WH.h, statePath: ["players",0,"cards"] }),
-    slot(P, { uiID: "player.cards.blue",  color: "blue",  kind: "fanned.cards", dx: COL_X[2], dy: CARD_WH.w + GAP*2 + TOKEN_WH.h, w: CARD_WH.w, h: CARD_WH.h, statePath: ["players",0,"cards"] }),
-    slot(P, { uiID: "player.cards.black", color: "black", kind: "fanned.cards", dx: COL_X[3], dy: CARD_WH.w + GAP*2 + TOKEN_WH.h, w: CARD_WH.w, h: CARD_WH.h, statePath: ["players",0,"cards"] }),
-    slot(P, { uiID: "player.cards.white", color: "white", kind: "fanned.cards", dx: COL_X[4], dy: CARD_WH.w + GAP*2 + TOKEN_WH.h, w: CARD_WH.w, h: CARD_WH.h, statePath: ["players",0,"cards"] }),
+    slot(P, { uiID: "player.cards.green", color: "green", kind: "fanned.cards", dx: COL_X[0], dy: CARD_WH.w + GAP*2 + TOKEN_WH.h, w: CARD_WH.w, h: CARD_WH.h, statePath: ["players",ui.playerPanelPlayerIndex,"cards"] }),
+    slot(P, { uiID: "player.cards.red",   color: "red",   kind: "fanned.cards", dx: COL_X[1], dy: CARD_WH.w + GAP*2 + TOKEN_WH.h, w: CARD_WH.w, h: CARD_WH.h, statePath: ["players",ui.playerPanelPlayerIndex,"cards"] }),
+    slot(P, { uiID: "player.cards.blue",  color: "blue",  kind: "fanned.cards", dx: COL_X[2], dy: CARD_WH.w + GAP*2 + TOKEN_WH.h, w: CARD_WH.w, h: CARD_WH.h, statePath: ["players",ui.playerPanelPlayerIndex,"cards"] }),
+    slot(P, { uiID: "player.cards.black", color: "black", kind: "fanned.cards", dx: COL_X[3], dy: CARD_WH.w + GAP*2 + TOKEN_WH.h, w: CARD_WH.w, h: CARD_WH.h, statePath: ["players",ui.playerPanelPlayerIndex,"cards"] }),
+    slot(P, { uiID: "player.cards.white", color: "white", kind: "fanned.cards", dx: COL_X[4], dy: CARD_WH.w + GAP*2 + TOKEN_WH.h, w: CARD_WH.w, h: CARD_WH.h, statePath: ["players",ui.playerPanelPlayerIndex,"cards"] }),
 
     // UI row (board-relative, since it lives under the bank on the board area)
     slot(B, {
@@ -201,7 +208,7 @@ export function computeLayout({ width, height }) {
     // ---------------------------------------------------------
 
     // Container rect (not for hit testing)
-    { uiID: "summary.container", kind: "summary.container", x: SUMMARY.x, y: SUMMARY.y, w: SUMMARY.w, h: SUMMARY.h },
+    // { uiID: "summary.container", kind: "summary.container", x: SUMMARY.x, y: SUMMARY.y, w: SUMMARY.w, h: SUMMARY.h },
 
     // ---- Player 1 summary card (players[0])
     { uiID: "summary.p0.card", kind: "summary.card", ...summaryCardRect(0), playerIndex: 0 },
@@ -210,8 +217,8 @@ export function computeLayout({ width, height }) {
     slotSP(0, { uiID: "summary.p0.bonus", kind: "summary.text.bonus", playerIndex: 0, dx: SUMMARY_CARD.w - PAD - TOKEN_WH.w * 4, dy: HEADER_Y, w: TOKEN_WH.w * 4, h: TOKEN_WH.h, text: "BONUS 0" }),
 
     // Row labels (same row as pips; keeps card short)
-    slotSP(0, { uiID: "summary.p0.label.gems",   kind: "summary.text.rowlabel", playerIndex: 0, dx: PAD, dy: GEMS_Y,   w: LABEL_W, h: TOKEN_WH.h, text: "Gems" }),
-    slotSP(0, { uiID: "summary.p0.label.tokens", kind: "summary.text.rowlabel", playerIndex: 0, dx: PAD, dy: TOKENS_Y, w: LABEL_W, h: TOKEN_WH.h, text: "Tokens" }),
+    slotSP(0, { uiID: "summary.p0.label.gems",   kind: "summary.text.rowlabel", playerIndex: 0, dx: PAD, dy: GEMS_Y,   w: LABEL_W, h: TOKEN_WH.h, text: "Gems:" }),
+    slotSP(0, { uiID: "summary.p0.label.tokens", kind: "summary.text.rowlabel", playerIndex: 0, dx: PAD, dy: TOKENS_Y, w: LABEL_W, h: TOKEN_WH.h, text: "Tokens:" }),
 
     // Gems row (no yellow; starts at COL1_X so white aligns with token white)
     slotSP(0, { uiID: "summary.p0.gems.white", kind: "summary.gems", playerIndex: 0, color: "white", dx: COL1_X + CELL_W * 0, dy: GEMS_Y, w: TOKEN_WH.w + GAP, h: TOKEN_WH.h, text: "0" }),
@@ -234,8 +241,8 @@ export function computeLayout({ width, height }) {
     slotSP(1, { uiID: "summary.p1.name",  kind: "summary.text.name",  playerIndex: 1, dx: PAD, dy: HEADER_Y, w: SUMMARY_CARD.w * 0.65, h: TOKEN_WH.h, text: "Player 2" }),
     slotSP(1, { uiID: "summary.p1.bonus", kind: "summary.text.bonus", playerIndex: 1, dx: SUMMARY_CARD.w - PAD - TOKEN_WH.w * 4, dy: HEADER_Y, w: TOKEN_WH.w * 4, h: TOKEN_WH.h, text: "BONUS 0" }),
 
-    slotSP(1, { uiID: "summary.p1.label.gems",   kind: "summary.text.rowlabel", playerIndex: 1, dx: PAD, dy: GEMS_Y,   w: LABEL_W, h: TOKEN_WH.h, text: "Gems" }),
-    slotSP(1, { uiID: "summary.p1.label.tokens", kind: "summary.text.rowlabel", playerIndex: 1, dx: PAD, dy: TOKENS_Y, w: LABEL_W, h: TOKEN_WH.h, text: "Tokens" }),
+    slotSP(1, { uiID: "summary.p1.label.gems",   kind: "summary.text.rowlabel", playerIndex: 1, dx: PAD, dy: GEMS_Y,   w: LABEL_W, h: TOKEN_WH.h, text: "Gems:" }),
+    slotSP(1, { uiID: "summary.p1.label.tokens", kind: "summary.text.rowlabel", playerIndex: 1, dx: PAD, dy: TOKENS_Y, w: LABEL_W, h: TOKEN_WH.h, text: "Tokens:" }),
 
     slotSP(1, { uiID: "summary.p1.gems.white", kind: "summary.gems", playerIndex: 1, color: "white", dx: COL1_X + CELL_W * 0, dy: GEMS_Y, w: TOKEN_WH.w + GAP, h: TOKEN_WH.h, text: "0" }),
     slotSP(1, { uiID: "summary.p1.gems.blue",  kind: "summary.gems", playerIndex: 1, color: "blue",  dx: COL1_X + CELL_W * 1, dy: GEMS_Y, w: TOKEN_WH.w + GAP, h: TOKEN_WH.h, text: "0" }),
@@ -256,8 +263,8 @@ export function computeLayout({ width, height }) {
     slotSP(2, { uiID: "summary.p2.name",  kind: "summary.text.name",  playerIndex: 2, dx: PAD, dy: HEADER_Y, w: SUMMARY_CARD.w * 0.65, h: TOKEN_WH.h, text: "Player 3" }),
     slotSP(2, { uiID: "summary.p2.bonus", kind: "summary.text.bonus", playerIndex: 2, dx: SUMMARY_CARD.w - PAD - TOKEN_WH.w * 4, dy: HEADER_Y, w: TOKEN_WH.w * 4, h: TOKEN_WH.h, text: "BONUS 0" }),
 
-    slotSP(2, { uiID: "summary.p2.label.gems",   kind: "summary.text.rowlabel", playerIndex: 2, dx: PAD, dy: GEMS_Y,   w: LABEL_W, h: TOKEN_WH.h, text: "Gems" }),
-    slotSP(2, { uiID: "summary.p2.label.tokens", kind: "summary.text.rowlabel", playerIndex: 2, dx: PAD, dy: TOKENS_Y, w: LABEL_W, h: TOKEN_WH.h, text: "Tokens" }),
+    slotSP(2, { uiID: "summary.p2.label.gems",   kind: "summary.text.rowlabel", playerIndex: 2, dx: PAD, dy: GEMS_Y,   w: LABEL_W, h: TOKEN_WH.h, text: "Gems:" }),
+    slotSP(2, { uiID: "summary.p2.label.tokens", kind: "summary.text.rowlabel", playerIndex: 2, dx: PAD, dy: TOKENS_Y, w: LABEL_W, h: TOKEN_WH.h, text: "Tokens:" }),
 
     slotSP(2, { uiID: "summary.p2.gems.white", kind: "summary.gems", playerIndex: 2, color: "white", dx: COL1_X + CELL_W * 0, dy: GEMS_Y, w: TOKEN_WH.w + GAP, h: TOKEN_WH.h, text: "0" }),
     slotSP(2, { uiID: "summary.p2.gems.blue",  kind: "summary.gems", playerIndex: 2, color: "blue",  dx: COL1_X + CELL_W * 1, dy: GEMS_Y, w: TOKEN_WH.w + GAP, h: TOKEN_WH.h, text: "0" }),
@@ -278,8 +285,8 @@ export function computeLayout({ width, height }) {
     slotSP(3, { uiID: "summary.p3.name",  kind: "summary.text.name",  playerIndex: 3, dx: PAD, dy: HEADER_Y, w: SUMMARY_CARD.w * 0.65, h: TOKEN_WH.h, text: "Player 4" }),
     slotSP(3, { uiID: "summary.p3.bonus", kind: "summary.text.bonus", playerIndex: 3, dx: SUMMARY_CARD.w - PAD - TOKEN_WH.w * 4, dy: HEADER_Y, w: TOKEN_WH.w * 4, h: TOKEN_WH.h, text: "BONUS 0" }),
 
-    slotSP(3, { uiID: "summary.p3.label.gems",   kind: "summary.text.rowlabel", playerIndex: 3, dx: PAD, dy: GEMS_Y,   w: LABEL_W, h: TOKEN_WH.h, text: "Gems" }),
-    slotSP(3, { uiID: "summary.p3.label.tokens", kind: "summary.text.rowlabel", playerIndex: 3, dx: PAD, dy: TOKENS_Y, w: LABEL_W, h: TOKEN_WH.h, text: "Tokens" }),
+    slotSP(3, { uiID: "summary.p3.label.gems",   kind: "summary.text.rowlabel", playerIndex: 3, dx: PAD, dy: GEMS_Y,   w: LABEL_W, h: TOKEN_WH.h, text: "Gems:" }),
+    slotSP(3, { uiID: "summary.p3.label.tokens", kind: "summary.text.rowlabel", playerIndex: 3, dx: PAD, dy: TOKENS_Y, w: LABEL_W, h: TOKEN_WH.h, text: "Tokens:" }),
 
     slotSP(3, { uiID: "summary.p3.gems.white", kind: "summary.gems", playerIndex: 3, color: "white", dx: COL1_X + CELL_W * 0, dy: GEMS_Y, w: TOKEN_WH.w + GAP, h: TOKEN_WH.h, text: "0" }),
     slotSP(3, { uiID: "summary.p3.gems.blue",  kind: "summary.gems", playerIndex: 3, color: "blue",  dx: COL1_X + CELL_W * 1, dy: GEMS_Y, w: TOKEN_WH.w + GAP, h: TOKEN_WH.h, text: "0" }),

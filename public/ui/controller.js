@@ -1,5 +1,6 @@
 // ui/controller.js
 import { handleClick } from "./handlers/handleClick.js";
+import { handleHover } from "./handlers/handleHover.js";
 import { Intent } from "./intent.js";
 import { rulesCheck } from "./rules.js"
 
@@ -41,9 +42,11 @@ export function createUIController({ getState, uiState, requestDraw, dispatchGam
           break;
         }
 
-        case "hover":
-          // hover already handled by events.js
+        case "hover": {
+          console.log("hover")
+          handleHover({getState, uiState, hit: uiAction.hit});
           break;
+        }
 
         case "cancel":
           Intent.clear(uiState);

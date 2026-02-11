@@ -66,12 +66,10 @@ function createPlayer (number) {
     reserved: [],
     nobles: [],
     tokens: { white: 0, blue: 0, green: 0, red: 0, black: 0, yellow: 0 },
-    bonus: () => 1,
-    gems: () => 1,
+    //bonus: this is calculated and rendered, not part of state
+    //gems: this is calculated and rendered, not part of state
   };
   return player;
-    // bonus will be calculated
-    // victory points will be calculated
 }
 
 function createPlayers (numbersOfPlayers) {

@@ -82,7 +82,7 @@ function getRoom(roomId) {
   if (!room) {
     room = {
       clients: new Set(),
-      state: initialState(3), // default players for now; can be configurable later
+      state: initialState(4), // default players for now; can be configurable later
       version: 0,
     };
     rooms.set(roomId, room);
@@ -323,7 +323,7 @@ wss.on("connection", (ws, req) => {
       if (!room) return;
 
       const prev = room.state;
-      const next = initialState(3);
+      const next = initialState(4);
 
       // Convention: if reducer returns same state reference, treat as invalid/no-op
       if (next === prev) {

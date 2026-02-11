@@ -156,7 +156,7 @@ function resize() {
   ctx.setTransform(sx, 0, 0, sy, 0, 0);
 
   // Pass state only if it exists; renderer.resize should be able to compute layout regardless
-  renderer.resize({ width: rect.width, height: rect.height }, state || undefined);
+  renderer.resize({ width: rect.width, height: rect.height }, uiState);
 
   draw(); // no-op until state is ready
 }

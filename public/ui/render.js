@@ -57,9 +57,9 @@ function render(ctx) {
   let hitRegions = [];
 
   return {
-    resize(nextViewport) {
+    resize(nextViewport, uiState) {
       viewport = nextViewport;
-      layout = computeLayout(viewport);
+      layout = computeLayout({viewport}, uiState);
 
       ctx.textBaseline = "alphabetic";
       ctx.textAlign = "left";
@@ -75,6 +75,7 @@ function render(ctx) {
       hitRegions.length = 0;
       
       layout.forEach(e => {
+        if (e.kind == "reserved") {console.log(e.statePath)};
         const stateObject = e.statePath ? getByStatePath(state, e.statePath) : {};
         if (!stateObject) return;
         
@@ -85,6 +86,7 @@ function render(ctx) {
           kind: e.kind,              // helps your click handler decide what it hit
           tier: e.tier ?? null,
           index: e.index ?? null,
+          playerIndex: e.playerIndex ?? null,
           color: e.color ?? null,
           ...clampRectToViewport({ x: e.x, y: e.y, w: e.w, h: e.h }, viewport),
           //z: 10,                     // top-most priority when overlaps happen
@@ -331,17 +333,37 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, playe
       break;
     }
 
+    case "summary.text.rowlabel": {
+      if (!state.players[playerIndex]) {break};
+      const label = text ?? ""
+
+      ctx.save();
+      ctx.fillStyle = "#111";
+      ctx.font = "16px sans-serif";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "top";
+      ctx.fillText(label, x, y);
+      ctx.restore();
+      break;
+    }
+
     case "summary.gems": {
       if (!state.players[playerIndex]) {break};
-      // stateObject could later be a number; for now use slot.text
-      const value = state.players[playerIndex].gems/*[color]*/ ?? text ?? "0";
+      const colors = ["white","blue","green","red","black"];
+      const cards = state.players[playerIndex].cards
+      const grouped = {};
+        for (const c of colors) grouped[c] = 0;
+          for (const card of (cards ?? [])) {
+            const b = card?.bonus;
+            (grouped[b]++);
+          }
+      const value = grouped[color] ?? text ?? "0";
       drawPipValue(ctx, color, { x, y, w, h }, value);
       break;
     }
 
     case "summary.tokens": {
       if (!state.players[playerIndex]) {break};
-      // stateObject could later be a number; for now use slot.text
       const value = state.players[playerIndex].tokens[color] ?? text ?? "0";
       drawPipValue(ctx, color, { x, y, w, h }, value);
       break;
