@@ -208,7 +208,7 @@ export function computeLayout(viewport = { width, height }) {
     { uiID: "summary.p0.card", kind: "summary.card", ...summaryCardRect(0), playerIndex: 0 },
 
     slotSP(0, { uiID: "summary.p0.name",  kind: "summary.text.name",  playerIndex: 0, dx: PAD, dy: HEADER_Y, w: SUMMARY_CARD.w * 0.65, h: TOKEN_WH.h, text: "Player 1" }),
-    slotSP(0, { uiID: "summary.p0.bonus", kind: "summary.text.bonus", playerIndex: 0, dx: SUMMARY_CARD.w - PAD - TOKEN_WH.w * 4, dy: HEADER_Y, w: TOKEN_WH.w * 4, h: TOKEN_WH.h, text: "BONUS 0" }),
+    slotSP(0, { uiID: "summary.p0.bonus", kind: "summary.text.bonus", playerIndex: 0, dx: SUMMARY_CARD.w - PAD - TOKEN_WH.w * 4, dy: HEADER_Y, w: TOKEN_WH.w * 4, h: TOKEN_WH.h, text: "Bonus" }),
 
     // Row labels (same row as pips; keeps card short)
     slotSP(0, { uiID: "summary.p0.label.gems",   kind: "summary.text.rowlabel", playerIndex: 0, dx: PAD, dy: GEMS_Y,   w: LABEL_W, h: TOKEN_WH.h, text: "Gems:" }),
@@ -233,7 +233,7 @@ export function computeLayout(viewport = { width, height }) {
     { uiID: "summary.p1.card", kind: "summary.card", ...summaryCardRect(1), playerIndex: 1 },
 
     slotSP(1, { uiID: "summary.p1.name",  kind: "summary.text.name",  playerIndex: 1, dx: PAD, dy: HEADER_Y, w: SUMMARY_CARD.w * 0.65, h: TOKEN_WH.h, text: "Player 2" }),
-    slotSP(1, { uiID: "summary.p1.bonus", kind: "summary.text.bonus", playerIndex: 1, dx: SUMMARY_CARD.w - PAD - TOKEN_WH.w * 4, dy: HEADER_Y, w: TOKEN_WH.w * 4, h: TOKEN_WH.h, text: "BONUS 0" }),
+    slotSP(1, { uiID: "summary.p1.bonus", kind: "summary.text.bonus", playerIndex: 1, dx: SUMMARY_CARD.w - PAD - TOKEN_WH.w * 4, dy: HEADER_Y, w: TOKEN_WH.w * 4, h: TOKEN_WH.h, text: "Bonus" }),
 
     slotSP(1, { uiID: "summary.p1.label.gems",   kind: "summary.text.rowlabel", playerIndex: 1, dx: PAD, dy: GEMS_Y,   w: LABEL_W, h: TOKEN_WH.h, text: "Gems:" }),
     slotSP(1, { uiID: "summary.p1.label.tokens", kind: "summary.text.rowlabel", playerIndex: 1, dx: PAD, dy: TOKENS_Y, w: LABEL_W, h: TOKEN_WH.h, text: "Tokens:" }),
@@ -255,7 +255,7 @@ export function computeLayout(viewport = { width, height }) {
     { uiID: "summary.p2.card", kind: "summary.card", ...summaryCardRect(2), playerIndex: 2 },
 
     slotSP(2, { uiID: "summary.p2.name",  kind: "summary.text.name",  playerIndex: 2, dx: PAD, dy: HEADER_Y, w: SUMMARY_CARD.w * 0.65, h: TOKEN_WH.h, text: "Player 3" }),
-    slotSP(2, { uiID: "summary.p2.bonus", kind: "summary.text.bonus", playerIndex: 2, dx: SUMMARY_CARD.w - PAD - TOKEN_WH.w * 4, dy: HEADER_Y, w: TOKEN_WH.w * 4, h: TOKEN_WH.h, text: "BONUS 0" }),
+    slotSP(2, { uiID: "summary.p2.bonus", kind: "summary.text.bonus", playerIndex: 2, dx: SUMMARY_CARD.w - PAD - TOKEN_WH.w * 4, dy: HEADER_Y, w: TOKEN_WH.w * 4, h: TOKEN_WH.h, text: "Bonus" }),
 
     slotSP(2, { uiID: "summary.p2.label.gems",   kind: "summary.text.rowlabel", playerIndex: 2, dx: PAD, dy: GEMS_Y,   w: LABEL_W, h: TOKEN_WH.h, text: "Gems:" }),
     slotSP(2, { uiID: "summary.p2.label.tokens", kind: "summary.text.rowlabel", playerIndex: 2, dx: PAD, dy: TOKENS_Y, w: LABEL_W, h: TOKEN_WH.h, text: "Tokens:" }),
@@ -277,7 +277,7 @@ export function computeLayout(viewport = { width, height }) {
     { uiID: "summary.p3.card", kind: "summary.card", ...summaryCardRect(3), playerIndex: 3 },
 
     slotSP(3, { uiID: "summary.p3.name",  kind: "summary.text.name",  playerIndex: 3, dx: PAD, dy: HEADER_Y, w: SUMMARY_CARD.w * 0.65, h: TOKEN_WH.h, text: "Player 4" }),
-    slotSP(3, { uiID: "summary.p3.bonus", kind: "summary.text.bonus", playerIndex: 3, dx: SUMMARY_CARD.w - PAD - TOKEN_WH.w * 4, dy: HEADER_Y, w: TOKEN_WH.w * 4, h: TOKEN_WH.h, text: "BONUS 0" }),
+    slotSP(3, { uiID: "summary.p3.bonus", kind: "summary.text.bonus", playerIndex: 3, dx: SUMMARY_CARD.w - PAD - TOKEN_WH.w * 4, dy: HEADER_Y, w: TOKEN_WH.w * 4, h: TOKEN_WH.h, text: "Bonus" }),
 
     slotSP(3, { uiID: "summary.p3.label.gems",   kind: "summary.text.rowlabel", playerIndex: 3, dx: PAD, dy: GEMS_Y,   w: LABEL_W, h: TOKEN_WH.h, text: "Gems:" }),
     slotSP(3, { uiID: "summary.p3.label.tokens", kind: "summary.text.rowlabel", playerIndex: 3, dx: PAD, dy: TOKENS_Y, w: LABEL_W, h: TOKEN_WH.h, text: "Tokens:" }),
