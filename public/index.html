@@ -11,12 +11,12 @@
         } /* Make the page fill the screen with no scrollbars */
 
         body {
-            overflow: hidden; /* no scroll */
+            overflow: auto; /* no scroll */
         }
 
         canvas {
             display: block; /* Make canvas a true layout box (prevents inline baseline gaps) */
-            width: 100%; height: 100%; /* Canvas fills the entire viewport. Drawing scale is handled in JS. */
+            height: 100%; width: 100%; /* Canvas fills the entire viewport. Drawing scale is handled in JS. */
         }
 
 	</style>
