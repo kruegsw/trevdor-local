@@ -75,7 +75,8 @@ function render(ctx) {
       hitRegions.length = 0;
       
       layout.forEach(e => {
-        if (e.kind == "reserved") {console.log(e.statePath)};
+        //if (e.kind == "reserved") {console.log(e.statePath)};
+        if (e.uiParent) {e.statePath[1] = uiState.playerPanelPlayerIndex} // to render hovered summary card player index in the player panel
         const stateObject = e.statePath ? getByStatePath(state, e.statePath) : {};
         if (!stateObject) return;
         

@@ -104,8 +104,8 @@ export function computeLayout(viewport = { width, height }) {
   // -----------------------------------------
   const slots = [
     // --- container hit regions (super useful for hit testing / debug overlay)
-    //{ uiID: "area.board", kind: "area.board", x: BOARD.x, y: BOARD.y, w: BOARD.w, h: BOARD.h },
-    //{ uiID: "area.player.panel", kind: "area.player.panel", x: PLAYER_PANEL.x, y: PLAYER_PANEL.y, w: PLAYER_PANEL.w, h: PLAYER_PANEL.h },
+    //{ uiID: "board", kind: "board", x: BOARD.x, y: BOARD.y, w: BOARD.w, h: BOARD.h },
+    //{ uiID: "player.panel", kind: "player.panel", x: PLAYER_PANEL.x, y: PLAYER_PANEL.y, w: PLAYER_PANEL.w, h: PLAYER_PANEL.h },
 
     // --- decks (board-relative)
     slot(B, { uiID: "decks.tier1", kind: "decks.tier1", dx: COL_X[0], dy: TIER1_Y, w: CARD_WH.w, h: CARD_WH.h, statePath: ["decks","tier1"] }),
@@ -146,27 +146,27 @@ export function computeLayout(viewport = { width, height }) {
     slot(B, { uiID: "bank.white",  color: "white",  kind: "token", dx: GAP * 9 + TOKEN_WH.w * 5, dy: BANK_Y, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["market","bank","white"] }),
 
     // ---- player panel items (panel-relative)
-    slot(P, { uiID: "player.nobles", kind: "fanned.nobles", dx: GAP * 5 + TOKEN_WH.w + CARD_WH.h * 3, dy: 0, w: NOBLE_WH.w, h: NOBLE_WH.h, statePath: ["players",0,"nobles"] }),
-    slot(P, { uiID: "player.tokens.yellow", color: "yellow", kind: "token", dx: GAP, dy: 0, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players",0,"tokens","yellow"] }),
+    slot(P, { uiID: "player.nobles", uiParent: "player.panel", kind: "fanned.nobles", dx: GAP * 5 + TOKEN_WH.w + CARD_WH.h * 3, dy: 0, w: NOBLE_WH.w, h: NOBLE_WH.h, statePath: ["players",0,"nobles"] }),
+    slot(P, { uiID: "player.tokens.yellow", uiParent: "player.panel", color: "yellow", kind: "token", dx: GAP, dy: 0, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players",0,"tokens","yellow"] }),
 
     // reserved (still sideways)
-    slot(P, { uiID: "player.reserved.1", kind: "reserved", tier: "reserved", index: 0, dx: GAP * 2 + TOKEN_WH.w,               dy: 0, w: CARD_WH.h, h: CARD_WH.w, statePath: ["players",0,"reserved",0] }),
-    slot(P, { uiID: "player.reserved.2", kind: "reserved", tier: "reserved", index: 1, dx: GAP * 3 + TOKEN_WH.w + CARD_WH.h,   dy: 0, w: CARD_WH.h, h: CARD_WH.w, statePath: ["players",0,"reserved",1] }),
-    slot(P, { uiID: "player.reserved.3", kind: "reserved", tier: "reserved", index: 2, dx: GAP * 4 + TOKEN_WH.w + CARD_WH.h*2, dy: 0, w: CARD_WH.h, h: CARD_WH.w, statePath: ["players",0,"reserved",2] }),
+    slot(P, { uiID: "player.reserved.1", uiParent: "player.panel", kind: "reserved", tier: "reserved", index: 0, dx: GAP * 2 + TOKEN_WH.w,               dy: 0, w: CARD_WH.h, h: CARD_WH.w, statePath: ["players",0,"reserved",0] }),
+    slot(P, { uiID: "player.reserved.2", uiParent: "player.panel", kind: "reserved", tier: "reserved", index: 1, dx: GAP * 3 + TOKEN_WH.w + CARD_WH.h,   dy: 0, w: CARD_WH.h, h: CARD_WH.w, statePath: ["players",0,"reserved",1] }),
+    slot(P, { uiID: "player.reserved.3", uiParent: "player.panel", kind: "reserved", tier: "reserved", index: 2, dx: GAP * 4 + TOKEN_WH.w + CARD_WH.h*2, dy: 0, w: CARD_WH.h, h: CARD_WH.w, statePath: ["players",0,"reserved",2] }),
 
     // player token row 2 aligned to board columns BUT expressed as panel-local
-    slot(P, { uiID: "player.tokens.green", color: "green", kind: "token", dx: COL_X[0] + GAP, dy: CARD_WH.w + GAP, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players",0,"tokens","green"] }),
-    slot(P, { uiID: "player.tokens.red",   color: "red",   kind: "token", dx: COL_X[1] + GAP, dy: CARD_WH.w + GAP, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players",0,"tokens","red"] }),
-    slot(P, { uiID: "player.tokens.blue",  color: "blue",  kind: "token", dx: COL_X[2] + GAP, dy: CARD_WH.w + GAP, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players",0,"tokens","blue"] }),
-    slot(P, { uiID: "player.tokens.black", color: "black", kind: "token", dx: COL_X[3] + GAP, dy: CARD_WH.w + GAP, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players",0,"tokens","black"] }),
-    slot(P, { uiID: "player.tokens.white", color: "white", kind: "token", dx: COL_X[4] + GAP, dy: CARD_WH.w + GAP, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players",0,"tokens","white"] }),
+    slot(P, { uiID: "player.tokens.green", uiParent: "player.panel", color: "green", kind: "token", dx: COL_X[0] + GAP, dy: CARD_WH.w + GAP, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players",0,"tokens","green"] }),
+    slot(P, { uiID: "player.tokens.red", uiParent: "player.panel",   color: "red",   kind: "token", dx: COL_X[1] + GAP, dy: CARD_WH.w + GAP, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players",0,"tokens","red"] }),
+    slot(P, { uiID: "player.tokens.blue", uiParent: "player.panel",  color: "blue",  kind: "token", dx: COL_X[2] + GAP, dy: CARD_WH.w + GAP, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players",0,"tokens","blue"] }),
+    slot(P, { uiID: "player.tokens.black", uiParent: "player.panel", color: "black", kind: "token", dx: COL_X[3] + GAP, dy: CARD_WH.w + GAP, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players",0,"tokens","black"] }),
+    slot(P, { uiID: "player.tokens.white", uiParent: "player.panel", color: "white", kind: "token", dx: COL_X[4] + GAP, dy: CARD_WH.w + GAP, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players",0,"tokens","white"] }),
 
     // fanned cards (same statePath)
-    slot(P, { uiID: "player.cards.green", color: "green", kind: "fanned.cards", dx: COL_X[0], dy: CARD_WH.w + GAP*2 + TOKEN_WH.h, w: CARD_WH.w, h: CARD_WH.h, statePath: ["players",0,"cards"] }),
-    slot(P, { uiID: "player.cards.red",   color: "red",   kind: "fanned.cards", dx: COL_X[1], dy: CARD_WH.w + GAP*2 + TOKEN_WH.h, w: CARD_WH.w, h: CARD_WH.h, statePath: ["players",0,"cards"] }),
-    slot(P, { uiID: "player.cards.blue",  color: "blue",  kind: "fanned.cards", dx: COL_X[2], dy: CARD_WH.w + GAP*2 + TOKEN_WH.h, w: CARD_WH.w, h: CARD_WH.h, statePath: ["players",0,"cards"] }),
-    slot(P, { uiID: "player.cards.black", color: "black", kind: "fanned.cards", dx: COL_X[3], dy: CARD_WH.w + GAP*2 + TOKEN_WH.h, w: CARD_WH.w, h: CARD_WH.h, statePath: ["players",0,"cards"] }),
-    slot(P, { uiID: "player.cards.white", color: "white", kind: "fanned.cards", dx: COL_X[4], dy: CARD_WH.w + GAP*2 + TOKEN_WH.h, w: CARD_WH.w, h: CARD_WH.h, statePath: ["players",0,"cards"] }),
+    slot(P, { uiID: "player.cards.green", uiParent: "player.panel", color: "green", kind: "fanned.cards", dx: COL_X[0], dy: CARD_WH.w + GAP*2 + TOKEN_WH.h, w: CARD_WH.w, h: CARD_WH.h, statePath: ["players",0,"cards"] }),
+    slot(P, { uiID: "player.cards.red", uiParent: "player.panel",   color: "red",   kind: "fanned.cards", dx: COL_X[1], dy: CARD_WH.w + GAP*2 + TOKEN_WH.h, w: CARD_WH.w, h: CARD_WH.h, statePath: ["players",0,"cards"] }),
+    slot(P, { uiID: "player.cards.blue", uiParent: "player.panel",  color: "blue",  kind: "fanned.cards", dx: COL_X[2], dy: CARD_WH.w + GAP*2 + TOKEN_WH.h, w: CARD_WH.w, h: CARD_WH.h, statePath: ["players",0,"cards"] }),
+    slot(P, { uiID: "player.cards.black", uiParent: "player.panel", color: "black", kind: "fanned.cards", dx: COL_X[3], dy: CARD_WH.w + GAP*2 + TOKEN_WH.h, w: CARD_WH.w, h: CARD_WH.h, statePath: ["players",0,"cards"] }),
+    slot(P, { uiID: "player.cards.white", uiParent: "player.panel", color: "white", kind: "fanned.cards", dx: COL_X[4], dy: CARD_WH.w + GAP*2 + TOKEN_WH.h, w: CARD_WH.w, h: CARD_WH.h, statePath: ["players",0,"cards"] }),
 
     // UI row (board-relative, since it lives under the bank on the board area)
     slot(B, {
