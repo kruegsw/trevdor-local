@@ -59,9 +59,9 @@ function render(ctx) {
   let hitRegions = [];
 
   return {
-    resize(nextViewport, uiState) {
+    resize(nextViewport) {
       viewport = nextViewport;
-      layout = computeLayout({viewport}, uiState);
+      layout = computeLayout({viewport});
 
       ctx.textBaseline = "alphabetic";
       ctx.textAlign = "left";

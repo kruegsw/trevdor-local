@@ -14,11 +14,17 @@
         //      determine if winner
         //          end game if winner
         //      next Player turn
-        
-export function rulesCheck({getState, pending, action, color, card}) {
+
+export function rulesCheck({ getState, uiState, pending, action, color, card }) {
+
         console.log({action, color, card});
         const state = getState();
-        const currentPlayer = state.players[state.activePlayerIndex];
+
+        const me = (typeof uiState?.myPlayerIndex === "function")
+                ? uiState.myPlayerIndex()
+                : state.activePlayerIndex;
+
+        const currentPlayer = state.players[me];
 
         function bonusByColor(cards, colors) {
                 const out = {};

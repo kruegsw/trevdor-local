@@ -1,23 +1,31 @@
 // server.js
-// WebSocket server with rooms + authoritative state
-// PLUS: static file hosting from ./public (no Express)
+// -----------------------------------------------------------------------------
+// Trevdor Server
+// -----------------------------------------------------------------------------
+// Responsibilities:
+//   1) HTTP server:
+//        - GET /health -> "ok"
+//        - serves static client files from ../public
+//        - optionally serves engine modules from ../engine via /engine/*
 //
-// Run: node server.js
+//   2) WebSocket server:
+//        - rooms (multiple games in parallel)
+//        - per-room authoritative state (the ONLY source of truth)
+//        - seat assignment (playerIndex 0..3) or spectator (null)
+//        - turn enforcement (only activePlayerIndex can act)
 //
-// HTTP:
-//   GET /health -> "ok"
-//   GET /       -> serves ./public/index.html
-//   GET /...    -> serves files under ./public
+// Protocol (client -> server):
+//   { type:"JOIN", roomId:"abc", name?:"Sam" }
+//   { type:"ACTION", roomId:"abc", action:{ type:"TAKE_TOKENS" | ... } }
+//   { type:"RESET_GAME", roomId:"abc" }   // temporary manual reset (debug)
 //
-// WS:
-//   ws://<host>:8787
-//   Protocol:
-//     Client -> { type:"JOIN", roomId:"abc", name?:"Sam" }
-//     Client -> { type:"ACTION", action:{...} }
-//     Server -> { type:"WELCOME", roomId, clientId }
-//     Server -> { type:"ROOM", roomId, clients:[{clientId,name}] }
-//     Server -> { type:"STATE", roomId, version, state }
-//     Server -> { type:"REJECTED", roomId, reason }
+// Protocol (server -> client):
+//   { type:"WELCOME", roomId, clientId, playerIndex }           // sent to joiner only
+//   { type:"ROOM", roomId, clients:[{seat,clientId,name,occupied}] } // broadcast to room
+//   { type:"STATE", roomId, version, state }                    // broadcast or resync
+//   { type:"REJECTED", roomId, reason, ...optionalFields }      // rejected action
+//   { type:"ERROR", message }                                   // malformed messages, etc.
+// -----------------------------------------------------------------------------
 
 import http from "http";
 import { WebSocketServer } from "ws";
@@ -31,20 +39,19 @@ import { applyAction } from "../engine/reducer.js";
 
 const PORT = Number(process.env.PORT || 8787);
 
-// -------------------------
+// -----------------------------------------------------------------------------
 // Static hosting config
-// -------------------------
+// -----------------------------------------------------------------------------
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Put your client here:
-//   public/index.html
-//   public/trevdor.js
-//   public/ui/... etc
+// Serve client from ../public
 const PUBLIC_DIR = path.join(__dirname, "..", "public");
-const ENGINE_DIR = path.join(__dirname, "..", "engine");
 
+// Allow importing engine modules from the server via /engine/*
+// (useful while prototyping; later you might bundle these for the browser)
+const ENGINE_DIR = path.join(__dirname, "..", "engine");
 
 // Minimal MIME map (important for ES modules)
 const MIME = {
@@ -61,28 +68,50 @@ const MIME = {
   ".ico": "image/x-icon",
 };
 
-// -------------------------
+// -----------------------------------------------------------------------------
 // Rooms + client registry
-// -------------------------
+// -----------------------------------------------------------------------------
 
-// roomId -> { clients:Set(ws), state:any, version:number }
+/**
+ * rooms: roomId -> room
+ *
+ * room = {
+ *   clients: Set<ws>,                     // everyone connected to the room
+ *   seats: Array<null | {ws,clientId,name}>, // exactly 4 slots; null means empty seat
+ *   state: any,                           // authoritative engine state
+ *   version: number                       // increments on every accepted action
+ * }
+ */
 const rooms = new Map();
 
-// ws -> { clientId, name, roomId }
+/**
+ * clientInfo: ws -> {
+ *   clientId: number,
+ *   name: string,
+ *   roomId: string|null,
+ *   playerIndex: number|null              // 0..3 if seated, otherwise null spectator
+ * }
+ */
 const clientInfo = new Map();
 
 let nextClientId = 1;
 
-// -------------------------
+// -----------------------------------------------------------------------------
 // Room helpers
-// -------------------------
+// -----------------------------------------------------------------------------
 
+/**
+ * Create a room on-demand.
+ * For now, all rooms are 4 players.
+ */
 function getRoom(roomId) {
   let room = rooms.get(roomId);
   if (!room) {
     room = {
       clients: new Set(),
-      state: initialState(4), // default players for now; can be configurable later
+      // IMPORTANT: seats are either null OR an object { ws, clientId, name }
+      seats: Array(4).fill(null),
+      state: initialState(4),
       version: 0,
     };
     rooms.set(roomId, room);
@@ -105,6 +134,10 @@ function broadcastToRoom(roomId, obj) {
   for (const ws of room.clients) safeSend(ws, obj);
 }
 
+/**
+ * Broadcast the authoritative state snapshot to everyone in the room.
+ * This is the simplest (and safest) multiplayer sync model.
+ */
 function broadcastState(roomId) {
   const room = rooms.get(roomId);
   if (!room) return;
@@ -117,18 +150,46 @@ function broadcastState(roomId) {
   });
 }
 
+/**
+ * Build a seat-aware roster. Safe when seats are null.
+ * This is broadcast to all room clients after JOIN/LEAVE.
+ */
 function roomRoster(roomId) {
   const room = rooms.get(roomId);
   if (!room) return [];
 
-  const list = [];
-  for (const ws of room.clients) {
-    const info = clientInfo.get(ws);
-    if (info) list.push({ clientId: info.clientId, name: info.name });
-  }
-  return list;
+  return room.seats.map((s, i) => ({
+    seat: i,
+    clientId: s?.clientId ?? null,
+    name: s?.name ?? null,
+    occupied: !!s,
+  }));
 }
 
+/**
+ * Assigns the ws to a seat if there is room.
+ * Returns:
+ *   - number 0..3  if seated
+ *   - null         if room is full (spectator)
+ */
+function assignSeat(room, ws) {
+  // already seated?
+  const existing = room.seats.findIndex(s => s?.ws === ws);
+  if (existing !== -1) return existing;
+
+  // first open seat
+  const idx = room.seats.findIndex(s => s === null);
+  if (idx === -1) return null; // spectator
+
+  const info = clientInfo.get(ws);
+  room.seats[idx] = { ws, clientId: info.clientId, name: info.name };
+  return idx;
+}
+
+/**
+ * Removes a client from their current room (if any) and frees their seat.
+ * Also broadcasts updated roster and deletes empty rooms.
+ */
 function leaveRoom(ws) {
   const info = clientInfo.get(ws);
   if (!info?.roomId) return;
@@ -137,44 +198,68 @@ function leaveRoom(ws) {
   const room = rooms.get(roomId);
 
   if (room) {
+    // Remove from room client set
     room.clients.delete(ws);
 
-    // notify others about roster change
+    // Free their seat (if seated)
+    const seat = room.seats.findIndex(s => s?.ws === ws);
+    if (seat !== -1) room.seats[seat] = null;
+
+    // Notify others about roster change
     broadcastToRoom(roomId, {
       type: "ROOM",
       roomId,
       clients: roomRoster(roomId),
     });
 
-    // cleanup empty room
+    // Cleanup empty room
     if (room.clients.size === 0) rooms.delete(roomId);
   }
 
+  // Clear clientInfo linkage
   info.roomId = null;
+  info.playerIndex = null;
 }
 
+/**
+ * Adds client to room, assigns a seat if available, then sends:
+ *   - WELCOME (joiner only)
+ *   - ROOM roster (broadcast)
+ *   - STATE snapshot (joiner only)
+ */
 function joinRoom(ws, roomId, name) {
-  // leave previous room if any
+  // Leave previous room if any
   leaveRoom(ws);
 
   const info = clientInfo.get(ws);
   info.roomId = roomId;
+
+  // Update displayed name if provided
   if (typeof name === "string" && name.trim()) info.name = name.trim();
 
   const room = getRoom(roomId);
   room.clients.add(ws);
 
-  // welcome joiner
-  safeSend(ws, { type: "WELCOME", roomId, clientId: info.clientId });
+  // Seat assignment happens once, using the seat object representation
+  const seatIndex = assignSeat(room, ws);
+  info.playerIndex = seatIndex; // number 0..3 OR null
 
-  // broadcast roster
+  // WELCOME: tells the client who they are and what seat they got
+  safeSend(ws, {
+    type: "WELCOME",
+    roomId,
+    clientId: info.clientId,
+    playerIndex: seatIndex,
+  });
+
+  // Broadcast roster to everyone (including the joiner)
   broadcastToRoom(roomId, {
     type: "ROOM",
     roomId,
     clients: roomRoster(roomId),
   });
 
-  // send authoritative snapshot to the joiner
+  // Send authoritative snapshot to the joiner
   safeSend(ws, {
     type: "STATE",
     roomId,
@@ -183,10 +268,16 @@ function joinRoom(ws, roomId, name) {
   });
 }
 
-// -------------------------
+// -----------------------------------------------------------------------------
 // HTTP server (health + static hosting)
-// -------------------------
+// -----------------------------------------------------------------------------
 
+/**
+ * Very small static server (no Express).
+ * - /health returns ok
+ * - / serves index.html from PUBLIC_DIR
+ * - /engine/* maps to ENGINE_DIR
+ */
 const server = http.createServer((req, res) => {
   const urlPath = (req.url || "/").split("?")[0];
 
@@ -234,20 +325,27 @@ const server = http.createServer((req, res) => {
   });
 });
 
-
-// -------------------------
+// -----------------------------------------------------------------------------
 // WebSocket server
-// -------------------------
+// -----------------------------------------------------------------------------
 
 const wss = new WebSocketServer({ server });
 
 wss.on("connection", (ws, req) => {
+  // Assign a server-side clientId for debugging / roster.
+  // (This is separate from playerIndex/seat.)
   const clientId = nextClientId++;
-  clientInfo.set(ws, { clientId, name: `guest-${clientId}`, roomId: null });
+  clientInfo.set(ws, {
+    clientId,
+    name: `guest-${clientId}`,
+    roomId: null,
+    playerIndex: null,
+  });
 
   console.log(`connected clientId=${clientId} from ${req.socket.remoteAddress}`);
 
   ws.on("message", (buf) => {
+    // Parse JSON
     let msg;
     try {
       msg = JSON.parse(buf.toString());
@@ -258,6 +356,9 @@ wss.on("connection", (ws, req) => {
 
     const info = clientInfo.get(ws);
 
+    // -------------------------
+    // JOIN
+    // -------------------------
     if (msg.type === "JOIN") {
       const roomId = String(msg.roomId || "").trim();
       if (!roomId) {
@@ -268,6 +369,9 @@ wss.on("connection", (ws, req) => {
       return;
     }
 
+    // -------------------------
+    // ACTION (authoritative game action)
+    // -------------------------
     if (msg.type === "ACTION") {
       if (!info.roomId) {
         safeSend(ws, { type: "ERROR", message: "You must JOIN a room first" });
@@ -281,19 +385,40 @@ wss.on("connection", (ws, req) => {
       const room = rooms.get(info.roomId);
       if (!room) return;
 
+      // -------------------------
+      // Increment 2: seat + turn enforcement
+      // -------------------------
+      const actorIndex = info.playerIndex;
+
+      // Spectators cannot act
+      if (typeof actorIndex !== "number") {
+        safeSend(ws, { type: "REJECTED", roomId: info.roomId, reason: "SPECTATOR_CANNOT_ACT" });
+        safeSend(ws, { type: "STATE", roomId: info.roomId, version: room.version, state: room.state });
+        return;
+      }
+
+      // Only active player can act
+      const active = room.state?.activePlayerIndex ?? 0;
+      if (actorIndex !== active) {
+        safeSend(ws, {
+          type: "REJECTED",
+          roomId: info.roomId,
+          reason: "NOT_YOUR_TURN",
+          activePlayerIndex: active,
+          yourPlayerIndex: actorIndex,
+        });
+        safeSend(ws, { type: "STATE", roomId: info.roomId, version: room.version, state: room.state });
+        return;
+      }
+
+      // Apply reducer (pure function is ideal; your reducer uses "return prev" as invalid/no-op)
       const prev = room.state;
       const next = applyAction(prev, msg.action);
 
       // Convention: if reducer returns same state reference, treat as invalid/no-op
       if (next === prev) {
         safeSend(ws, { type: "REJECTED", roomId: info.roomId, reason: "INVALID_ACTION" });
-        // resync sender
-        safeSend(ws, {
-          type: "STATE",
-          roomId: info.roomId,
-          version: room.version,
-          state: room.state,
-        });
+        safeSend(ws, { type: "STATE", roomId: info.roomId, version: room.version, state: room.state });
         return;
       }
 
@@ -304,50 +429,45 @@ wss.on("connection", (ws, req) => {
       return;
     }
 
-
-    /////////// TEMPORARY MANUAL RESET BUTTON FOR TO RESET SERVER GAME STATE from CLIENT ////////////
+    // -------------------------
+    // RESET_GAME (temporary debug)
+    // -------------------------
     if (msg.type === "RESET_GAME") {
-
-      safeSend(ws, { type: "ERROR", message: "RESET REQUEST RECEIVED BY SERVER" })
+      // Keep this as ERROR if you want it visible during debug; later change to INFO/LOG.
+      safeSend(ws, { type: "ERROR", message: "RESET REQUEST RECEIVED BY SERVER" });
 
       if (!info.roomId) {
         safeSend(ws, { type: "ERROR", message: "You must JOIN a room first" });
         return;
       }
-      //if (!msg.action?.type) {
-      //  safeSend(ws, { type: "ERROR", message: "ACTION requires action.type" });
-      //  return;
-      //}
 
       const room = rooms.get(info.roomId);
       if (!room) return;
 
-      const prev = room.state;
-      const next = initialState(4);
-
-      // Convention: if reducer returns same state reference, treat as invalid/no-op
-      if (next === prev) {
-        safeSend(ws, { type: "REJECTED", roomId: info.roomId, reason: "INVALID_ACTION" });
-        // resync sender
-        safeSend(ws, {
-          type: "STATE",
-          roomId: info.roomId,
-          version: room.version,
-          state: room.state,
-        });
+      // enforce seat + turn (same as ACTION)
+      const actorIndex = info.playerIndex;
+      if (typeof actorIndex !== "number") {
+        safeSend(ws, { type: "REJECTED", roomId: info.roomId, reason: "SPECTATOR_CANNOT_ACT" });
+        safeSend(ws, { type: "STATE", roomId: info.roomId, version: room.version, state: room.state });
+        return;
+      }
+      const active = room.state?.activePlayerIndex ?? 0;
+      if (actorIndex !== active) {
+        safeSend(ws, { type: "REJECTED", roomId: info.roomId, reason: "NOT_YOUR_TURN" });
+        safeSend(ws, { type: "STATE", roomId: info.roomId, version: room.version, state: room.state });
         return;
       }
 
-      room.state = next;
+      room.state = initialState(4);
       room.version = 0;
 
       broadcastState(info.roomId);
       return;
     }
-    /////////// TEMPORARY MANUAL RESET BUTTON FOR TO RESET SERVER GAME STATE from CLIENT ////////////
 
-
-    // Optional: keep SAY for debugging/chat
+    // -------------------------
+    // SAY (optional chat/debug broadcast)
+    // -------------------------
     if (msg.type === "SAY") {
       if (!info.roomId) {
         safeSend(ws, { type: "ERROR", message: "You must JOIN a room first" });
@@ -363,6 +483,7 @@ wss.on("connection", (ws, req) => {
       return;
     }
 
+    // Unknown message type
     safeSend(ws, { type: "ERROR", message: `Unknown type: ${msg.type}` });
   });
 
@@ -373,6 +494,10 @@ wss.on("connection", (ws, req) => {
     console.log(`disconnected clientId=${info?.clientId ?? "?"}`);
   });
 });
+
+// -----------------------------------------------------------------------------
+// Start server
+// -----------------------------------------------------------------------------
 
 server.listen(PORT, () => {
   console.log(`HTTP  : http://localhost:${PORT}`);

@@ -78,6 +78,22 @@ const transport = createTransport({
       if (!didInitialResize) resize();
       else draw();
     }
+
+    if (msg.type === "WELCOME" && msg.roomId === ROOM_ID) {
+      if (typeof msg.playerIndex === "number") {
+        uiState.myPlayerIndex = msg.playerIndex;          // <-- store as number
+        uiState.playerPanelPlayerIndex = msg.playerIndex; // <-- default panel = me
+        console.log("Seated as playerIndex:", msg.playerIndex);
+      } else {
+        uiState.myPlayerIndex = null; // spectator
+        console.log("Joined as spectator (no open seats)");
+      }
+    }
+
+    if (msg.type === "REJECTED") {
+      console.log("REJECTED:", msg.reason, msg);
+    }
+
   },
 
   onOpen: () => {
@@ -129,6 +145,9 @@ const controller = createUIController({
   requestDraw: draw,
   dispatchGameAction,
 });
+
+// store identity on uiState so handlers/rules can use it
+uiState.myPlayerIndex = () => myPlayerIndex;
 
 // Wire controller into event system
 ui.setHandlers({

@@ -6,7 +6,10 @@ export function handleHover({getState, uiState, hit}) {
 
     if (!hit) {
         uiState.hovered = null;
-        uiState.playerPanelPlayerIndex = state.activePlayerIndex;
+        uiState.playerPanelPlayerIndex =
+            (typeof uiState.myPlayerIndex === "number")
+                ? uiState.myPlayerIndex
+                : state.activePlayerIndex; // by default, if active player see my stuff otherwise see active player stuff
         return;
     }
 

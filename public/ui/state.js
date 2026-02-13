@@ -36,5 +36,7 @@ export function createUIState() {
     mode: "idle", // "idle" | "takeTokens" | "buyCard" | etc,
 
     playerPanelPlayerIndex: 0,
+    myPlayerIndex: null,
+
   };
 }
