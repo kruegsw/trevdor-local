@@ -1,4 +1,6 @@
 import { computeLayout } from "./layout.js";
+import { clampCamera } from "./camera.js";
+
 
 /* ---------------------------------------------------------
    HIT TESTING HELPERS (Option A = rectangles / AABB)
@@ -47,7 +49,7 @@ function clampRectToViewport(rect, viewport) {
    --------------------------------------------------------- */
 
 function render(ctx) {
-  let viewport = { width: 0, height: 0 };
+  let viewport = { width: 0, height: 0, dpr: 1 };
   let layout = null;
 
   /*
@@ -68,13 +70,28 @@ function render(ctx) {
     draw(state, uiState) {
       if (!layout) return;
 
-      // Clear visible canvas
-      ctx.clearRect(0, 0, viewport.width, viewport.height);
+      const cam = uiState.camera;
+      if (!cam) throw new Error("uiState.camera missing (add to createUIState)");
+      clampCamera(cam);
+
+      // 1) Clear in DEVICE PIXELS (so it always clears fully)
+      const canvas = ctx.canvas;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // 2) Set DPR transform so our units are CSS pixels
+      const dpr = viewport.dpr ?? 1;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      // 3) Apply camera (world -> screen)
+      ctx.translate(-cam.x * cam.scale, -cam.y * cam.scale);
+      ctx.scale(cam.scale, cam.scale);
 
       // Rebuild clickable regions every frame
       hitRegions.length = 0;
-      
+
       layout.forEach(e => {
+
         //if (e.kind == "reserved") {console.log(e.statePath)};
         if (e.uiParent) {e.statePath[1] = uiState.playerPanelPlayerIndex} //else { e.statePath[1] = state.activePlayerIndex } // to render hovered summary card player index in the player panel
         const stateObject = e.statePath ? getByStatePath(state, e.statePath) : {};
@@ -83,15 +100,17 @@ function render(ctx) {
         drawSelect(ctx, state, uiState, stateObject, e);
         
         hitRegions.push({
-          uiID: e.uiID,           // stable identifier (later: state.cards[i].id)
-          kind: e.kind,              // helps your click handler decide what it hit
+          uiID: e.uiID,
+          kind: e.kind,
           tier: e.tier ?? null,
           index: e.index ?? null,
           playerIndex: e.playerIndex ?? null,
           color: e.color ?? null,
-          ...clampRectToViewport({ x: e.x, y: e.y, w: e.w, h: e.h }, viewport),
-          //z: 10,                     // top-most priority when overlaps happen
-          meta: stateObject
+
+          // World-space hit rect (NO CLAMPING)
+          x: e.x, y: e.y, w: e.w, h: e.h,
+
+          meta: stateObject,
         });
         
       });

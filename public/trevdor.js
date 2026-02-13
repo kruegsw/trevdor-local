@@ -149,17 +149,12 @@ function resize() {
   canvas.width = Math.round(rect.width * dpr);
   canvas.height = Math.round(rect.height * dpr);
 
-  const sx = canvas.width / rect.width;
-  const sy = canvas.height / rect.height;
+  // REMOVED for scrolling on mobile:  removed ctx.setTransform(...) from here
+  renderer.resize({ width: rect.width, height: rect.height, dpr }, uiState);
 
-  // Draw in CSS pixels, scaled for DPR
-  ctx.setTransform(sx, 0, 0, sy, 0, 0);
-
-  // Pass state only if it exists; renderer.resize should be able to compute layout regardless
-  renderer.resize({ width: rect.width, height: rect.height }, uiState);
-
-  draw(); // no-op until state is ready
+  draw();
 }
+
 
 window.addEventListener("load", resize);
 window.addEventListener("resize", resize);

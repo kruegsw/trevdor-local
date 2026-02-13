@@ -1,3 +1,5 @@
+import { createCamera } from "./camera.js";
+
 export function createUIState() {
   return {
     pointer: {
@@ -9,6 +11,20 @@ export function createUIState() {
 
     hovered: null,   // hitRegion | null
     pressed: null,   // hitRegion | null
+
+    // camera for pan/zoom
+    camera: createCamera(),
+
+    gesture: {
+      pointers: new Map(), // pointerId -> {x,y}
+      mode: null,          // "pan" | "pinch" | null
+      startDist: 0,
+      startScale: 1,
+      startMid: { x: 0, y: 0 },
+      lastMid: { x: 0, y: 0 },
+      last: { x: 0, y: 0 },
+      wasGesture: false,   // used to suppress accidental clicks after pinch/pan
+    },
 
     // UI-only selections (never sent to reducer/server)
     pending: {

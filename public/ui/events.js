@@ -1,4 +1,5 @@
-// ui/events.js
+import { screenToWorld, zoomAtScreenPoint } from "./camera.js";
+
 export function createUIEvents({
   canvas,
   renderer,
@@ -28,6 +29,10 @@ export function createUIEvents({
 
   const ui = uiState;
 
+  canvas.style.touchAction = "none"; // critical: allow pointer events to drive pan/pinch
+
+  const g = ui.gesture; // shorthand
+
   // ✅ make handlers swappable so main.js can stay wiring-only
   let _onAction = onAction;
   let _onUIChange = onUIChange;
@@ -43,10 +48,21 @@ export function createUIEvents({
 
   function eventToCanvasXY(e) {
     const rect = canvas.getBoundingClientRect();
-    return {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top
-    };
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  }
+
+  function eventToWorldXY(e) {
+    const p = eventToCanvasXY(e);
+    const w = screenToWorld(ui.camera, p.x, p.y);
+    return { sx: p.x, sy: p.y, wx: w.x, wy: w.y };
+  }
+
+  function dist(a, b) {
+    const dx = a.x - b.x, dy = a.y - b.y;
+    return Math.hypot(dx, dy);
+  }
+  function mid(a, b) {
+    return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
   }
 
   /* ---------------------------------------------------------
@@ -54,20 +70,69 @@ export function createUIEvents({
      --------------------------------------------------------- */
 
   function onPointerMove(e) {
-    if (ui.pointer.pointerId !== null && e.pointerId !== ui.pointer.pointerId) return;
+    const { sx, sy, wx, wy } = eventToWorldXY(e);
 
-    const { x, y } = eventToCanvasXY(e);
-    ui.pointer.x = x;
-    ui.pointer.y = y;
+    ui.pointer.x = sx;
+    ui.pointer.y = sy;
 
+    const tracked = g.pointers.has(e.pointerId);
+
+    // -------------------------
+    // Gesture path (only if tracked)
+    // -------------------------
+    if (tracked) {
+      g.pointers.set(e.pointerId, { x: sx, y: sy });
+
+      // PAN
+      if (g.pointers.size === 1 && g.mode === "pan" && ui.pointer.isDown) {
+        const dx = sx - g.last.x;
+        const dy = sy - g.last.y;
+        if (Math.abs(dx) + Math.abs(dy) > 2) g.wasGesture = true;
+
+        ui.camera.x -= dx / ui.camera.scale;
+        ui.camera.y -= dy / ui.camera.scale;
+        g.last = { x: sx, y: sy };
+
+        _onUIChange(ui);
+        return;
+      }
+
+      // PINCH
+      if (g.pointers.size === 2 && g.mode === "pinch") {
+        const [p1, p2] = [...g.pointers.values()];
+        const m = mid(p1, p2);
+        const d = dist(p1, p2);
+
+        g.wasGesture = true;
+
+        const nextScale = g.startScale * (d / g.startDist);
+        zoomAtScreenPoint(ui.camera, g.startMid.x, g.startMid.y, nextScale);
+
+        const mdx = m.x - g.lastMid.x;
+        const mdy = m.y - g.lastMid.y;
+        ui.camera.x -= mdx / ui.camera.scale;
+        ui.camera.y -= mdy / ui.camera.scale;
+        g.lastMid = m;
+
+        _onUIChange(ui);
+        return;
+      }
+
+      // if tracked but not in a gesture mode, fall through to hover only if not down
+      if (ui.pointer.isDown) return;
+    }
+
+    // -------------------------
+    // Hover path (works even when NOT tracked)
+    // -------------------------
     if (!enableHover) return;
+    if (ui.pointer.isDown) return;
+    if (g.pointers.size > 0) return; // if any touch active, skip hover
 
-    const hit = renderer.getHitAt(x, y);
-
+    const hit = renderer.getHitAt(wx, wy);
     if (hit?.uiID !== ui.hovered?.uiID) {
       ui.hovered = hit;
-
-      _onAction({ type: "hover", hit, x, y });
+      _onAction({ type: "hover", hit, x: wx, y: wy, sx, sy });
       _onUIChange(ui);
     }
   }
@@ -77,32 +142,59 @@ export function createUIEvents({
 
     canvas.setPointerCapture?.(e.pointerId);
 
-    const { x, y } = eventToCanvasXY(e);
-    ui.pointer.x = x;
-    ui.pointer.y = y;
+    const { sx, sy, wx, wy } = eventToWorldXY(e);
+
+    // track pointer
+    ui.pointer.x = sx;
+    ui.pointer.y = sy;
     ui.pointer.isDown = true;
     ui.pointer.pointerId = e.pointerId;
 
-    ui.pressed = renderer.getHitAt(x, y);
+    // gesture tracking
+    g.pointers.set(e.pointerId, { x: sx, y: sy });
+    g.wasGesture = false;
 
-    _onAction({ type: "pointer_down", hit: ui.pressed, x, y });
+    if (g.pointers.size === 1) {
+      g.mode = "pan";
+      g.last = { x: sx, y: sy };
+    } else if (g.pointers.size === 2) {
+      const [p1, p2] = [...g.pointers.values()];
+      const m = mid(p1, p2);
+      g.mode = "pinch";
+      g.startDist = dist(p1, p2);
+      g.startScale = ui.camera.scale;
+      g.startMid = m;
+      g.lastMid = m;
+    }
+
+    // hit test uses WORLD coords
+    ui.pressed = renderer.getHitAt(wx, wy);
+
+    _onAction({ type: "pointer_down", hit: ui.pressed, x: wx, y: wy, sx, sy });
     _onUIChange(ui);
   }
 
   function onPointerUp(e) {
-    if (ui.pointer.pointerId !== null && e.pointerId !== ui.pointer.pointerId) return;
+    const hadPointer = g.pointers.has(e.pointerId);
 
-    const { x, y } = eventToCanvasXY(e);
-    ui.pointer.x = x;
-    ui.pointer.y = y;
+    // update gesture tracking first
+    if (hadPointer) g.pointers.delete(e.pointerId);
 
-    const hitUp = renderer.getHitAt(x, y);
+    const { sx, sy, wx, wy } = eventToWorldXY(e);
 
-    let isClick = true;
+    ui.pointer.x = sx;
+    ui.pointer.y = sy;
 
-    if (requireSameTargetForClick) {
+    const hitUp = renderer.getHitAt(wx, wy);
+
+    // If a pan/pinch happened, suppress click
+    const suppressClick = g.wasGesture;
+
+    let isClick = !suppressClick;
+
+    if (isClick && requireSameTargetForClick) {
       const downId = ui.pressed?.uiID ?? ui.pressed?.id ?? null;
-      const upId   = hitUp?.uiID   ?? hitUp?.id   ?? null;
+      const upId   = hitUp?.uiID     ?? hitUp?.id     ?? null;
       isClick = downId !== null && downId === upId;
     }
 
@@ -110,8 +202,10 @@ export function createUIEvents({
       _onAction({
         type: "click",
         hit: hitUp,
-        x,
-        y,
+        x: wx,
+        y: wy,
+        sx,
+        sy,
         button: e.button ?? 0,
         shiftKey: e.shiftKey,
         altKey: e.altKey,
@@ -119,22 +213,37 @@ export function createUIEvents({
         metaKey: e.metaKey
       });
     } else {
-      _onAction({ type: "pointer_up", hit: hitUp, x, y });
+      _onAction({ type: "pointer_up", hit: hitUp, x: wx, y: wy, sx, sy });
     }
 
+    // reset single-pointer state
     ui.pointer.isDown = false;
     ui.pointer.pointerId = null;
     ui.pressed = null;
+
+    // decide next gesture mode if one pointer remains
+    if (g.pointers.size === 1) {
+      const [only] = [...g.pointers.values()];
+      g.mode = "pan";
+      g.last = { x: only.x, y: only.y };
+      g.wasGesture = false; // fresh for new gesture
+    } else {
+      g.mode = null;
+      g.wasGesture = false;
+    }
 
     _onUIChange(ui);
   }
 
   function onPointerCancel(e) {
-    if (ui.pointer.pointerId !== null && e.pointerId !== ui.pointer.pointerId) return;
+    g.pointers.delete(e.pointerId);
 
     ui.pointer.isDown = false;
     ui.pointer.pointerId = null;
     ui.pressed = null;
+
+    g.mode = null;
+    g.wasGesture = false;
 
     _onAction({ type: "cancel" });
     _onUIChange(ui);
@@ -143,6 +252,13 @@ export function createUIEvents({
   function onContextMenu(e) {
     if (!preventContextMenu) return;
     e.preventDefault();
+  }
+
+  function onPointerLeave() {
+    if (ui.hovered) {
+      ui.hovered = null;
+      _onUIChange(ui);
+    }
   }
 
   /* ---------------------------------------------------------
@@ -155,6 +271,7 @@ export function createUIEvents({
     canvas.addEventListener("pointerup", onPointerUp);
     canvas.addEventListener("pointercancel", onPointerCancel);
     canvas.addEventListener("contextmenu", onContextMenu);
+    canvas.addEventListener("pointerleave", onPointerLeave);
   }
 
   function detach() {
@@ -163,6 +280,7 @@ export function createUIEvents({
     canvas.removeEventListener("pointerup", onPointerUp);
     canvas.removeEventListener("pointercancel", onPointerCancel);
     canvas.removeEventListener("contextmenu", onContextMenu);
+    canvas.removeEventListener("pointerleave", onPointerLeave);
   }
 
   attach();
