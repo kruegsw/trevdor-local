@@ -244,6 +244,15 @@ function joinRoom(ws, roomId, name) {
   const seatIndex = assignSeat(room, ws);
   info.playerIndex = seatIndex; // number 0..3 OR null
 
+  // If seated, bind the human name into the authoritative engine state
+  // so state.players[seatIndex].name matches the roster.
+  if (typeof seatIndex === "number") {
+    const p = room.state?.players?.[seatIndex];
+    if (p) p.name = info.name;
+  }
+
+  broadcastState(roomId);
+
   // WELCOME: tells the client who they are and what seat they got
   safeSend(ws, {
     type: "WELCOME",
