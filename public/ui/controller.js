@@ -24,6 +24,27 @@ export function createUIController({ getState, uiState, requestDraw, dispatchGam
     onUIAction(uiAction) {
       const state = getState();
 
+        // If we don't have state yet, ignore
+        if (!state) return;
+
+        // TURN GATING:
+        // Only allow click-driven game actions if it's my turn.
+        // Hover is always allowed (UI-only).
+        const my = uiState.myPlayerIndex;
+        const active = state.activePlayerIndex;
+
+        const isMyTurn = (typeof my === "number") && (my === active);
+
+        if (uiAction.type === "click") {
+          // If we're a spectator or it's not our turn, ignore clicks that could mutate intent
+          if (!isMyTurn) {
+            // Optional: allow Cancel to clear local UI if you want
+            // Intent.clear(uiState);
+            requestDraw();
+            return;
+          }
+        }
+
       switch (uiAction.type) {
         case "click": {
           // UI-only mutations

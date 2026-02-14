@@ -67,34 +67,40 @@ const transport = createTransport({
   roomId: ROOM_ID,
   name: PLAYER_NAME,
 
-  onMessage: (msg) => {
-    console.log("[server]", msg); // temporary
+onMessage: (msg) => {
+  console.log("[server]", msg);
 
-    if (msg.type === "STATE" && msg.roomId === ROOM_ID) {
-      state = msg.state;
+  if (msg.type === "WELCOME" && msg.roomId === ROOM_ID) {
+    uiState.mySeatIndex = msg.seatIndex;     // 0..3 or null
+    uiState.myPlayerIndex = msg.playerIndex; // null until START, then 0..N-1
+    console.log("WELCOME parsed:", uiState.mySeatIndex, uiState.myPlayerIndex);
+    draw(); // so lobby UI can update
+    return;
+  }
 
-      // If the server state arrives before the initial load/resize event,
-      // force a resize once so layout is computed, then draw.
-      if (!didInitialResize) resize();
-      else draw();
-    }
+  if (msg.type === "ROOM" && msg.roomId === ROOM_ID) {
+    uiState.room = {
+      started: !!msg.started,
+      ready: msg.ready ?? [false,false,false,false],
+      clients: msg.clients ?? [],
+      playerCount: msg.playerCount ?? null,
+    };
+    draw();
+    return;
+  }
 
-    if (msg.type === "WELCOME" && msg.roomId === ROOM_ID) {
-      if (typeof msg.playerIndex === "number") {
-        uiState.myPlayerIndex = msg.playerIndex;          // <-- store as number
-        uiState.playerPanelPlayerIndex = msg.playerIndex; // <-- default panel = me
-        console.log("Seated as playerIndex:", msg.playerIndex);
-      } else {
-        uiState.myPlayerIndex = null; // spectator
-        console.log("Joined as spectator (no open seats)");
-      }
-    }
+  if (msg.type === "STATE" && msg.roomId === ROOM_ID) {
+    state = msg.state;
+    if (!didInitialResize) resize();
+    else draw();
+    return;
+  }
 
-    if (msg.type === "REJECTED") {
-      console.log("REJECTED:", msg.reason, msg);
-    }
-
-  },
+  // 4) If server rejects moves, it’s useful to log clearly
+  if (msg.type === "REJECTED") {
+    console.warn("[server rejected]", msg.reason, msg);
+  }
+},
 
   onOpen: () => {
     console.log("[ws] open");

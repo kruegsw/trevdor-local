@@ -38,5 +38,11 @@ export function createUIState() {
     playerPanelPlayerIndex: 0,
     myPlayerIndex: null,
 
+    // Multiplayer identity
+    myClientId: null,
+    myPlayerIndex: null,   // number 0..3, or null if spectator
+
+    // Optional
+    roomClients: null,
   };
 }
