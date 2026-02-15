@@ -111,7 +111,7 @@ function getRoom(roomId) {
       clients: new Set(),
       // IMPORTANT: seats are either null OR an object { ws, clientId, name }
       seats: Array(4).fill(null),
-      state: initialState(4),
+      state: initialState(2),
       version: 0,
     };
     rooms.set(roomId, room);
@@ -467,7 +467,7 @@ wss.on("connection", (ws, req) => {
         return;
       }
 
-      room.state = initialState(4);
+      room.state = initialState(2);
       room.version = 0;
 
       broadcastState(info.roomId);
