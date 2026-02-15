@@ -377,14 +377,18 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, playe
             const b = card?.bonus;
             (grouped[b]++);
           }
-      const value = grouped[color] ?? text ?? "0";
-      drawPipValue(ctx, color, { x, y, w, h }, value);
+      if ( !grouped[color] ) { break }
+      const value = grouped[color];
+      const r = Math.min(h * 0.35);
+      drawGem(ctx, x, y, r, color, value)
+      //drawPipValue(ctx, color, { x, y, w, h }, value);
       break;
     }
 
     case "summary.tokens": {
       if (!state.players[playerIndex]) {break};
-      const value = state.players[playerIndex].tokens[color] ?? text ?? "0";
+      if ( !state.players[playerIndex].tokens[color] ) { break }
+      const value = state.players[playerIndex].tokens[color];
       drawPipValue(ctx, color, { x, y, w, h }, value);
       break;
     }
@@ -419,23 +423,53 @@ function drawCard(ctx, { x, y, w, h }, fill = "#000000ff", stroke = "rgba(0,0,0,
   Simple token drawing (circle) for demo.
   Hitbox is still a rectangle from the token object in draw().
 */
-function drawToken(ctx, color, { x, y, w, h }, { count } ) {
+function drawToken(ctx, color, { x, y, w, h }, { count }) {
   const cx = x + w / 2;
   const cy = y + h / 2;
   const r = Math.min(w, h) / 2;
 
+  // Support either a color key ("red") or a hex string ("#D94A4A")
+  const rimFill = GEM_COLORS[color] ?? color ?? "#888";
+
+  // Geometry
+  const rimThickness = Math.max(2, r * 0.18);      // thickness of colored rim
+  const innerR = Math.max(0, r - rimThickness);    // cream center radius
+  const gemR = r * 0.50;                           // gem is half the token diameter => radius = 0.5r
+
+  // --- 1) outer rim (colored)
   ctx.beginPath();
   ctx.arc(cx, cy, r, 0, Math.PI * 2);
-  ctx.fillStyle = color;
+  ctx.fillStyle = rimFill;
   ctx.fill();
-  ctx.strokeStyle = "rgba(0,0,0,.2)";
+
+  // --- 2) inner center (cream)
+  ctx.beginPath();
+  ctx.arc(cx, cy, innerR, 0, Math.PI * 2);
+  ctx.fillStyle = "#e0d3b2"; // off-white / cream
+  ctx.fill();
+
+  // --- 3) center gem (reuse your faceted diamond gem)
+  // pass the KEY if possible so drawGem can pick GEM_COLORS
+  const gemColorKeyOrHex = (GEM_COLORS[color] ? color : rimFill);
+  drawGem(ctx, cx, cy, gemR, gemColorKeyOrHex, "");
+
+  // --- 4) outline (subtle black)
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.strokeStyle = "rgba(0,0,0,0.25)";
+  ctx.lineWidth = 1;
   ctx.stroke();
 
-  ctx.fillStyle = ( (color === "blue") || (color === "black") ) ? "#E9EEF3" : "rgba(0,0,0,.85)";
-  ctx.font = `700 ${Math.max(12, Math.floor(r * 0.55))}px system-ui, sans-serif`;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText(String(count), cx, cy);
+  // --- 5) count text
+  if (count != null) {
+    // If rim is dark (blue/black), use light text; otherwise dark text
+    const isDarkKey = (color === "blue" || color === "black");
+    ctx.fillStyle = isDarkKey ? "#E9EEF3" : "rgba(0,0,0,0.9)";
+    ctx.font = `700 ${Math.max(12, Math.floor(r * 0.55))}px system-ui, sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(String(count), cx, cy);
+  }
 }
 
 export { render };
@@ -490,30 +524,141 @@ const CARD_BACKGROUND_COLORS = {
   yellow: "yellow",*/
 };
 
-
 function drawGem(ctx, cx, cy, r, color, label = "") {
+  // --- helpers ---
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+  const hexToRgb = (hex) => {
+    const s0 = String(hex).trim().replace("#", "");
+    const s = (s0.length === 3)
+      ? s0.split("").map(c => c + c).join("")
+      : s0.slice(0, 6);
+
+    const n = parseInt(s, 16);
+    if (!Number.isFinite(n)) return null;
+
+    return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+  };
+
+  const rgbToCss = (rgb, a = 1) => `rgba(${rgb.r},${rgb.g},${rgb.b},${a})`;
+
+  const lighten = (rgb, amt) => ({
+    r: clamp(Math.round(rgb.r + (255 - rgb.r) * amt), 0, 255),
+    g: clamp(Math.round(rgb.g + (255 - rgb.g) * amt), 0, 255),
+    b: clamp(Math.round(rgb.b + (255 - rgb.b) * amt), 0, 255),
+  });
+
+  const darken = (rgb, amt) => ({
+    r: clamp(Math.round(rgb.r * (1 - amt)), 0, 255),
+    g: clamp(Math.round(rgb.g * (1 - amt)), 0, 255),
+    b: clamp(Math.round(rgb.b * (1 - amt)), 0, 255),
+  });
+
+  // --- resolve "color" to an RGB object ---
+  // If you pass "red" -> use GEM_COLORS.red
+  // If you pass "#D94A4A" -> use that
+  // If you pass {r,g,b} -> use that
+  let baseRgb = null;
+
+  if (color && typeof color === "object" && Number.isFinite(color.r)) {
+    baseRgb = { r: color.r, g: color.g, b: color.b };
+  } else {
+    const keyOrHex = GEM_COLORS[color] ?? color; // key -> hex, hex -> hex
+    baseRgb = hexToRgb(keyOrHex);
+  }
+
+  // Fallback (avoid invalid fillStyle => black)
+  if (!baseRgb) baseRgb = { r: 80, g: 80, b: 80 };
+
+  const light = lighten(baseRgb, 0.35);
+  const midLight = lighten(baseRgb, 0.18);
+  const dark = darken(baseRgb, 0.35);
+  const dark2 = darken(baseRgb, 0.20);
+
+  // --- outer diamond ---
   ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, Math.PI * 2);
-  ctx.fillStyle = color;
+  ctx.moveTo(cx, cy - r);
+  ctx.lineTo(cx + r, cy);
+  ctx.lineTo(cx, cy + r);
+  ctx.lineTo(cx - r, cy);
+  ctx.closePath();
+
+  ctx.fillStyle = rgbToCss(baseRgb);
   ctx.fill();
 
-  // subtle outline
-  ctx.strokeStyle = "rgba(0,0,0,.18)";
+  // --- facet geometry (Option 2) ---
+  const innerTopY = cy - r * 0.25;
+  const innerBottomY = cy + r * 0.25;
+
+  // top-left facet
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - r);
+  ctx.lineTo(cx - r * 0.55, cy);
+  ctx.lineTo(cx, innerTopY);
+  ctx.closePath();
+  ctx.fillStyle = rgbToCss(light);
+  ctx.fill();
+
+  // top-right facet
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - r);
+  ctx.lineTo(cx + r * 0.55, cy);
+  ctx.lineTo(cx, innerTopY);
+  ctx.closePath();
+  ctx.fillStyle = rgbToCss(midLight);
+  ctx.fill();
+
+  // bottom-left facet
+  ctx.beginPath();
+  ctx.moveTo(cx, cy + r);
+  ctx.lineTo(cx - r * 0.55, cy);
+  ctx.lineTo(cx, innerBottomY);
+  ctx.closePath();
+  ctx.fillStyle = rgbToCss(dark);
+  ctx.fill();
+
+  // bottom-right facet
+  ctx.beginPath();
+  ctx.moveTo(cx, cy + r);
+  ctx.lineTo(cx + r * 0.55, cy);
+  ctx.lineTo(cx, innerBottomY);
+  ctx.closePath();
+  ctx.fillStyle = rgbToCss(dark2);
+  ctx.fill();
+
+  // subtle ridge highlight
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - r);
+  ctx.lineTo(cx, cy + r);
+  ctx.strokeStyle = "rgba(255,255,255,0.15)";
+  ctx.lineWidth = Math.max(1, r * 0.08);
+  ctx.stroke();
+
+  // outline
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - r);
+  ctx.lineTo(cx + r, cy);
+  ctx.lineTo(cx, cy + r);
+  ctx.lineTo(cx - r, cy);
+  ctx.closePath();
+  ctx.strokeStyle = "rgba(0,0,0,0.25)";
   ctx.lineWidth = 1;
   ctx.stroke();
 
-  /*
+  // optional label
   if (label) {
-    ctx.fillStyle = ( (color === GEM_COLORS.blue) || (color === GEM_COLORS.black) ) ? "#fff" : "rgba(0,0,0,.75)";
-    ctx.font = `${Math.max(10, Math.floor(r * 1.2))}px system-ui, sans-serif`;
+    // IMPORTANT: compare against the key, not the hex
+    const isDark = (color === "blue" || color === "black");
+    ctx.fillStyle = isDark ? "#E9EEF3" : "rgba(0,0,0,0.9)";
+    ctx.font = `700 ${Math.max(10, Math.floor(r * 1.1))}px system-ui, sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(label, cx, cy);
   }
-  */
 }
 
 function drawPip(ctx, x, y, s, color, text) {
+
   // rounded square pip (cost token)
   const r = Math.max(2, Math.floor(s * 0.18));
   ctx.beginPath();
@@ -627,12 +772,12 @@ function drawDevelopmentCard(ctx, { x, y, w, h }, card = {}) {
     ctx.fillText(String(points), x + pad, y + pad * 0.8);
   }
 
-  // --- bonus gem (top-right)
+  // --- gem (top-right)
   {
     const r = Math.max(6, Math.floor(Math.min(w, h) * 0.12));
     const cx = x + w - pad - r;
     const cy = y + pad + r;
-    drawGem(ctx, cx, cy, r, bonus || "#ccc", "");
+    drawGem(ctx, cx, cy, r, bonus, "");
   }
 
   // --- optional banner in the middle (very subtle)
@@ -1088,10 +1233,12 @@ const COLOR_FILL = {
 };
 
 function drawPipValue(ctx, color, { x, y, w, h }, valueText = "0") {
-  const cx = x;
-  const cy = y;
-  const r = Math.min(h * 0.35);
+  //const cx = x - w/2;
+  const cy = y - h/2;
+  //const r = Math.min(h * 0.35);
+  drawToken(ctx, color, { x, y: cy, w, h}, { valueText })
 
+  /*
   ctx.save();
   // pip
   ctx.beginPath();
@@ -1109,5 +1256,6 @@ function drawPipValue(ctx, color, { x, y, w, h }, valueText = "0") {
   ctx.textBaseline = "middle";
   ctx.fillText(String(valueText ?? ""), cx, cy);
   ctx.restore();
+  */
 }
 
