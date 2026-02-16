@@ -467,7 +467,7 @@ wss.on("connection", (ws, req) => {
         return;
       }
 
-      room.state = initialState(4);
+      room.state = initialState(2);
       room.version = 0;
 
       broadcastState(info.roomId);

@@ -97,8 +97,10 @@ function render(ctx) {
         const stateObject = e.statePath ? getByStatePath(state, e.statePath) : {};
         if (!stateObject) return;
         
-        drawSelect(ctx, state, uiState, stateObject, e);
+        const objectDrawn = drawSelect(ctx, state, uiState, stateObject, e);
         
+        if (!objectDrawn) return;
+
         hitRegions.push({
           uiID: e.uiID,
           kind: e.kind,
@@ -183,19 +185,19 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, playe
       stateObject[0] ? drawDeckCard(ctx, { x, y, w, h }, {
         color: "green"
       } ) : null;
-      break;
+      return true;
     case "decks.tier2":
       //drawCard(ctx, { x, y, w, h } );
       stateObject[0] ? drawDeckCard(ctx, { x, y, w, h }, {
         color: "yellow"
       } ) : null;
-      break;
+      return true;
     case "decks.tier3":
       //drawCard(ctx, { x, y, w, h } );
       stateObject[0] ? drawDeckCard(ctx, { x, y, w, h }, {
         color: "blue"
       } ) : null;
-      break;
+      return true;
     case "market.card":
       //stateObject ? drawCard(ctx, { x, y, w, h } ) : null;
       stateObject ? drawDevelopmentCard(ctx, { x, y, w, h }, {
@@ -204,16 +206,16 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, playe
         cost: stateObject.cost,
         //banner: stateObject.id
       }) : null;
-      break;
+      return true;
     case "token":
       stateObject > 0 ? drawToken(ctx, color, { x, y, w, h }, {
         count: stateObject
       } ) : null;
-      break;
+      return true;
     case "noble":
       //stateObject ? drawCard(ctx, { x, y, w, h } ) : null // update this later to draw a noble card
       stateObject ? drawNoble(ctx, { color, x, y, w, h }, stateObject ) : null;
-      break;
+      return true;
     //case "player.panel.bottom":
     //  drawPlayerPanelBottom(ctx, { x, y, w, h }, stateObject);
     //  break;
@@ -225,15 +227,15 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, playe
       //  //banner: stateObject.id
       //});
       stateObject ? drawReserved(ctx, { x, y, w, h }, stateObject ) : null;
-      break;
+      return true;
     case "fanned.cards":
       const grouped = groupCardsByBonus(stateObject, ["white","blue","green","red","black"]);
       const pile = grouped[color] ?? [];
       stateObject ? drawFannedCards(ctx, { color, x, y, w, h }, pile ) : null;
-      break;
+      return true;
     case "fanned.nobles":
       stateObject ? drawFannedNobles(ctx, { color, x, y, w, h }, stateObject ) : null;
-      break;
+      return true;
 
     ////////////////////////
     case "ui.prompt": {
@@ -263,7 +265,7 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, playe
         y + h / 2
       );
       ctx.restore();
-      break;
+      return true;
     }
 
     case "button.confirm": {
@@ -280,7 +282,7 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, playe
       const label = "Confirm";
 
       drawUIButton(ctx, { x, y, w, h }, label);
-      break;
+      return true;
     }
 
     case "button.cancel": {
@@ -297,7 +299,7 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, playe
       const label = "Cancel";
 
       drawUIButton(ctx, { x, y, w, h }, label);
-      break;
+      return true;
     }
 
     /////////// TEMPORARY MANUAL RESET BUTTON FOR TO RESET SERVER GAME STATE from CLIENT ////////////
@@ -305,7 +307,7 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, playe
       const label = "test reset";
 
       drawUIButton(ctx, { x, y, w, h }, label);
-      break;
+      return true;
     }
     /////////// TEMPORARY MANUAL RESET BUTTON FOR TO RESET SERVER GAME STATE from CLIENT ////////////
 
@@ -315,12 +317,12 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, playe
     case "summary.container":
       // optional: draw nothing, or a faint outline for debugging
       // drawSummaryCard(ctx, { x, y, w, h }); // uncomment if you want container visible
-      break;
+      return true;
 
     case "summary.card":
       if (!state.players[playerIndex]) {break};
       drawSummaryCard(ctx, { x, y, w, h });
-      break;
+      return true;
 
     case "summary.text.name": {
       if (!state.players[playerIndex]) {break};
@@ -334,7 +336,7 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, playe
       ctx.textBaseline = "top";
       ctx.fillText(label, x, y);
       ctx.restore();
-      break;
+      return true;
     }
 
     case "summary.text.bonus": {
@@ -350,7 +352,7 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, playe
       ctx.textBaseline = "top";
       ctx.fillText(label, x + w, y);
       ctx.restore();
-      break;
+      return true;
     }
 
     case "summary.text.rowlabel": {
@@ -364,7 +366,7 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, playe
       ctx.textBaseline = "top";
       ctx.fillText(label, x, y);
       ctx.restore();
-      break;
+      return true;
     }
 
     case "summary.gems": {
@@ -382,7 +384,7 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, playe
       const r = Math.min(h * 0.35);
       drawGem(ctx, x, y, r, color, value)
       //drawPipValue(ctx, color, { x, y, w, h }, value);
-      break;
+      return true;
     }
 
     case "summary.tokens": {
@@ -390,12 +392,13 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, playe
       if ( !state.players[playerIndex].tokens[color] ) { break }
       const value = state.players[playerIndex].tokens[color];
       drawPipValue(ctx, color, { x, y, w, h }, value);
-      break;
+      return true;
     }
 
 
     default:
       // Code to execute if none of the cases match
+      return false
   }
 }
 
@@ -408,6 +411,13 @@ function roundedRectPath(ctx, x, y, w, h, r = 14) {
   ctx.arcTo(x,     y + h, x,     y,     radius);
   ctx.arcTo(x,     y,     x + w, y,     radius);
   ctx.closePath();
+}
+
+function getTextColor(backgroundColor) {
+  //return ( (backgroundColor === GEM_COLORS.blue) || (backgroundColor === GEM_COLORS.black) ) ? "#E9EEF3" : "rgba(0,0,0,1)";
+  return (backgroundColor === GEM_COLORS.white || backgroundColor === "white" || backgroundColor === GEM_COLORS.yellow || backgroundColor === "yellow")
+    ? "rgba(0,0,0,1)"
+    : "#E9EEF3";
 }
 
 function drawCard(ctx, { x, y, w, h }, fill = "#000000ff", stroke = "rgba(0,0,0,.12)") {
@@ -463,8 +473,8 @@ function drawToken(ctx, color, { x, y, w, h }, { count }) {
   // --- 5) count text
   if (count != null) {
     // If rim is dark (blue/black), use light text; otherwise dark text
-    const isDarkKey = (color === "blue" || color === "black");
-    ctx.fillStyle = isDarkKey ? "#E9EEF3" : "rgba(0,0,0,0.9)";
+    //const isDarkKey = (color === "blue" || color === "black");
+    ctx.fillStyle = getTextColor(color);
     ctx.font = `700 ${Math.max(12, Math.floor(r * 0.55))}px system-ui, sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
@@ -680,7 +690,7 @@ function drawPip(ctx, x, y, s, color, text) {
   ctx.lineWidth = 1;
   ctx.stroke();
 
-  ctx.fillStyle = ( (color === GEM_COLORS.blue) || (color === GEM_COLORS.black) ) ? "#E9EEF3" : "rgba(0,0,0,1)";
+  ctx.fillStyle = getTextColor(color);//( (color === GEM_COLORS.blue) || (color === GEM_COLORS.black) ) ? "#E9EEF3" : "rgba(0,0,0,1)";
   ctx.font = `700 ${Math.max(10, Math.floor(s * 0.55))}px system-ui, sans-serif`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
@@ -1232,11 +1242,11 @@ const COLOR_FILL = {
   white:  "#E9EEF3",
 };
 
-function drawPipValue(ctx, color, { x, y, w, h }, valueText = "0") {
-  //const cx = x - w/2;
+function drawPipValue(ctx, color, { x, y, w, h }, value = "0") {
+  const cx = x - w/2;
   const cy = y - h/2;
   //const r = Math.min(h * 0.35);
-  drawToken(ctx, color, { x, y: cy, w, h}, { valueText })
+  drawToken(ctx, color, { x: cx, y: cy, w, h}, { count: value })
 
   /*
   ctx.save();

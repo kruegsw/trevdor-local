@@ -52,7 +52,7 @@ let didInitialResize = false;
    --------------------------------------------------------- */
 
 const ROOM_ID = "room1";
-const PLAYER_NAME = "playerA";
+const PLAYER_NAME = "Player Name From Client";
 
 // Prefer this when client is served from the same host as server:
 const WS_URL = (location.protocol === "https:" ? "wss://" : "ws://") + location.host;
@@ -73,6 +73,7 @@ onMessage: (msg) => {
   if (msg.type === "WELCOME" && msg.roomId === ROOM_ID) {
     uiState.mySeatIndex = msg.seatIndex;     // 0..3 or null
     uiState.myPlayerIndex = msg.playerIndex; // null until START, then 0..N-1
+    uiState.playerPanelPlayerIndex = uiState.myPlayerIndex; // default player panel to show current player's data
     console.log("WELCOME parsed:", uiState.mySeatIndex, uiState.myPlayerIndex);
     draw(); // so lobby UI can update
     return;
