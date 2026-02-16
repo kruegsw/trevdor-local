@@ -364,6 +364,8 @@ wss.on("connection", (ws, req) => {
     }
 
     const info = clientInfo.get(ws);
+    console.log("clientInfo.get(ws) ");
+    console.log(info);
 
     // -------------------------
     // JOIN
@@ -454,6 +456,7 @@ wss.on("connection", (ws, req) => {
       if (!room) return;
 
       // enforce seat + turn (same as ACTION)
+      /*
       const actorIndex = info.playerIndex;
       if (typeof actorIndex !== "number") {
         safeSend(ws, { type: "REJECTED", roomId: info.roomId, reason: "SPECTATOR_CANNOT_ACT" });
@@ -466,6 +469,7 @@ wss.on("connection", (ws, req) => {
         safeSend(ws, { type: "STATE", roomId: info.roomId, version: room.version, state: room.state });
         return;
       }
+        */
 
       room.state = initialState(2);
       room.version = 0;
