@@ -111,8 +111,9 @@ function getRoom(roomId) {
       clients: new Set(),
       // IMPORTANT: seats are either null OR an object { ws, clientId, name }
       seats: Array(4).fill(null),
-      state: initialState(2),
+      state: initialState(2, "001"),
       version: 0,
+      gameID: "001"
     };
     rooms.set(roomId, room);
   }
@@ -410,7 +411,7 @@ wss.on("connection", (ws, req) => {
 
       // Only active player can act
       const active = room.state?.activePlayerIndex ?? 0;
-      if (actorIndex !== active) {
+      if (actorIndex !== active && !room.state.hotSeat) {
         safeSend(ws, {
           type: "REJECTED",
           roomId: info.roomId,
@@ -471,7 +472,7 @@ wss.on("connection", (ws, req) => {
       }
         */
 
-      room.state = initialState(2);
+      room.state = initialState(2, "001");
       room.version = 0;
 
       broadcastState(info.roomId);

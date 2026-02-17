@@ -65,7 +65,7 @@ const WS_URL = (location.protocol === "https:" ? "wss://" : "ws://") + location.
 const transport = createTransport({
   url: WS_URL,
   roomId: ROOM_ID,
-  name: PLAYER_NAME,
+  //name: PLAYER_NAME,  don't overrite for now
 
 onMessage: (msg) => {
   console.log("[server]", msg);

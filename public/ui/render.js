@@ -180,6 +180,18 @@ function getByStatePath(state, statePath) {
 
 function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, playerIndex, x, y, w, h, text }) {
   switch (kind) {
+    case "banner.text":
+      const bannerText = `Game: ${state.gameID}   Turn: ${state.turn} [${state.players[state.activePlayerIndex].name}]`;
+
+      ctx.save();
+      ctx.fillStyle = "#111";
+      ctx.font = "16px sans-serif";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "top";
+      ctx.fillText(bannerText, x, y);
+      ctx.restore();
+
+      return true;
     case "decks.tier1":
       //drawCard(ctx, { x, y, w, h } );
       stateObject[0] ? drawDeckCard(ctx, { x, y, w, h }, {
@@ -321,7 +333,11 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, playe
 
     case "summary.card":
       if (!state.players[playerIndex]) {break};
-      drawSummaryCard(ctx, { x, y, w, h });
+      //const outlineColor = "black";
+      const makeOutlineBold = uiState.myPlayerIndex === playerIndex;
+      const highlightedCenter = state.activePlayerIndex === playerIndex;
+      //if (uiState.myPlayerIndex === playerIndex)
+      drawSummaryCard(ctx, { x, y, w, h }, makeOutlineBold, highlightedCenter);
       return true;
 
     case "summary.text.name": {
@@ -1222,13 +1238,13 @@ function roundRectPath(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
-function drawSummaryCard(ctx, { x, y, w, h }) {
+function drawSummaryCard(ctx, { x, y, w, h }, makeOutlineBold, highlightedCenter) {
   ctx.save();
   roundRectPath(ctx, x, y, w, h, 10);
-  ctx.fillStyle = "#f3f3f3";
+  ctx.fillStyle = highlightedCenter ? "yellow" : "#f3f3f3";
   ctx.fill();
   ctx.strokeStyle = "#111";
-  ctx.lineWidth = 2;
+  ctx.lineWidth = makeOutlineBold ? 4 : 2;
   ctx.stroke();
   ctx.restore();
 }

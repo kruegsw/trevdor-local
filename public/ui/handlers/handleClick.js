@@ -113,6 +113,14 @@ export function handleClick({rulesCheck, getState, uiState, hit}) {
         return;
     }
 
+    if (hit?.kind === "summary.card") {
+        if (state.hotSeat) {
+            uiState.myPlayerIndex = hit.playerIndex;
+            console.log(`myPlayerIndex is ${uiState.myPlayerIndex}`)
+            return
+        }
+    }
+
     /////////// TEMPORARY MANUAL RESET BUTTON FOR TO RESET SERVER GAME STATE from CLIENT ////////////
     if (hit.kind === "button.reset") {
         uiState.mode = "resetGame";

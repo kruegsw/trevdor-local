@@ -104,6 +104,14 @@ export function computeLayout(viewport = { width, height }) {
   // -----------------------------------------
   const slots = [
     // --- container hit regions (super useful for hit testing / debug overlay)
+
+
+
+
+    // reset button and banner (screen absolute; leave as-is)
+    { uiID: "banner", kind: "banner.text", x: BOARD.x, y: 0, w: BOARD.w, h: 25 },
+    { uiID: "ui.button.reset", kind: "button.reset", x: BOARD.x + BOARD.w, y: 0, w: 100, h: 25 },
+
     //{ uiID: "board", kind: "board", x: BOARD.x, y: BOARD.y, w: BOARD.w, h: BOARD.h },
     //{ uiID: "player.panel", kind: "player.panel", x: PLAYER_PANEL.x, y: PLAYER_PANEL.y, w: PLAYER_PANEL.w, h: PLAYER_PANEL.h },
 
@@ -193,9 +201,6 @@ export function computeLayout(viewport = { width, height }) {
       w: CARD_WH.w,
       h: TOKEN_WH.h + GAP,
     }),
-
-    // reset button (screen absolute; leave as-is)
-    { uiID: "ui.button.reset", kind: "button.reset", x: 0, y: 0, w: 100, h: 25 },
 
     // ---------------------------------------------------------
     // SUMMARY (right of board) — hard-coded slots (compact)

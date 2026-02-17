@@ -1,7 +1,9 @@
 import { DEFS } from "./defs.js";
 
-const initialState = (numbersOfPlayers) => {
+const initialState = (numbersOfPlayers, gameID) => {
   const state = {
+    gameID,
+
     players: [],
 
     decks: {
@@ -24,6 +26,7 @@ const initialState = (numbersOfPlayers) => {
     turn: 1,
     activePlayerIndex: 0,
     log: [], // optional: helps debugging
+    hotSeat: true
   };
 
   state.players = createPlayers(numbersOfPlayers);

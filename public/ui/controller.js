@@ -38,7 +38,7 @@ export function createUIController({ getState, uiState, requestDraw, dispatchGam
         if (uiAction.type === "click") {
           // If we're a spectator or it's not our turn, ignore clicks that could mutate intent
           if (!isMyTurn) { // if not your turn then ignore click
-            if (uiAction.hit.kind != "button.reset" ) { return }; // except allow anyone to reset the game for debugging
+            if ((uiAction.hit?.kind != "button.reset") && (uiAction.hit?.kind != "summary.card")) { return }; // except allow anyone to reset the game for debugging
           }
         }
 
