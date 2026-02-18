@@ -26,6 +26,57 @@ let state = null;
 const uiState = createUIState();
 
 /* ---------------------------------------------------------
+   Lobby
+   --------------------------------------------------------- */
+
+function showLobby() {
+  setScene("lobby");
+}
+
+const lobbyScene = document.getElementById("lobbyScene");
+const enterGameBtn = document.getElementById("enterGameBtn");
+
+function setScene(scene) {
+  if (scene === "lobby") {
+    lobbyScene.classList.remove("hidden");
+  } else if (scene === "game") {
+    lobbyScene.classList.add("hidden");
+  }
+}
+
+enterGameBtn.addEventListener("click", () => {
+  console.log("clicked enterGameBtn button");
+  setScene("game");
+})
+
+setScene("lobby");
+
+const nameInput = document.getElementById("nameInput");
+const nameHint = document.getElementById("nameHint");
+
+// Load saved name
+const savedName = localStorage.getItem("trevdor.name") || "";
+nameInput.value = savedName;
+
+function cleanName(s) {
+  return (s ?? "").trim().replace(/\s+/g, " ").slice(0, 20);
+}
+
+function setNameHint() {
+  const n = cleanName(nameInput.value);
+  nameHint.textContent = n ? `Playing as: ${n}` : "Enter a name to be shown to other players.";
+}
+
+setNameHint();
+
+// Save as they type
+nameInput.addEventListener("input", () => {
+  const n = cleanName(nameInput.value);
+  localStorage.setItem("trevdor.name", n);
+  setNameHint();
+});
+
+/* ---------------------------------------------------------
    Canvas + renderer
    --------------------------------------------------------- */
 
@@ -118,12 +169,13 @@ function dispatchGameAction(gameAction) {
 
   /////////// TEMPORARY MANUAL RESET BUTTON FOR TO RESET SERVER GAME STATE from CLIENT ////////////
   if (gameAction.type == "RESET_GAME") {
-    console.log("gameAction.type = RESET_GAME")
+    console.log("gameAction.type = RESET_GAME");
+    showLobby();
     transport.sendRaw({
-    type: "RESET_GAME",
-    roomId: ROOM_ID,
-    action: null,
-  });
+      type: "RESET_GAME",
+      roomId: ROOM_ID,
+      action: null,
+    });
   /////////// TEMPORARY MANUAL RESET BUTTON FOR TO RESET SERVER GAME STATE from CLIENT ////////////
   } else {
     transport.sendRaw({

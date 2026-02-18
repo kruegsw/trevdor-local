@@ -19,10 +19,103 @@
             height: 100%; width: 100%; /* Canvas fills the entire viewport. Drawing scale is handled in JS. */
         }
 
+        .scene {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        #lobbyScene {
+            background: linear-gradient(180deg, #1c1c1c, #0d0d0d);
+            color: white;
+            font-family: system-ui, sans-serif;
+            text-align: center;
+        }
+
+        .lobbyContent h1 {
+            font-size: 42px;
+            margin-bottom: 10px;
+        }
+
+        .lobbyContent p {
+            opacity: 0.8;
+            margin-bottom: 20px;
+        }
+
+        .lobbyContent button {
+            padding: 14px 22px;
+            font-size: 18px;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+        }
+
+        #c {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .nameRow {
+            width: min(420px, 86vw);
+            margin: 18px auto 14px;
+            text-align: left;
+        }
+
+        .nameLabel {
+            display: block;
+            font-size: 14px;
+            opacity: 0.85;
+            margin-bottom: 6px;
+        }
+
+        .nameInput {
+            width: 100%;
+            padding: 12px 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.18);
+            background: rgba(0,0,0,0.35);
+            color: #fff;
+            outline: none;
+            font-size: 16px;
+        }
+
+        .nameInput:focus {
+            border-color: rgba(255,255,255,0.35);
+        }
+
+        .nameHint {
+            margin-top: 6px;
+            font-size: 12px;
+            opacity: 0.75;
+            min-height: 16px;
+        }
+
 	</style>
 </head>
 <body>
+    <div id="lobbyScene" class="scene">
+        <div class="lobbyContent">
+            <h1>Trevdor</h1>
+            <p>Welcome to the Lobby</p>
+            <div class="nameRow">
+                <label for="nameInput" class="nameLabel">Your name</label>
+                <input id="nameInput" class="nameInput" type="text" placeholder="Type your name…" maxlength="20" />
+                <div id="nameHint" class="nameHint"></div>
+            </div>
+            <button id="enterGameBtn">Enter Game</button>
+        </div>
+    </div>
+
     <canvas id="c"></canvas>
+    
+</div>
 </body>
 <script src="./trevdor.js" type="module"></script>
 <!--
