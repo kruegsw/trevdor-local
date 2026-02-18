@@ -345,9 +345,10 @@ wss.on("connection", (ws, req) => {
   // Assign a server-side clientId for debugging / roster.
   // (This is separate from playerIndex/seat.)
   const clientId = nextClientId++;
+  //console.log(`${JSON.stringify(ws)} from line 348`)
   clientInfo.set(ws, {
     clientId,
-    name: `guest-${clientId}`,
+    name: `guest-temporary-name-${clientId}`,
     roomId: null,
     playerIndex: null,
   });
@@ -365,7 +366,7 @@ wss.on("connection", (ws, req) => {
     }
 
     const info = clientInfo.get(ws);
-    console.log("clientInfo.get(ws) ");
+    console.log("clientInfo.get(ws) = info from line 369");
     console.log(info);
 
     // -------------------------

@@ -74,12 +74,13 @@ export function createTransport({
   }
 
   // kick off
-  connect();
+  // connect(); // this is moved to when user click button in lobby
 
   return {
     send,        // send("SAY", { text:"hi" })
     sendRaw,     // sendRaw({type:"ACTION", ...})
     isOpen,
     close,
+    connect
   };
 }

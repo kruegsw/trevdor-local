@@ -181,7 +181,7 @@ function getByStatePath(state, statePath) {
 function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, playerIndex, x, y, w, h, text }) {
   switch (kind) {
     case "banner.text":
-      const bannerText = `Game: ${state.gameID}   Turn: ${state.turn} [${state.players[state.activePlayerIndex].name}]`;
+      const bannerText = `Game: ${state.gameID}   Turn: ${state.turn} [${state.players[state.activePlayerIndex].name}]   You: ${uiState.myName}`;
 
       ctx.save();
       ctx.fillStyle = "#111";

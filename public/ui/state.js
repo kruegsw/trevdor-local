@@ -37,6 +37,7 @@ export function createUIState() {
 
     playerPanelPlayerIndex: 0,
     myPlayerIndex: null,
+    myName: null,
 
     // Multiplayer identity
     myClientId: null,

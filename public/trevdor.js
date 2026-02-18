@@ -46,6 +46,7 @@ function setScene(scene) {
 
 enterGameBtn.addEventListener("click", () => {
   console.log("clicked enterGameBtn button");
+  transport.connect();
   setScene("game");
 })
 
@@ -103,7 +104,7 @@ let didInitialResize = false;
    --------------------------------------------------------- */
 
 const ROOM_ID = "room1";
-const PLAYER_NAME = "Player Name From Client";
+const PLAYER_NAME = savedName;
 
 // Prefer this when client is served from the same host as server:
 const WS_URL = (location.protocol === "https:" ? "wss://" : "ws://") + location.host;
@@ -116,43 +117,43 @@ const WS_URL = (location.protocol === "https:" ? "wss://" : "ws://") + location.
 const transport = createTransport({
   url: WS_URL,
   roomId: ROOM_ID,
-  //name: PLAYER_NAME,  don't overrite for now
+  name: PLAYER_NAME,
 
-onMessage: (msg) => {
-  console.log("[server]", msg);
+  onMessage: (msg) => {
+    console.log("[server]", msg);
 
-  if (msg.type === "WELCOME" && msg.roomId === ROOM_ID) {
-    uiState.mySeatIndex = msg.seatIndex;     // 0..3 or null
-    uiState.myPlayerIndex = msg.playerIndex; // null until START, then 0..N-1
-    uiState.playerPanelPlayerIndex = uiState.myPlayerIndex; // default player panel to show current player's data
-    console.log("WELCOME parsed:", uiState.mySeatIndex, uiState.myPlayerIndex);
-    draw(); // so lobby UI can update
-    return;
-  }
+    if (msg.type === "WELCOME" && msg.roomId === ROOM_ID) {
+      uiState.mySeatIndex = msg.seatIndex;     // 0..3 or null
+      uiState.myPlayerIndex = msg.playerIndex; // null until START, then 0..N-1
+      uiState.playerPanelPlayerIndex = uiState.myPlayerIndex; // default player panel to show current player's data
+      console.log("WELCOME parsed:", uiState.mySeatIndex, uiState.myPlayerIndex);
+      draw(); // so lobby UI can update
+      return;
+    }
 
-  if (msg.type === "ROOM" && msg.roomId === ROOM_ID) {
-    uiState.room = {
-      started: !!msg.started,
-      ready: msg.ready ?? [false,false,false,false],
-      clients: msg.clients ?? [],
-      playerCount: msg.playerCount ?? null,
-    };
-    draw();
-    return;
-  }
+    if (msg.type === "ROOM" && msg.roomId === ROOM_ID) {
+      uiState.room = {
+        started: !!msg.started,
+        ready: msg.ready ?? [false,false,false,false],
+        clients: msg.clients ?? [],
+        playerCount: msg.playerCount ?? null,
+      };
+      draw();
+      return;
+    }
 
-  if (msg.type === "STATE" && msg.roomId === ROOM_ID) {
-    state = msg.state;
-    if (!didInitialResize) resize();
-    else draw();
-    return;
-  }
+    if (msg.type === "STATE" && msg.roomId === ROOM_ID) {
+      state = msg.state;
+      if (!didInitialResize) resize();
+      else draw();
+      return;
+    }
 
-  // 4) If server rejects moves, it’s useful to log clearly
-  if (msg.type === "REJECTED") {
-    console.warn("[server rejected]", msg.reason, msg);
-  }
-},
+    // 4) If server rejects moves, it’s useful to log clearly
+    if (msg.type === "REJECTED") {
+      console.warn("[server rejected]", msg.reason, msg);
+    }
+  },
 
   onOpen: () => {
     console.log("[ws] open");
