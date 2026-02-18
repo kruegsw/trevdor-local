@@ -95,6 +95,7 @@ const rooms = new Map();
 const clientInfo = new Map();
 
 let nextClientId = 1;
+let nextRoomId = 1;
 
 // -----------------------------------------------------------------------------
 // Room helpers
@@ -113,7 +114,7 @@ function getRoom(roomId) {
       seats: Array(4).fill(null),
       state: initialState(2, "001"),
       version: 0,
-      gameID: "001"
+      roomId: nextRoomId++
     };
     rooms.set(roomId, room);
   }
@@ -259,6 +260,7 @@ function joinRoom(ws, roomId, name) {
     type: "WELCOME",
     roomId,
     clientId: info.clientId,
+    name: name,
     playerIndex: seatIndex,
   });
 
@@ -276,6 +278,21 @@ function joinRoom(ws, roomId, name) {
     version: room.version,
     state: room.state,
   });
+}
+
+function closeAllClients() {
+  // Define a close code and reason (optional, but good practice)
+  const closeCode = 1000; // Normal Closure
+  const closeReason = 'Server reset initiated';
+
+  // Iterate over all clients in the Set
+  wss.clients.forEach(function each(ws) {
+    //if (ws.readyState === WebSocket.OPEN) {
+      // Initiate the closing handshake
+      ws.close(closeCode, closeReason);
+    //}
+  });
+  //nextClientId = 1;
 }
 
 // -----------------------------------------------------------------------------
@@ -473,10 +490,12 @@ wss.on("connection", (ws, req) => {
       }
         */
 
-      room.state = initialState(2, "001");
-      room.version = 0;
+      closeAllClients()
 
-      broadcastState(info.roomId);
+      //room.state = initialState(2, "001");
+      //room.version = 0;
+
+      //broadcastState(info.roomId);
       return;
     }
 
@@ -508,6 +527,11 @@ wss.on("connection", (ws, req) => {
     clientInfo.delete(ws);
     console.log(`disconnected clientId=${info?.clientId ?? "?"}`);
   });
+});
+
+wss.on('close', () => {
+  console.log('All connections closed. Server is shutting down.');
+  // Perform additional reset logic here, such as restarting the server process
 });
 
 // -----------------------------------------------------------------------------

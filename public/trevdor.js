@@ -46,6 +46,7 @@ function setScene(scene) {
 
 enterGameBtn.addEventListener("click", () => {
   console.log("clicked enterGameBtn button");
+  uiState.myName = savedName;
   transport.connect();
   setScene("game");
 })
@@ -64,7 +65,7 @@ function cleanName(s) {
 }
 
 function setNameHint() {
-  const n = cleanName(nameInput.value);
+  let n = cleanName(nameInput.value);
   nameHint.textContent = n ? `Playing as: ${n}` : "Enter a name to be shown to other players.";
 }
 
@@ -72,7 +73,7 @@ setNameHint();
 
 // Save as they type
 nameInput.addEventListener("input", () => {
-  const n = cleanName(nameInput.value);
+  let n = cleanName(nameInput.value);
   localStorage.setItem("trevdor.name", n);
   setNameHint();
 });
