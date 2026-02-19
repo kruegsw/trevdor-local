@@ -4,6 +4,10 @@ export function handleHover({getState, uiState, hit}) {
 
     const currentPlayer = state.players[state.activePlayerIndex];
 
+    hit ? uiState.isHovered = hit : uiState.isHovered = null;
+
+    console.log(`hovered hit is : ${JSON.stringify(hit)}`)
+
     if (!hit) {
         uiState.hovered = null;
         uiState.playerPanelPlayerIndex =
@@ -16,7 +20,12 @@ export function handleHover({getState, uiState, hit}) {
     if (hit?.kind === "summary.card") {
         uiState.hovered = hit;
         uiState.playerPanelPlayerIndex = hit.playerIndex;
-        console.log(uiState.playerPanelPlayerIndex)
+        return;
+    }
+
+    if (hit?.kind === "market.card") {
+        uiState.hovered = hit;
+        uiState.playerPanelPlayerIndex = hit.playerIndex;
         return;
     }
 

@@ -44,5 +44,7 @@ export function createUIState() {
 
     // Optional
     roomClients: null,
+
+    isHovered: null,
   };
 }

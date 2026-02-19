@@ -212,12 +212,22 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, playe
       return true;
     case "market.card":
       //stateObject ? drawCard(ctx, { x, y, w, h } ) : null;
+
+      //soft drop shadow
+      ctx.save();
+      ctx.shadowColor = "rgba(0,0,0,0.25)";
+      ctx.shadowBlur = 12;
+      ctx.shadowOffsetY = 6;
+
       stateObject ? drawDevelopmentCard(ctx, { x, y, w, h }, {
         points: stateObject.points,
         bonus: stateObject.bonus,
         cost: stateObject.cost,
         //banner: stateObject.id
       }) : null;
+
+      ctx.restore();
+
       return true;
     case "token":
       stateObject > 0 ? drawToken(ctx, color, { x, y, w, h }, {
