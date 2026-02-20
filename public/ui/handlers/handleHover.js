@@ -23,10 +23,10 @@ export function handleHover({getState, uiState, hit}) {
         return;
     }
 
-    if (hit?.kind === "market.card") {
-        uiState.hovered = hit;
-        uiState.playerPanelPlayerIndex = hit.playerIndex;
-        return;
-    }
+    //if (hit?.kind === "market.card") {
+    //    uiState.hovered = hit;
+    //    uiState.playerPanelPlayerIndex = hit.playerIndex;
+    //    return;
+    //}
 
 }

@@ -92,7 +92,6 @@ function render(ctx) {
 
       layout.forEach(e => {
 
-        //if (e.kind == "reserved") {console.log(e.statePath)};
         if (e.uiParent) {e.statePath[1] = uiState.playerPanelPlayerIndex} //else { e.statePath[1] = state.activePlayerIndex } // to render hovered summary card player index in the player panel
         const stateObject = e.statePath ? getByStatePath(state, e.statePath) : {};
         if (!stateObject) return;
@@ -178,6 +177,10 @@ function getByStatePath(state, statePath) {
   );
 }
 
+function isHovered(uiID, uiState) {
+  return uiState.isHovered?.uiID === uiID;
+}
+
 function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, playerIndex, x, y, w, h, text }) {
   switch (kind) {
     case "banner.text":
@@ -213,11 +216,9 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, playe
     case "market.card":
       //stateObject ? drawCard(ctx, { x, y, w, h } ) : null;
 
-      //soft drop shadow
-      ctx.save();
-      ctx.shadowColor = "rgba(0,0,0,0.25)";
-      ctx.shadowBlur = 12;
-      ctx.shadowOffsetY = 6;
+      drawCardShadow(ctx, { x, y, w, h }, {})
+
+      if (isHovered(uiID, uiState)) { y -= 4 };
 
       stateObject ? drawDevelopmentCard(ctx, { x, y, w, h }, {
         points: stateObject.points,
@@ -226,10 +227,13 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, playe
         //banner: stateObject.id
       }) : null;
 
-      ctx.restore();
-
       return true;
     case "token":
+
+      drawTokenShadow(ctx, { x, y, w, h }, {});
+
+      if (isHovered(uiID, uiState)) { y -= 4 };
+
       stateObject > 0 ? drawToken(ctx, color, { x, y, w, h }, {
         count: stateObject
       } ) : null;
@@ -248,6 +252,10 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, playe
       //  cost: stateObject.cost,
       //  //banner: stateObject.id
       //});
+      drawReservedShadow(ctx, { x, y, w, h }, {});
+
+      if (isHovered(uiID, uiState)) { y -= 4 };
+
       stateObject ? drawReserved(ctx, { x, y, w, h }, stateObject ) : null;
       return true;
     case "fanned.cards":
@@ -453,6 +461,21 @@ function drawCard(ctx, { x, y, w, h }, fill = "#000000ff", stroke = "rgba(0,0,0,
   ctx.strokeStyle = stroke;
   ctx.lineWidth = 1;
   ctx.stroke();
+}
+
+function drawTokenShadow(ctx, { x, y, w, h }, {}) {
+  const cx = x + w / 2;
+  const cy = y + h / 2;
+  const r = Math.min(w, h) / 2;
+
+  // Support either a color key ("red") or a hex string ("#D94A4A")
+  const shadowColor = "rgba(0,0,0,0.25)";
+
+  // --- 1) outer rim (colored)
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fillStyle = shadowColor;
+  ctx.fill();
 }
 
 /*
@@ -846,6 +869,19 @@ function drawDevelopmentCard(ctx, { x, y, w, h }, card = {}) {
   }
 }
 
+function drawCardShadow(ctx, { x, y, w, h }, card = {}) {
+  
+  const shadowColor = "rgba(0,0,0,0.25)";
+  //const shadowBlur = 12;
+  const shadowOffsetY = 6;
+
+  // --- base card
+  roundedRectPath(ctx, x, y, w, h);
+  //ctx.fillStyle = rgbToCss(cardRgb, 1);
+  //ctx.fill();
+  ctx.fillStyle = shadowColor;
+  ctx.fill();
+}
 
 function drawDeckCard(ctx, { x, y, w, h }, card = {}) {
   const {
@@ -1096,6 +1132,24 @@ function drawNoble(ctx, { x, y, w, h }, noble = {}) {
       y + h / 2
     );
   }
+}
+
+function drawReservedShadow(ctx, { x, y, w, h }, stateObject) {
+    // Save the current canvas state (coordinate system)
+    ctx.save();
+
+    // Move the canvas origin (0,0) to the center of the object
+    ctx.translate(x, y);
+
+    // Rotate the context by 90 degrees (Math.PI / 2 radians)
+    ctx.rotate(90 * Math.PI / 180); // or Math.PI / 2
+
+    // Draw card, offset by height so top left corner of rotated card at intended location
+    drawCardShadow(ctx, { x: 0, y: -w, w: h, h: w }, {  // note y, w and h have been adjusted to draw card correctly but line up with layout.js coords
+    })
+
+    // Restore the canvas to its original state before the translation and rotation
+    ctx.restore();
 }
 
 function drawReserved(ctx, { x, y, w, h }, stateObject) {
