@@ -132,6 +132,18 @@ function playerPrestige(playerIndex) {
   return fromCards + fromNobles;
 }
 
+function playerTotalGems(playerIndex) {
+  const player = state?.players?.[playerIndex];
+  if (!player) return null;
+  return player.cards.filter(c => c.bonus).length;
+}
+
+function playerTotalTokens(playerIndex) {
+  const player = state?.players?.[playerIndex];
+  if (!player) return null;
+  return Object.values(player.tokens ?? {}).reduce((s, n) => s + n, 0);
+}
+
 function updateStatusBar() {
   const clients = uiState.room?.clients ?? [];
   const myIdx = uiState.myPlayerIndex;
@@ -158,12 +170,17 @@ function updateStatusBar() {
       isActive      ? "isActive"   : "",
     ].filter(Boolean).join(" ");
 
+    const gems   = slot.occupied ? playerTotalGems(slot.seat)   : null;
+    const tokens = slot.occupied ? playerTotalTokens(slot.seat) : null;
+
     html += `<div class="${classes}">`;
     html += `<span class="playerDot${isActive ? ' isActive' : ''}" style="--dot-fill:${seatFill(slot)}"></span>`;
     if (slot.occupied) {
       html += `<span>${escapeHtml(slot.name ?? `Player ${slot.seat + 1}`)}</span>`;
-      if (prestige !== null) html += ` <span class="statusPoints">${prestige}pt</span>`;
-      if (isMe) html += ` <span class="statusYou">(you)</span>`;
+      if (prestige !== null) html += `<span class="statusPoints">${prestige}pt</span>`;
+      if (gems   !== null)   html += `<span class="statusGem">${gems}</span>`;
+      if (tokens !== null)   html += `<span class="statusToken">${tokens}</span>`;
+      if (isMe)              html += `<span class="statusYou">(you)</span>`;
     } else {
       html += `<span class="statusEmpty">open</span>`;
     }
