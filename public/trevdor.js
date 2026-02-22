@@ -277,6 +277,10 @@ const transport = createTransport({
         clients: msg.clients ?? [],
         playerCount: msg.playerCount ?? null,
       };
+      if (!msg.started) {
+        state = null;
+        setScene("waiting");
+      }
       updateStatusBar();
       updateWaitingRoom();
       draw();
