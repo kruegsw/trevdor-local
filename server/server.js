@@ -120,9 +120,11 @@ function getRoom(roomId) {
       clients: new Set(),
       // IMPORTANT: seats are either null OR an object { ws, clientId, name }
       seats: Array(4).fill(null),
-      state: null,   // deferred until enough players join
+      state: null,   // deferred until game starts
       version: 0,
-      roomId: nextRoomId++
+      roomId: nextRoomId++,
+      ready: [false, false, false, false],
+      started: false,
     };
     rooms.set(roomId, room);
   }
@@ -157,6 +159,21 @@ function broadcastState(roomId) {
     roomId,
     version: room.version,
     state: room.state,
+  });
+}
+
+/**
+ * Broadcast the current ROOM message (roster + ready + started) to all room clients.
+ */
+function broadcastRoom(roomId) {
+  const room = rooms.get(roomId);
+  if (!room) return;
+  broadcastToRoom(roomId, {
+    type: "ROOM",
+    roomId,
+    clients: roomRoster(roomId),
+    ready: room.ready,
+    started: room.started,
   });
 }
 
@@ -210,6 +227,43 @@ function assignSeat(room, ws, stringRoomId) {
 }
 
 /**
+ * During the pre-game lobby, pack all occupied seats toward index 0 so that
+ * seat indices always form a contiguous range starting at 0. This ensures
+ * initialState(N) and the seated playerIndex values stay in sync.
+ * Updates clientInfo.playerIndex and session data for every moved player.
+ * Resets all ready flags (composition changed, so everyone must re-ready).
+ */
+function compactSeats(room, roomId) {
+  const occupied = room.seats
+    .map((s, i) => s ? { seatObj: s, oldIndex: i } : null)
+    .filter(Boolean);
+
+  room.seats = Array(4).fill(null);
+  room.ready = [false, false, false, false];
+
+  occupied.forEach(({ seatObj }, newIndex) => {
+    room.seats[newIndex] = seatObj;
+    const info = clientInfo.get(seatObj.ws);
+    if (info) {
+      info.playerIndex = newIndex;
+      if (info.sessionId) {
+        const session = sessions.get(info.sessionId);
+        if (session && session.roomId === roomId) session.seatIndex = newIndex;
+      }
+      // Tell the client their seat index changed
+      safeSend(seatObj.ws, {
+        type: "WELCOME",
+        roomId,
+        clientId: info.clientId,
+        name: info.name,
+        playerIndex: newIndex,
+        sessionId: info.sessionId,
+      });
+    }
+  });
+}
+
+/**
  * Removes a client from their current room (if any) and frees their seat.
  * Also broadcasts updated roster and deletes empty rooms.
  */
@@ -226,14 +280,19 @@ function leaveRoom(ws) {
 
     // Free their seat (if seated)
     const seat = room.seats.findIndex(s => s?.ws === ws);
-    if (seat !== -1) room.seats[seat] = null;
+    if (seat !== -1) {
+      room.seats[seat] = null;
+      room.ready[seat] = false;
+    }
+
+    // During pre-game lobby, compact remaining players to contiguous seats
+    // so seat indices always match initialState(N) player indices.
+    if (!room.started) {
+      compactSeats(room, roomId);
+    }
 
     // Notify others about roster change
-    broadcastToRoom(roomId, {
-      type: "ROOM",
-      roomId,
-      clients: roomRoster(roomId),
-    });
+    broadcastRoom(roomId);
 
     // Cleanup empty room
     if (room.clients.size === 0) rooms.delete(roomId);
@@ -272,21 +331,7 @@ function joinRoom(ws, roomId, name) {
     sessions.set(info.sessionId, { roomId, seatIndex, name: info.name });
   }
 
-  // Auto-start game when 2+ players are seated and no game is running yet
-  if (room.state === null) {
-    const occupiedCount = room.seats.filter(s => s !== null).length;
-    if (occupiedCount >= 2) {
-      room.state = initialState(occupiedCount, roomId);
-      // Apply all seated player names into the fresh state
-      room.seats.forEach((seat, i) => {
-        if (seat && room.state.players[i]) {
-          room.state.players[i].name = seat.name;
-        }
-      });
-    }
-  }
-
-  // If seated and game is running, ensure this player's name is in state
+  // If seated and game is running, ensure this player's name is in state (reconnect case)
   if (typeof seatIndex === "number" && room.state?.players?.[seatIndex]) {
     room.state.players[seatIndex].name = info.name;
   }
@@ -304,19 +349,17 @@ function joinRoom(ws, roomId, name) {
   });
 
   // Broadcast roster to everyone (including the joiner)
-  broadcastToRoom(roomId, {
-    type: "ROOM",
-    roomId,
-    clients: roomRoster(roomId),
-  });
+  broadcastRoom(roomId);
 
-  // Send authoritative snapshot to the joiner
-  safeSend(ws, {
-    type: "STATE",
-    roomId,
-    version: room.version,
-    state: room.state,
-  });
+  // Send authoritative snapshot to the joiner only if game is in progress
+  if (room.state !== null) {
+    safeSend(ws, {
+      type: "STATE",
+      roomId,
+      version: room.version,
+      state: room.state,
+    });
+  }
 }
 
 function closeAllClients() {
@@ -467,6 +510,11 @@ wss.on("connection", (ws, req) => {
       const room = rooms.get(info.roomId);
       if (!room) return;
 
+      if (!room.started) {
+        safeSend(ws, { type: "REJECTED", roomId: info.roomId, reason: "GAME_NOT_STARTED" });
+        return;
+      }
+
       // -------------------------
       // Increment 2: seat + turn enforcement
       // -------------------------
@@ -523,18 +571,46 @@ wss.on("connection", (ws, req) => {
       const room = rooms.get(info.roomId);
       if (!room) return;
 
-      const occupiedCount = room.seats.filter(s => s !== null).length;
-      room.state = initialState(Math.max(2, occupiedCount), roomId);
+      room.state = null;
       room.version = 0;
+      room.started = false;
+      room.ready = [false, false, false, false];
 
-      // Re-apply seated player names into the fresh state
-      room.seats.forEach((seat, i) => {
-        if (seat && room.state.players[i]) {
-          room.state.players[i].name = seat.name;
-        }
-      });
+      broadcastRoom(info.roomId);
+      return;
+    }
 
-      broadcastState(info.roomId);
+    // -------------------------
+    // READY (toggle ready state for sender's seat)
+    // -------------------------
+    if (msg.type === "READY") {
+      if (!info.roomId) {
+        safeSend(ws, { type: "ERROR", message: "You must JOIN a room first" });
+        return;
+      }
+
+      const room = rooms.get(info.roomId);
+      if (!room) return;
+
+      const seat = info.playerIndex;
+      if (typeof seat !== "number" || room.started) return;
+
+      room.ready[seat] = !room.ready[seat]; // toggle
+
+      // Check start condition: all occupied seats (min 2) must be ready
+      const occupiedIndices = room.seats.map((s, i) => s ? i : null).filter(i => i !== null);
+      const allReady = occupiedIndices.length >= 2 && occupiedIndices.every(i => room.ready[i]);
+
+      if (allReady) {
+        room.state = initialState(occupiedIndices.length, info.roomId);
+        room.started = true;
+        room.seats.forEach((seat, i) => {
+          if (seat && room.state.players[i]) room.state.players[i].name = seat.name;
+        });
+      }
+
+      broadcastRoom(info.roomId);
+      if (room.started) broadcastState(info.roomId);
       return;
     }
 

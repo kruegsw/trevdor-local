@@ -30,16 +30,25 @@ const uiState = createUIState();
    --------------------------------------------------------- */
 
 function showLobby() {
-  setScene("lobby");
+  setScene("join");
 }
 
 const lobbyScene = document.getElementById("lobbyScene");
+const joinSection = document.getElementById("joinSection");
+const waitingSection = document.getElementById("waitingSection");
 const enterGameBtn = document.getElementById("enterGameBtn");
 const statusBar = document.getElementById("statusBar");
 
 function setScene(scene) {
-  if (scene === "lobby") {
+  if (scene === "join") {
     lobbyScene.classList.remove("hidden");
+    joinSection.classList.remove("hidden");
+    waitingSection.classList.add("hidden");
+    statusBar.classList.add("hidden");
+  } else if (scene === "waiting") {
+    lobbyScene.classList.remove("hidden");
+    joinSection.classList.add("hidden");
+    waitingSection.classList.remove("hidden");
     statusBar.classList.add("hidden");
   } else if (scene === "game") {
     lobbyScene.classList.add("hidden");
@@ -50,11 +59,15 @@ function setScene(scene) {
 enterGameBtn.addEventListener("click", () => {
   console.log("clicked enterGameBtn button");
   uiState.myName = savedName;
+  setScene("waiting");
   transport.connect();
-  setScene("game");
 })
 
-setScene("lobby");
+document.getElementById("readyBtn").addEventListener("click", () => {
+  transport.sendRaw({ type: "READY", roomId: ROOM_ID });
+});
+
+setScene("join");
 
 const nameInput = document.getElementById("nameInput");
 const nameHint = document.getElementById("nameHint");
@@ -142,6 +155,52 @@ function updateStatusBar() {
 }
 
 /* ---------------------------------------------------------
+   Waiting room UI
+   --------------------------------------------------------- */
+
+function updateWaitingRoom() {
+  const clients = uiState.room?.clients ?? [];
+  const ready = uiState.room?.ready ?? [false, false, false, false];
+  const myIdx = uiState.myPlayerIndex;
+
+  const slots = Array(4).fill(null).map((_, i) => {
+    const c = clients.find(c => c.seat === i);
+    return { seat: i, name: c?.name ?? null, occupied: !!c };
+  });
+
+  const rosterEl = document.getElementById("waitingRoster");
+  rosterEl.innerHTML = slots.map(slot => {
+    if (!slot.occupied) {
+      return `<div class="rosterSlot isEmpty"><span class="readyIndicator"></span>Seat ${slot.seat + 1}: empty</div>`;
+    }
+    const isMe = typeof myIdx === "number" && slot.seat === myIdx;
+    const isReady = ready[slot.seat];
+    return `<div class="rosterSlot${isMe ? " isMe" : ""}">` +
+      `<span class="readyIndicator${isReady ? " isReady" : ""}"></span>` +
+      `<span>${escapeHtml(slot.name ?? ``)}</span>` +
+      (isMe ? ` <span class="youLabel">(you)</span>` : "") +
+      `</div>`;
+  }).join("");
+
+  const occupiedSlots = slots.filter(s => s.occupied);
+  const readyCount = occupiedSlots.filter(s => ready[s.seat]).length;
+  const totalCount = occupiedSlots.length;
+
+  const statusEl = document.getElementById("waitingStatus");
+  if (totalCount < 2) {
+    statusEl.textContent = "Waiting for more players… (need at least 2)";
+  } else {
+    statusEl.textContent = `${readyCount} / ${totalCount} ready`;
+  }
+
+  const readyBtn = document.getElementById("readyBtn");
+  if (readyBtn) {
+    const amReady = typeof myIdx === "number" && ready[myIdx];
+    readyBtn.textContent = amReady ? "Not Ready" : "Ready";
+  }
+}
+
+/* ---------------------------------------------------------
    Draw helper (single source of truth)
    --------------------------------------------------------- */
 
@@ -203,12 +262,14 @@ const transport = createTransport({
         playerCount: msg.playerCount ?? null,
       };
       updateStatusBar();
+      updateWaitingRoom();
       draw();
       return;
     }
 
     if (msg.type === "STATE" && msg.roomId === ROOM_ID) {
       state = msg.state;
+      if (state !== null) setScene("game");
       updateStatusBar();
       if (!didInitialResize) resize();
       else draw();
@@ -237,7 +298,7 @@ function dispatchGameAction(gameAction) {
   /////////// TEMPORARY MANUAL RESET BUTTON FOR TO RESET SERVER GAME STATE from CLIENT ////////////
   if (gameAction.type == "RESET_GAME") {
     console.log("gameAction.type = RESET_GAME");
-    showLobby();
+    setScene("waiting");
     transport.sendRaw({
       type: "RESET_GAME",
       roomId: ROOM_ID,
