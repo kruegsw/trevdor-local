@@ -80,6 +80,10 @@ export function createTransport({
     sessionId = id;
   }
 
+  function setName(n) {
+    name = n;
+  }
+
   // kick off
   // connect(); // this is moved to when user click button in lobby
 
@@ -90,5 +94,6 @@ export function createTransport({
     close,
     connect,
     setSessionId,
+    setName,
   };
 }

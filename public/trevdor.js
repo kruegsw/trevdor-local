@@ -58,7 +58,9 @@ function setScene(scene) {
 
 enterGameBtn.addEventListener("click", () => {
   console.log("clicked enterGameBtn button");
-  uiState.myName = savedName;
+  const currentName = cleanName(nameInput.value);
+  uiState.myName = currentName;
+  transport.setName(currentName);
   setScene("waiting");
   transport.connect();
 })
@@ -175,7 +177,7 @@ function updateWaitingRoom() {
     return {
       seat: i,
       name: c?.name ?? null,
-      occupied: !!c,
+      occupied: c?.occupied ?? false,
       wsOpen: c?.wsOpen ?? false,
       lastActivity: c?.lastActivity ?? null,
     };
@@ -184,7 +186,7 @@ function updateWaitingRoom() {
   const rosterEl = document.getElementById("waitingRoster");
   rosterEl.innerHTML = slots.map(slot => {
     if (!slot.occupied) {
-      return `<div class="rosterSlot isEmpty"><span class="playerDot" style="--dot-fill:#444"></span>Seat ${slot.seat + 1}: empty</div>`;
+      return `<div class="rosterSlot isEmpty"><span class="playerDot" style="--dot-fill:#444"></span>Open</div>`;
     }
     const isMe = typeof myIdx === "number" && slot.seat === myIdx;
     const isReady = ready[slot.seat];

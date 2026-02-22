@@ -623,10 +623,7 @@ wss.on("connection", (ws, req) => {
     // PING (client activity heartbeat — lastActivity already updated above)
     // -------------------------
     if (msg.type === "PING") {
-      // If the client was idle before this ping, broadcast immediately so all
-      // clients' dots update right away (idle→active transition).
-      const wasIdle = (Date.now() - prevActivity) > 60_000;
-      if (wasIdle && info.roomId) broadcastRoom(info.roomId);
+      if (info.roomId) broadcastRoom(info.roomId);
       return;
     }
 
