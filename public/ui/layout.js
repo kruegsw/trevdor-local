@@ -108,8 +108,7 @@ export function computeLayout(viewport = { width, height }) {
 
 
 
-    // reset button and banner (screen absolute; leave as-is)
-    { uiID: "banner", kind: "banner.text", x: BOARD.x, y: 0, w: BOARD.w, h: 25 },
+    // reset button (screen absolute; leave as-is)
     { uiID: "ui.button.reset", kind: "button.reset", x: BOARD.x + BOARD.w, y: 0, w: 100, h: 25 },
 
     //{ uiID: "board", kind: "board", x: BOARD.x, y: BOARD.y, w: BOARD.w, h: BOARD.h },

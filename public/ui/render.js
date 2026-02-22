@@ -183,18 +183,6 @@ function isHovered(uiID, uiState) {
 
 function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, playerIndex, x, y, w, h, text }) {
   switch (kind) {
-    case "banner.text":
-      const bannerText = `Game: ${state.gameID}   Turn: ${state.turn} [${state.players[state.activePlayerIndex].name}]   You: ${uiState.myName}`;
-
-      ctx.save();
-      ctx.fillStyle = "#111";
-      ctx.font = "16px sans-serif";
-      ctx.textAlign = "left";
-      ctx.textBaseline = "top";
-      ctx.fillText(bannerText, x, y);
-      ctx.restore();
-
-      return true;
     case "decks.tier1":
       //drawCard(ctx, { x, y, w, h } );
       stateObject[0] ? drawDeckCard(ctx, { x, y, w, h }, {

@@ -124,6 +124,14 @@ function seatFill(slot) {
   return age > 60000 ? '#ffd700' : '#4caf50';
 }
 
+function playerPrestige(playerIndex) {
+  const player = state?.players?.[playerIndex];
+  if (!player) return null;
+  const fromCards  = player.cards.reduce((sum, c) => sum + (c.points ?? 0), 0);
+  const fromNobles = player.nobles.reduce((sum, n) => sum + (n.points ?? 0), 0);
+  return fromCards + fromNobles;
+}
+
 function updateStatusBar() {
   const clients = uiState.room?.clients ?? [];
   const myIdx = uiState.myPlayerIndex;
@@ -135,10 +143,15 @@ function updateStatusBar() {
     return clients.find(c => c.seat === i) ?? { seat: i, name: null, occupied: false };
   });
 
-  let html = "";
+  let html = `<div class="statusRoom">${escapeHtml(ROOM_ID)}</div>`;
+
   for (const slot of slots) {
+    // Once the game is running, don't show slots that were never filled
+    if (state !== null && !slot.occupied) continue;
+
     const isMe = typeof myIdx === "number" && slot.seat === myIdx;
     const isActive = typeof activeIdx === "number" && slot.seat === activeIdx;
+    const prestige = slot.occupied ? playerPrestige(slot.seat) : null;
     const classes = [
       "statusSeat",
       slot.occupied ? "isOccupied" : "",
@@ -149,9 +162,10 @@ function updateStatusBar() {
     html += `<span class="playerDot${isActive ? ' isActive' : ''}" style="--dot-fill:${seatFill(slot)}"></span>`;
     if (slot.occupied) {
       html += `<span>${escapeHtml(slot.name ?? `Player ${slot.seat + 1}`)}</span>`;
+      if (prestige !== null) html += ` <span class="statusPoints">${prestige}pt</span>`;
       if (isMe) html += ` <span class="statusYou">(you)</span>`;
     } else {
-      html += `<span class="statusEmpty">empty</span>`;
+      html += `<span class="statusEmpty">open</span>`;
     }
     html += `</div>`;
   }
