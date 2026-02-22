@@ -94,6 +94,14 @@ const rooms = new Map();
  */
 const clientInfo = new Map();
 
+// sessions: sessionId -> { roomId, seatIndex, name }
+// Persists across reconnects so players reclaim their seat.
+const sessions = new Map();
+
+function generateSessionId() {
+  return Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10);
+}
+
 let nextClientId = 1;
 let nextRoomId = 1;
 
@@ -112,7 +120,7 @@ function getRoom(roomId) {
       clients: new Set(),
       // IMPORTANT: seats are either null OR an object { ws, clientId, name }
       seats: Array(4).fill(null),
-      state: initialState(2, "001"),
+      state: null,   // deferred until enough players join
       version: 0,
       roomId: nextRoomId++
     };
@@ -142,7 +150,7 @@ function broadcastToRoom(roomId, obj) {
  */
 function broadcastState(roomId) {
   const room = rooms.get(roomId);
-  if (!room) return;
+  if (!room || !room.state) return;
 
   broadcastToRoom(roomId, {
     type: "STATE",
@@ -174,16 +182,29 @@ function roomRoster(roomId) {
  *   - number 0..3  if seated
  *   - null         if room is full (spectator)
  */
-function assignSeat(room, ws) {
+function assignSeat(room, ws, stringRoomId) {
   // already seated?
   const existing = room.seats.findIndex(s => s?.ws === ws);
   if (existing !== -1) return existing;
+
+  const info = clientInfo.get(ws);
+
+  // try to restore saved seat from session
+  if (info.sessionId) {
+    const session = sessions.get(info.sessionId);
+    if (session && session.roomId === stringRoomId && typeof session.seatIndex === "number") {
+      const saved = session.seatIndex;
+      if (room.seats[saved] === null) {
+        room.seats[saved] = { ws, clientId: info.clientId, name: info.name };
+        return saved;
+      }
+    }
+  }
 
   // first open seat
   const idx = room.seats.findIndex(s => s === null);
   if (idx === -1) return null; // spectator
 
-  const info = clientInfo.get(ws);
   room.seats[idx] = { ws, clientId: info.clientId, name: info.name };
   return idx;
 }
@@ -243,14 +264,31 @@ function joinRoom(ws, roomId, name) {
   room.clients.add(ws);
 
   // Seat assignment happens once, using the seat object representation
-  const seatIndex = assignSeat(room, ws);
+  const seatIndex = assignSeat(room, ws, roomId);
   info.playerIndex = seatIndex; // number 0..3 OR null
 
-  // If seated, bind the human name into the authoritative engine state
-  // so state.players[seatIndex].name matches the roster.
-  if (typeof seatIndex === "number") {
-    const p = room.state?.players?.[seatIndex];
-    if (p) p.name = info.name;
+  // Persist session so this player can reclaim their seat on reconnect
+  if (info.sessionId) {
+    sessions.set(info.sessionId, { roomId, seatIndex, name: info.name });
+  }
+
+  // Auto-start game when 2+ players are seated and no game is running yet
+  if (room.state === null) {
+    const occupiedCount = room.seats.filter(s => s !== null).length;
+    if (occupiedCount >= 2) {
+      room.state = initialState(occupiedCount, roomId);
+      // Apply all seated player names into the fresh state
+      room.seats.forEach((seat, i) => {
+        if (seat && room.state.players[i]) {
+          room.state.players[i].name = seat.name;
+        }
+      });
+    }
+  }
+
+  // If seated and game is running, ensure this player's name is in state
+  if (typeof seatIndex === "number" && room.state?.players?.[seatIndex]) {
+    room.state.players[seatIndex].name = info.name;
   }
 
   broadcastState(roomId);
@@ -262,6 +300,7 @@ function joinRoom(ws, roomId, name) {
     clientId: info.clientId,
     name: name,
     playerIndex: seatIndex,
+    sessionId: info.sessionId,
   });
 
   // Broadcast roster to everyone (including the joiner)
@@ -365,9 +404,10 @@ wss.on("connection", (ws, req) => {
   //console.log(`${JSON.stringify(ws)} from line 348`)
   clientInfo.set(ws, {
     clientId,
-    name: `guest-temporary-name-${clientId}`,
+    name: `guest-${clientId}`,
     roomId: null,
     playerIndex: null,
+    sessionId: null,
   });
 
   console.log(`connected clientId=${clientId} from ${req.socket.remoteAddress}`);
@@ -395,6 +435,18 @@ wss.on("connection", (ws, req) => {
         safeSend(ws, { type: "ERROR", message: "JOIN requires roomId" });
         return;
       }
+
+      // Restore or create session
+      const info = clientInfo.get(ws);
+      if (msg.sessionId && sessions.has(msg.sessionId)) {
+        info.sessionId = msg.sessionId;
+        // Restore name from session if client didn't send one
+        const session = sessions.get(msg.sessionId);
+        if (!msg.name && session.name) info.name = session.name;
+      } else {
+        info.sessionId = generateSessionId();
+      }
+
       joinRoom(ws, roomId, msg.name);
       return;
     }
@@ -463,9 +515,6 @@ wss.on("connection", (ws, req) => {
     // RESET_GAME (temporary debug)
     // -------------------------
     if (msg.type === "RESET_GAME") {
-      // Keep this as ERROR if you want it visible during debug; later change to INFO/LOG.
-      safeSend(ws, { type: "ERROR", message: "RESET REQUEST RECEIVED BY SERVER" });
-
       if (!info.roomId) {
         safeSend(ws, { type: "ERROR", message: "You must JOIN a room first" });
         return;
@@ -474,28 +523,18 @@ wss.on("connection", (ws, req) => {
       const room = rooms.get(info.roomId);
       if (!room) return;
 
-      // enforce seat + turn (same as ACTION)
-      /*
-      const actorIndex = info.playerIndex;
-      if (typeof actorIndex !== "number") {
-        safeSend(ws, { type: "REJECTED", roomId: info.roomId, reason: "SPECTATOR_CANNOT_ACT" });
-        safeSend(ws, { type: "STATE", roomId: info.roomId, version: room.version, state: room.state });
-        return;
-      }
-      const active = room.state?.activePlayerIndex ?? 0;
-      if (actorIndex !== active) {
-        safeSend(ws, { type: "REJECTED", roomId: info.roomId, reason: "NOT_YOUR_TURN" });
-        safeSend(ws, { type: "STATE", roomId: info.roomId, version: room.version, state: room.state });
-        return;
-      }
-        */
+      const occupiedCount = room.seats.filter(s => s !== null).length;
+      room.state = initialState(Math.max(2, occupiedCount), roomId);
+      room.version = 0;
 
-      closeAllClients()
+      // Re-apply seated player names into the fresh state
+      room.seats.forEach((seat, i) => {
+        if (seat && room.state.players[i]) {
+          room.state.players[i].name = seat.name;
+        }
+      });
 
-      //room.state = initialState(2, "001");
-      //room.version = 0;
-
-      //broadcastState(info.roomId);
+      broadcastState(info.roomId);
       return;
     }
 

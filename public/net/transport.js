@@ -9,6 +9,7 @@ export function createTransport({
   url = "ws://localhost:8787",
   roomId = "room1",
   name = "player",
+  sessionId = null,
   onMessage = () => {},
   onOpen = () => {},
   onClose = () => {},
@@ -23,8 +24,10 @@ export function createTransport({
     ws = new WebSocket(url);
 
     ws.addEventListener("open", () => {
-      // Join immediately
-      sendRaw({ type: "JOIN", roomId, name });
+      // Join immediately, including sessionId if we have one for reconnect
+      const joinMsg = { type: "JOIN", roomId, name };
+      if (sessionId) joinMsg.sessionId = sessionId;
+      sendRaw(joinMsg);
       onOpen();
     });
 
@@ -73,6 +76,10 @@ export function createTransport({
     try { ws?.close(); } catch {}
   }
 
+  function setSessionId(id) {
+    sessionId = id;
+  }
+
   // kick off
   // connect(); // this is moved to when user click button in lobby
 
@@ -81,6 +88,7 @@ export function createTransport({
     sendRaw,     // sendRaw({type:"ACTION", ...})
     isOpen,
     close,
-    connect
+    connect,
+    setSessionId,
   };
 }

@@ -97,6 +97,68 @@
             min-height: 16px;
         }
 
+        #statusBar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 10;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.55);
+            color: #fff;
+            font-family: system-ui, sans-serif;
+            font-size: 13px;
+            user-select: none;
+            pointer-events: none;
+        }
+
+        .statusSeat {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 0 14px;
+            height: 100%;
+            border-right: 1px solid rgba(255,255,255,0.12);
+        }
+
+        .statusSeat.isActive {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .statusDot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #444;
+            flex-shrink: 0;
+        }
+
+        .statusSeat.isOccupied .statusDot {
+            background: #4caf50;
+        }
+
+        .statusSeat.isActive .statusDot {
+            background: #ffd700;
+        }
+
+        .statusYou {
+            font-size: 11px;
+            opacity: 0.6;
+        }
+
+        .statusEmpty {
+            opacity: 0.3;
+        }
+
+        .statusTurn {
+            margin-left: auto;
+            padding-right: 14px;
+            font-size: 12px;
+            opacity: 0.55;
+        }
+
 	</style>
 </head>
 <body>
@@ -113,6 +175,7 @@
         </div>
     </div>
 
+    <div id="statusBar" class="hidden"></div>
     <canvas id="c"></canvas>
     
 </div>

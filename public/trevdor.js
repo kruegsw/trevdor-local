@@ -35,12 +35,15 @@ function showLobby() {
 
 const lobbyScene = document.getElementById("lobbyScene");
 const enterGameBtn = document.getElementById("enterGameBtn");
+const statusBar = document.getElementById("statusBar");
 
 function setScene(scene) {
   if (scene === "lobby") {
     lobbyScene.classList.remove("hidden");
+    statusBar.classList.add("hidden");
   } else if (scene === "game") {
     lobbyScene.classList.add("hidden");
+    statusBar.classList.remove("hidden");
   }
 }
 
@@ -89,6 +92,56 @@ const ctx = canvas.getContext("2d");
 const renderer = render(ctx);
 
 /* ---------------------------------------------------------
+   Status bar
+   --------------------------------------------------------- */
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function updateStatusBar() {
+  const clients = uiState.room?.clients ?? [];
+  const myIdx = uiState.myPlayerIndex;
+  const activeIdx = state?.activePlayerIndex ?? null;
+  const turn = state?.turn ?? null;
+
+  // Ensure we always show 4 seat slots
+  const slots = Array(4).fill(null).map((_, i) => {
+    return clients.find(c => c.seat === i) ?? { seat: i, name: null, occupied: false };
+  });
+
+  let html = "";
+  for (const slot of slots) {
+    const isMe = typeof myIdx === "number" && slot.seat === myIdx;
+    const isActive = typeof activeIdx === "number" && slot.seat === activeIdx;
+    const classes = [
+      "statusSeat",
+      slot.occupied ? "isOccupied" : "",
+      isActive      ? "isActive"   : "",
+    ].filter(Boolean).join(" ");
+
+    html += `<div class="${classes}">`;
+    html += `<span class="statusDot"></span>`;
+    if (slot.occupied) {
+      html += `<span>${escapeHtml(slot.name ?? `Player ${slot.seat + 1}`)}</span>`;
+      if (isMe) html += ` <span class="statusYou">(you)</span>`;
+    } else {
+      html += `<span class="statusEmpty">empty</span>`;
+    }
+    html += `</div>`;
+  }
+
+  if (turn !== null) {
+    html += `<div class="statusTurn">Turn ${turn}</div>`;
+  }
+
+  statusBar.innerHTML = html;
+}
+
+/* ---------------------------------------------------------
    Draw helper (single source of truth)
    --------------------------------------------------------- */
 
@@ -106,6 +159,7 @@ let didInitialResize = false;
 
 const ROOM_ID = "room1";
 const PLAYER_NAME = savedName;
+const STORED_SESSION_ID = localStorage.getItem("trevdor.sessionId") || null;
 
 // Prefer this when client is served from the same host as server:
 const WS_URL = (location.protocol === "https:" ? "wss://" : "ws://") + location.host;
@@ -119,16 +173,25 @@ const transport = createTransport({
   url: WS_URL,
   roomId: ROOM_ID,
   name: PLAYER_NAME,
+  sessionId: STORED_SESSION_ID,
 
   onMessage: (msg) => {
     console.log("[server]", msg);
 
     if (msg.type === "WELCOME" && msg.roomId === ROOM_ID) {
-      uiState.mySeatIndex = msg.seatIndex;     // 0..3 or null
+      uiState.mySeatIndex = msg.playerIndex;   // 0..3 or null
       uiState.myPlayerIndex = msg.playerIndex; // null until START, then 0..N-1
       uiState.playerPanelPlayerIndex = uiState.myPlayerIndex; // default player panel to show current player's data
+
+      // Persist session token so we can reclaim our seat on reconnect
+      if (msg.sessionId) {
+        localStorage.setItem("trevdor.sessionId", msg.sessionId);
+        transport.setSessionId(msg.sessionId);
+      }
+
       console.log("WELCOME parsed:", uiState.mySeatIndex, uiState.myPlayerIndex);
-      draw(); // so lobby UI can update
+      updateStatusBar();
+      draw();
       return;
     }
 
@@ -139,12 +202,14 @@ const transport = createTransport({
         clients: msg.clients ?? [],
         playerCount: msg.playerCount ?? null,
       };
+      updateStatusBar();
       draw();
       return;
     }
 
     if (msg.type === "STATE" && msg.roomId === ROOM_ID) {
       state = msg.state;
+      updateStatusBar();
       if (!didInitialResize) resize();
       else draw();
       return;
@@ -206,9 +271,6 @@ const controller = createUIController({
   requestDraw: draw,
   dispatchGameAction,
 });
-
-// store identity on uiState so handlers/rules can use it
-uiState.myPlayerIndex = () => myPlayerIndex;
 
 // Wire controller into event system
 ui.setHandlers({
