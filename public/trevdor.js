@@ -45,6 +45,15 @@ function setScene(scene) {
     joinSection.classList.remove("hidden");
     waitingSection.classList.add("hidden");
     statusBar.classList.add("hidden");
+    enterGameBtn.textContent = "Join Lobby";
+    enterGameBtn.disabled = false;
+  } else if (scene === "reconnecting") {
+    lobbyScene.classList.remove("hidden");
+    joinSection.classList.remove("hidden");
+    waitingSection.classList.add("hidden");
+    statusBar.classList.add("hidden");
+    enterGameBtn.textContent = "Reconnecting…";
+    enterGameBtn.disabled = true;
   } else if (scene === "waiting") {
     lobbyScene.classList.remove("hidden");
     joinSection.classList.add("hidden");
@@ -68,8 +77,6 @@ enterGameBtn.addEventListener("click", () => {
 document.getElementById("readyBtn").addEventListener("click", () => {
   transport.sendRaw({ type: "READY", roomId: ROOM_ID });
 });
-
-setScene("join");
 
 const nameInput = document.getElementById("nameInput");
 const nameHint = document.getElementById("nameHint");
@@ -187,6 +194,19 @@ function updateStatusBar() {
     html += `</div>`;
   }
 
+  const spectators = uiState.room?.spectators ?? [];
+  if (spectators.length > 0) {
+    const specItems = spectators.map(spec => {
+      const isMe = uiState.isSpectator && spec.clientId === uiState.myClientId;
+      const fill = spec.wsOpen ? '#4caf50' : '#e53935';
+      return `<span class="statusSpectatorEntry">` +
+        `<span class="playerDot" style="--dot-fill:${fill}"></span>` +
+        `${escapeHtml(spec.name)}${isMe ? " (you)" : ""}` +
+        `</span>`;
+    }).join("");
+    html += `<div class="statusSpectators"><span>Spectators:</span>${specItems}</div>`;
+  }
+
   if (turn !== null) {
     html += `<div class="statusTurn">Turn ${turn}</div>`;
   }
@@ -215,15 +235,12 @@ function updateWaitingRoom() {
   });
 
   const rosterEl = document.getElementById("waitingRoster");
-  rosterEl.innerHTML = slots.map(slot => {
-    if (!slot.occupied) {
-      return `<div class="rosterSlot isEmpty"><span class="playerDot" style="--dot-fill:#444"></span>Open</div>`;
-    }
+  rosterEl.innerHTML = slots.filter(s => s.occupied).map(slot => {
     const isMe = typeof myIdx === "number" && slot.seat === myIdx;
     const isReady = ready[slot.seat];
     return `<div class="rosterSlot${isMe ? " isMe" : ""}">` +
       `<span class="playerDot" style="--dot-fill:${seatFill(slot)}"></span>` +
-      `<span>${escapeHtml(slot.name ?? `Player ${slot.seat + 1}`)}</span>` +
+      `<span>${escapeHtml(slot.name)}</span>` +
       (isReady ? `<span class="readyCheck">✓</span>` : "") +
       (isMe ? ` <span class="youLabel">(you)</span>` : "") +
       `</div>`;
@@ -240,10 +257,24 @@ function updateWaitingRoom() {
     statusEl.textContent = `${readyCount} / ${totalCount} ready`;
   }
 
+  // Append spectators below the player roster
+  const spectators = uiState.room?.spectators ?? [];
+  if (spectators.length > 0) {
+    rosterEl.innerHTML += spectators.map(spec => {
+      const isMe = uiState.isSpectator && spec.clientId === uiState.myClientId;
+      return `<div class="rosterSlot">` +
+        `<span class="playerDot" style="--dot-fill:${spec.wsOpen ? '#4caf50' : '#e53935'}"></span>` +
+        `<span>${escapeHtml(spec.name)}</span>` +
+        ` <span class="youLabel">watching${isMe ? " (you)" : ""}</span>` +
+        `</div>`;
+    }).join("");
+  }
+
   const readyBtn = document.getElementById("readyBtn");
   if (readyBtn) {
     const amReady = typeof myIdx === "number" && ready[myIdx];
     readyBtn.textContent = amReady ? "Not Ready" : "Ready";
+    readyBtn.style.display = uiState.isSpectator ? "none" : "";
   }
 }
 
@@ -287,6 +318,8 @@ const transport = createTransport({
     if (msg.type === "WELCOME" && msg.roomId === ROOM_ID) {
       uiState.mySeatIndex = msg.playerIndex;   // 0..3 or null
       uiState.myPlayerIndex = msg.playerIndex; // null until START, then 0..N-1
+      uiState.isSpectator = !!msg.spectator;
+      uiState.myClientId = msg.clientId;
       uiState.playerPanelPlayerIndex = uiState.myPlayerIndex; // default player panel to show current player's data
 
       // Persist session token so we can reclaim our seat on reconnect
@@ -306,6 +339,7 @@ const transport = createTransport({
         started: !!msg.started,
         ready: msg.ready ?? [false,false,false,false],
         clients: msg.clients ?? [],
+        spectators: msg.spectators ?? [],
         playerCount: msg.playerCount ?? null,
       };
       if (!msg.started) {
@@ -363,6 +397,17 @@ function dispatchGameAction(gameAction) {
     action: gameAction,
   });
   }
+}
+
+// Auto-reconnect for returning players. If a session token and name are
+// stored, skip the join screen and connect immediately; the server's ROOM
+// and STATE responses will drive the scene transition.
+if (savedName && STORED_SESSION_ID) {
+  uiState.myName = savedName;
+  setScene("reconnecting");
+  transport.connect();
+} else {
+  setScene("join");
 }
 
 /* ---------------------------------------------------------

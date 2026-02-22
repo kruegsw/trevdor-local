@@ -172,6 +172,7 @@ function broadcastRoom(roomId) {
     type: "ROOM",
     roomId,
     clients: roomRoster(roomId),
+    spectators: roomSpectators(roomId),
     ready: room.ready,
     started: room.started,
   });
@@ -193,6 +194,26 @@ function roomRoster(roomId) {
     wsOpen: s ? (s.ws?.readyState === 1) : false,
     lastActivity: s ? (clientInfo.get(s.ws)?.lastActivity ?? null) : null,
   }));
+}
+
+/**
+ * Returns the list of spectators (connected clients with no seat).
+ */
+function roomSpectators(roomId) {
+  const room = rooms.get(roomId);
+  if (!room) return [];
+  const result = [];
+  for (const ws of room.clients) {
+    const info = clientInfo.get(ws);
+    if (info && info.playerIndex === null) {
+      result.push({
+        clientId: info.clientId,
+        name: info.name,
+        wsOpen: ws.readyState === 1,
+      });
+    }
+  }
+  return result;
 }
 
 /**
@@ -220,7 +241,11 @@ function assignSeat(room, ws, stringRoomId) {
     }
   }
 
-  // first open seat
+  // Once a game is in progress, don't seat new players — they become spectators.
+  // Only the session-reclaim path above can restore a seat mid-game.
+  if (room.started) return null;
+
+  // first open seat (pre-game lobby only)
   const idx = room.seats.findIndex(s => s === null);
   if (idx === -1) return null; // spectator
 
@@ -345,8 +370,9 @@ function joinRoom(ws, roomId, name) {
     type: "WELCOME",
     roomId,
     clientId: info.clientId,
-    name: name,
+    name: info.name,
     playerIndex: seatIndex,
+    spectator: seatIndex === null,
     sessionId: info.sessionId,
   });
 
