@@ -115,6 +115,13 @@ function escapeHtml(str) {
     .replace(/>/g, "&gt;");
 }
 
+function seatFill(slot) {
+  if (!slot?.occupied) return '#444';
+  if (!slot.wsOpen) return '#e53935';
+  const age = slot.lastActivity ? (Date.now() - slot.lastActivity) : 0;
+  return age > 60000 ? '#ffd700' : '#4caf50';
+}
+
 function updateStatusBar() {
   const clients = uiState.room?.clients ?? [];
   const myIdx = uiState.myPlayerIndex;
@@ -137,7 +144,7 @@ function updateStatusBar() {
     ].filter(Boolean).join(" ");
 
     html += `<div class="${classes}">`;
-    html += `<span class="statusDot"></span>`;
+    html += `<span class="playerDot${isActive ? ' isActive' : ''}" style="--dot-fill:${seatFill(slot)}"></span>`;
     if (slot.occupied) {
       html += `<span>${escapeHtml(slot.name ?? `Player ${slot.seat + 1}`)}</span>`;
       if (isMe) html += ` <span class="statusYou">(you)</span>`;
@@ -165,19 +172,26 @@ function updateWaitingRoom() {
 
   const slots = Array(4).fill(null).map((_, i) => {
     const c = clients.find(c => c.seat === i);
-    return { seat: i, name: c?.name ?? null, occupied: !!c };
+    return {
+      seat: i,
+      name: c?.name ?? null,
+      occupied: !!c,
+      wsOpen: c?.wsOpen ?? false,
+      lastActivity: c?.lastActivity ?? null,
+    };
   });
 
   const rosterEl = document.getElementById("waitingRoster");
   rosterEl.innerHTML = slots.map(slot => {
     if (!slot.occupied) {
-      return `<div class="rosterSlot isEmpty"><span class="readyIndicator"></span>Seat ${slot.seat + 1}: empty</div>`;
+      return `<div class="rosterSlot isEmpty"><span class="playerDot" style="--dot-fill:#444"></span>Seat ${slot.seat + 1}: empty</div>`;
     }
     const isMe = typeof myIdx === "number" && slot.seat === myIdx;
     const isReady = ready[slot.seat];
     return `<div class="rosterSlot${isMe ? " isMe" : ""}">` +
-      `<span class="readyIndicator${isReady ? " isReady" : ""}"></span>` +
-      `<span>${escapeHtml(slot.name ?? ``)}</span>` +
+      `<span class="playerDot" style="--dot-fill:${seatFill(slot)}"></span>` +
+      `<span>${escapeHtml(slot.name ?? `Player ${slot.seat + 1}`)}</span>` +
+      (isReady ? `<span class="readyCheck">✓</span>` : "") +
       (isMe ? ` <span class="youLabel">(you)</span>` : "") +
       `</div>`;
   }).join("");
@@ -361,3 +375,31 @@ function resize() {
 
 window.addEventListener("load", resize);
 window.addEventListener("resize", resize);
+
+// Reports client activity to the server via a throttled PING.
+// Two-speed throttle: immediate if the client was idle (>60s since last ping)
+// so the idle→active dot transition feels instant; otherwise throttled to 15s
+// to avoid spamming the server during normal active play.
+const IDLE_THRESHOLD = 60_000;
+const PING_INTERVAL  = 15_000;
+let lastPingSent = 0;
+function reportActivity() {
+  if (!uiState.room) return;
+  const now = Date.now();
+  const elapsed = now - lastPingSent;
+  const throttle = elapsed > IDLE_THRESHOLD ? 0 : PING_INTERVAL;
+  if (elapsed > throttle) {
+    lastPingSent = now;
+    transport.sendRaw({ type: "PING", roomId: ROOM_ID });
+  }
+}
+document.addEventListener("mousemove", reportActivity);
+document.addEventListener("click", reportActivity);
+document.addEventListener("touchstart", reportActivity);
+
+// Periodically re-render dots so the idle (>1 min) color transition
+// fires without needing a new server event.
+setInterval(() => {
+  updateStatusBar();
+  updateWaitingRoom();
+}, 15_000);

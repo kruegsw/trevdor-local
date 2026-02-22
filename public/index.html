@@ -127,20 +127,22 @@
             background: rgba(255, 255, 255, 0.1);
         }
 
-        .statusDot {
-            width: 8px;
-            height: 8px;
+        .playerDot {
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
-            background: #444;
             flex-shrink: 0;
+            background: var(--dot-fill, #444);
         }
 
-        .statusSeat.isOccupied .statusDot {
-            background: #4caf50;
+        @keyframes pulse {
+            0%   { box-shadow: 0 0 0 0   rgba(255,255,255,0.7); }
+            70%  { box-shadow: 0 0 0 6px rgba(255,255,255,0);   }
+            100% { box-shadow: 0 0 0 0   rgba(255,255,255,0);   }
         }
 
-        .statusSeat.isActive .statusDot {
-            background: #ffd700;
+        .playerDot.isActive {
+            animation: pulse 1.4s ease-out infinite;
         }
 
         .statusYou {
@@ -183,17 +185,11 @@
             font-weight: bold;
         }
 
-        .readyIndicator {
-            display: inline-block;
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: #444;
-            flex-shrink: 0;
-        }
-
-        .readyIndicator.isReady {
-            background: #4caf50;
+        .readyCheck {
+            color: #4caf50;
+            font-size: 14px;
+            font-weight: bold;
+            margin-left: 2px;
         }
 
         .youLabel {

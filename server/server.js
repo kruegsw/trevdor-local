@@ -190,6 +190,8 @@ function roomRoster(roomId) {
     clientId: s?.clientId ?? null,
     name: s?.name ?? null,
     occupied: !!s,
+    wsOpen: s ? (s.ws?.readyState === 1) : false,
+    lastActivity: s ? (clientInfo.get(s.ws)?.lastActivity ?? null) : null,
   }));
 }
 
@@ -451,6 +453,7 @@ wss.on("connection", (ws, req) => {
     roomId: null,
     playerIndex: null,
     sessionId: null,
+    lastActivity: Date.now(),
   });
 
   console.log(`connected clientId=${clientId} from ${req.socket.remoteAddress}`);
@@ -466,6 +469,8 @@ wss.on("connection", (ws, req) => {
     }
 
     const info = clientInfo.get(ws);
+    const prevActivity = info.lastActivity;
+    info.lastActivity = Date.now();
     console.log("clientInfo.get(ws) = info from line 369");
     console.log(info);
 
@@ -611,6 +616,17 @@ wss.on("connection", (ws, req) => {
 
       broadcastRoom(info.roomId);
       if (room.started) broadcastState(info.roomId);
+      return;
+    }
+
+    // -------------------------
+    // PING (client activity heartbeat — lastActivity already updated above)
+    // -------------------------
+    if (msg.type === "PING") {
+      // If the client was idle before this ping, broadcast immediately so all
+      // clients' dots update right away (idle→active transition).
+      const wasIdle = (Date.now() - prevActivity) > 60_000;
+      if (wasIdle && info.roomId) broadcastRoom(info.roomId);
       return;
     }
 
