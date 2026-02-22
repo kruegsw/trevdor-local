@@ -34,14 +34,16 @@ The `/engine` directory is a pure, framework-agnostic game state machine shared 
 **Client → Server**
 ```
 { type: "JOIN",       roomId, name, sessionId? }
+{ type: "READY",      roomId }          // toggles ready state for sender's seat
 { type: "ACTION",     roomId, action: { type, ...payload } }
+{ type: "PING",       roomId }          // throttled heartbeat for activity tracking
 { type: "RESET_GAME", roomId }          // debug only
 { type: "SAY",        text }            // debug chat broadcast
 ```
 **Server → Client**
 ```
 { type: "WELCOME", roomId, clientId, playerIndex, sessionId }
-{ type: "ROOM",    roomId, clients: [{seat, clientId, name, occupied}] }
+{ type: "ROOM",    roomId, clients: [{seat, clientId, name, occupied, wsOpen, lastActivity}], ready: [bool,bool,bool,bool], started: bool }
 { type: "STATE",   roomId, version, state }
 { type: "REJECTED",roomId, reason, ...details }
 { type: "ERROR",   message }
@@ -51,8 +53,11 @@ The `/engine` directory is a pure, framework-agnostic game state machine shared 
 
 ## Decisions Made — Read Before Touching
 
-### Game state is created on the 2nd player joining (not at room creation)
-`getRoom()` sets `state: null`. `joinRoom()` calls `initialState()` only when `occupiedCount >= 2`. This is **intentional scaffolding** for the upcoming lobby feature. In the final design, the lobby will determine player count (2–4) and a host "Start Game" action will trigger `initialState(N)`. The current auto-start-at-2 is a temporary bridge, not a permanent design. Do not change this to hardcode a player count.
+### Lobby and ready system
+The lobby is fully implemented. `getRoom()` sets `state: null`, `started: false`, `ready: [false,false,false,false]`. Game state is never created on join — it is only created when all occupied seats (minimum 2) toggle ready via the `READY` message. `joinRoom()` no longer auto-starts the game. The `READY` handler toggles `room.ready[seat]`, checks if all occupied seats are ready, and if so calls `initialState(N)` and sets `started: true`, then broadcasts STATE to all clients.
+
+### Seat compaction on leave (pre-game only)
+When a player leaves during the lobby (`!room.started`), `compactSeats()` is called. It packs remaining players into consecutive seats starting at 0, resets all ready flags, updates `clientInfo.playerIndex` and session data for moved players, and sends each moved player a new WELCOME with their updated `playerIndex`. This ensures `initialState(N)` player indices always match the seated `playerIndex` values.
 
 ### Session persistence for reconnect
 `sessions` Map on the server: `sessionId → { roomId, seatIndex, name }`. The server generates a random `sessionId` and sends it in `WELCOME`. The client stores it in `localStorage("trevdor.sessionId")` and sends it back on every JOIN (including auto-reconnects). `assignSeat()` checks the session first and reclaims the saved seat if it's still empty. This means a player who drops and reconnects gets their original seat back.
@@ -63,25 +68,30 @@ The controller in `controller.js` checks `typeof my === "number"` to gate turns.
 ### `hotSeat: true` is intentional
 `state.hotSeat = true` (set in `engine/state.js`) disables server-side turn enforcement. This allows a single machine to play all seats for testing. The server's ACTION handler checks `if (actorIndex !== active && !room.state.hotSeat)`. Keep this until proper multi-device testing is established.
 
-### RESET_GAME resets state, not connections
-The reset button sends `RESET_GAME` to the server. The server now correctly resets `room.state` and `room.version` and rebroadcasts — it does NOT close WebSocket connections. The `closeAllClients()` function still exists in server.js but is no longer called from RESET_GAME.
+### RESET_GAME returns all clients to the waiting room
+The reset button sends `RESET_GAME` to the server. The server sets `room.state = null`, `room.started = false`, `room.ready = [false,false,false,false]`, and broadcasts ROOM. The client's ROOM handler checks `msg.started` — if false, it sets `state = null` and calls `setScene("waiting")`. This means all clients (not just the one who pressed reset) transition back to the waiting room. Connections are NOT closed. The `closeAllClients()` function still exists in server.js but is no longer called.
 
 ### `broadcastState()` is a no-op when state is null
 Guard added: `if (!room || !room.state) return`. This prevents broadcasting null state to already-connected clients while waiting for the 2nd player to join.
 
-## What's Next — The Lobby Feature
-The next major feature is a proper pre-game lobby. Design intent:
-- Players join a room and see a waiting screen with a roster
-- A host (first player) picks the player count (2–4) and clicks "Start Game"
-- Server receives a new `START_GAME` message, calls `initialState(N, roomId)`, and transitions all clients to the game
-- The current auto-start-at-2 in `joinRoom()` should be removed once this is in place
-- The `uiState.room` object (set from ROOM messages) already carries `started`, `ready`, `playerCount` fields — these were added in anticipation of the lobby
+## What's Next
+- Replace the debug reset button with proper end-of-game flow
+- Gate `hotSeat` behind a dev flag once multi-device testing is stable
+- Remove `engine/dispatch.js` (unused legacy code)
+- Gate the ~34 `console.log` calls behind a debug flag
 
-The HTML lobby scene (`#lobbyScene`) in `index.html` is the entry point. The "Enter Game" button currently connects immediately and goes straight to the canvas. The lobby flow should be expanded to a waiting room before showing the canvas.
+## Status Indicators
+Each seat has a `.playerDot` (10px circle) that encodes two dimensions independently:
+- **Fill color** = WebSocket connection status: `#4caf50` green (active ≤1min), `#ffd700` yellow (idle >1min), `#e53935` red (disconnected), `#444` grey (empty)
+- **Pulse animation** = active turn (game only) — a white ripple regardless of fill color, so a disconnected player on their turn shows a pulsing red dot
+
+Activity tracking: the client sends a throttled `PING` via `reportActivity()` on mousemove/click/touchstart. Two-speed throttle: immediate if idle >60s (snappy idle→active transition), 15s otherwise. The server broadcasts ROOM on every PING so all clients get fresh `lastActivity` timestamps. A 15s `setInterval` re-renders dots for the active→idle transition.
+
+The same `.playerDot` class is used in both the waiting room roster and the status bar. Ready state in the waiting room is shown as a separate `✓` text label, not the dot.
 
 ## Status Bar
-A fixed HTML overlay (`#statusBar` in `index.html`) shows all 4 seat slots, whose turn it is (gold dot + highlight), and the turn number. It is:
-- Hidden in the lobby scene, shown in the game scene via `setScene()`
+A fixed HTML overlay (`#statusBar` in `index.html`) shows all 4 seat slots, whose turn it is (pulsing dot), and the turn number. It is:
+- Hidden in the lobby/waiting scene, shown in the game scene via `setScene()`
 - Updated by `updateStatusBar()` in `trevdor.js` on every WELCOME, ROOM, and STATE message
 - `pointer-events: none` so it never blocks canvas interaction
 - Intentionally HTML (not canvas) for simplicity — migrating to canvas later is straightforward since `updateStatusBar()` is self-contained
@@ -90,8 +100,11 @@ A fixed HTML overlay (`#statusBar` in `index.html`) shows all 4 seat slots, whos
 - `public/ui/rules.js` duplicates server validation logic and can drift out of sync. Exists for UI feedback only. Flagged for future removal.
 - `engine/dispatch.js` is unused legacy code. Safe to delete eventually.
 - ~34 `console.log` calls scattered throughout — intentional during development, not yet gated behind a debug flag.
-- The reset button and its `RESET_GAME` message path are explicitly temporary debug tooling. Leave them in place until the lobby/game-flow is complete.
+- The reset button and its `RESET_GAME` message path are explicitly temporary debug tooling. Leave them in place until proper end-of-game flow is implemented.
 - `public/ui/rules.js` client rules are not used for server validation — the server always has final say.
+
+## Known Bugs — To Fix
+- **Mobile connection intermittently fails on initial load.** Some mobile browsers don't establish the WebSocket connection right away. Clicking out of and back into the browser sometimes resolves it, suggesting the browser may be suspending the tab or throttling network activity before the connection is established. Root cause not yet confirmed — needs console logging on a mobile device to determine whether the socket is failing to open, closing immediately, or connecting but not sending JOIN. Investigate before fixing.
 
 ## Engine Quick Reference
 ```javascript
