@@ -262,33 +262,186 @@
             font-size: 15px;
         }
 
+        /* Status bar inner layout */
+        #statusContent {
+            display: flex;
+            align-items: center;
+            flex: 1;
+            height: 100%;
+            min-width: 0;
+            overflow: hidden;
+        }
+
+        .statusLobbyBtn {
+            flex-shrink: 0;
+            padding: 0 14px;
+            height: 100%;
+            border: none;
+            background: transparent;
+            color: rgba(255,255,255,0.6);
+            font-family: system-ui, sans-serif;
+            font-size: 12px;
+            cursor: pointer;
+            pointer-events: auto;
+            white-space: nowrap;
+            border-left: 1px solid rgba(255,255,255,0.12);
+        }
+
+        .statusLobbyBtn:hover {
+            background: rgba(255,255,255,0.08);
+            color: #fff;
+        }
+
+        .closeGameLobbyBtn {
+            padding: 6px 14px !important;
+            font-size: 14px !important;
+            border-radius: 8px !important;
+            border: none;
+            background: rgba(229,57,53,0.7);
+            color: #fff;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .closeGameLobbyBtn:hover { background: rgba(229,57,53,0.9); }
+
+        /* Game lobby (room browser) */
+        #gameLobbySection {
+            width: min(480px, 92vw);
+        }
+
+        #roomList {
+            width: 100%;
+            margin: 8px 0 14px;
+            max-height: 260px;
+            overflow-y: auto;
+            text-align: left;
+        }
+
+        .roomEntry {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 8px;
+            background: rgba(255,255,255,0.04);
+        }
+
+        .roomEntryName {
+            flex: 1;
+            font-size: 15px;
+            font-weight: 500;
+        }
+
+        .roomEntryMeta {
+            font-size: 12px;
+            opacity: 0.55;
+            white-space: nowrap;
+        }
+
+        .joinRoomBtn {
+            padding: 6px 14px !important;
+            font-size: 14px !important;
+            border-radius: 8px !important;
+        }
+
+        .roomListEmpty {
+            text-align: center;
+            opacity: 0.4;
+            font-size: 14px;
+            padding: 20px 0;
+        }
+
+        .roomLobbyActions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        #lobbyFromRoomBtn {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            font-size: 15px;
+        }
+
+        #roomLobbyHeader {
+            width: min(360px, 86vw);
+            text-align: left;
+            margin-bottom: 4px;
+        }
+        .roomLobbyName {
+            font-size: 18px;
+            font-weight: 500;
+            opacity: 0.9;
+            padding: 4px 0 12px;
+        }
+        .roomLobbyNameRow {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding-bottom: 12px;
+        }
+        .roomNameInput {
+            flex: 1;
+            padding: 8px 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(0,0,0,0.3);
+            color: #fff;
+            font-size: 15px;
+            outline: none;
+        }
+        .roomNameInput:focus { border-color: rgba(255,255,255,0.45); }
+        .closeRoomBtn {
+            padding: 8px 14px;
+            font-size: 14px;
+            border-radius: 10px;
+            border: none;
+            background: rgba(229,57,53,0.7);
+            color: #fff;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .closeRoomBtn:hover { background: rgba(229,57,53,0.9); }
+
 	</style>
 </head>
 <body>
     <div id="lobbyScene" class="scene">
-        <!-- Join section: shown initially -->
-        <div id="joinSection" class="lobbyContent">
+        <!-- Game lobby: shown on load / after leaving a room -->
+        <div id="gameLobbySection" class="lobbyContent">
             <h1>Trevdor</h1>
-            <p>Welcome to the Lobby</p>
+            <p>Game Lobby</p>
             <div class="nameRow">
                 <label for="nameInput" class="nameLabel">Your name</label>
                 <input id="nameInput" class="nameInput" type="text" placeholder="Type your name…" maxlength="20" />
                 <div id="nameHint" class="nameHint"></div>
             </div>
-            <button id="enterGameBtn">Join Lobby</button>
+            <div id="roomList"></div>
+            <button id="createGameBtn">Create Game</button>
         </div>
 
-        <!-- Waiting section: shown after connecting -->
+        <!-- Room lobby: shown after joining or creating a room -->
         <div id="waitingSection" class="lobbyContent hidden">
             <h1>Trevdor</h1>
-            <p>Waiting Room</p>
+            <div id="roomLobbyHeader"></div>
             <div id="waitingRoster"></div>
             <div id="waitingStatus">Waiting for players…</div>
             <button id="readyBtn">Ready</button>
+            <div class="roomLobbyActions">
+                <button id="lobbyFromRoomBtn">← Game Lobby</button>
+                <button id="closeRoomBtn" class="closeRoomBtn hidden">Close Room</button>
+            </div>
         </div>
     </div>
 
-    <div id="statusBar" class="hidden"></div>
+    <div id="statusBar" class="hidden">
+        <div id="statusContent"></div>
+        <button id="lobbyBtn" class="statusLobbyBtn">← Lobby</button>
+    </div>
     <canvas id="c"></canvas>
     
 </div>

@@ -102,8 +102,14 @@ function generateSessionId() {
   return Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10);
 }
 
+function generateRoomId() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // omit O/0/I/1 to avoid confusion
+  let id = "";
+  for (let i = 0; i < 6; i++) id += chars[Math.floor(Math.random() * chars.length)];
+  return id;
+}
+
 let nextClientId = 1;
-let nextRoomId = 1;
 
 // -----------------------------------------------------------------------------
 // Room helpers
@@ -113,22 +119,51 @@ let nextRoomId = 1;
  * Create a room on-demand.
  * For now, all rooms are 4 players.
  */
-function getRoom(roomId) {
+function getRoom(roomId, metadata = {}) {
   let room = rooms.get(roomId);
   if (!room) {
     room = {
       clients: new Set(),
-      // IMPORTANT: seats are either null OR an object { ws, clientId, name }
       seats: Array(4).fill(null),
-      state: null,   // deferred until game starts
+      state: null,
       version: 0,
-      roomId: nextRoomId++,
       ready: [false, false, false, false],
       started: false,
+      name: metadata.name ?? roomId,
+      createdBy: metadata.createdBy ?? null,
+      createdAt: metadata.createdAt ?? Date.now(),
     };
     rooms.set(roomId, room);
   }
   return room;
+}
+
+function createRoom({ creatorClientId, roomName }) {
+  let roomId;
+  do { roomId = generateRoomId(); } while (rooms.has(roomId));
+  getRoom(roomId, { name: roomName, createdBy: creatorClientId, createdAt: Date.now() });
+  return roomId;
+}
+
+function roomListSnapshot() {
+  const list = [];
+  for (const [roomId, room] of rooms) {
+    const playerCount = room.seats.filter(s => s !== null).length;
+    let spectatorCount = 0;
+    for (const ws of room.clients) {
+      const info = clientInfo.get(ws);
+      if (info && info.playerIndex === null) spectatorCount++;
+    }
+    list.push({ roomId, name: room.name, playerCount, spectatorCount, started: room.started });
+  }
+  return list;
+}
+
+function broadcastRoomList() {
+  const snapshot = roomListSnapshot();
+  for (const [ws, info] of clientInfo) {
+    if (info.roomId === null) safeSend(ws, { type: "ROOM_LIST", rooms: snapshot });
+  }
 }
 
 function isOpen(ws) {
@@ -171,10 +206,12 @@ function broadcastRoom(roomId) {
   broadcastToRoom(roomId, {
     type: "ROOM",
     roomId,
-    clients: roomRoster(roomId),
+    clients:    roomRoster(roomId),
     spectators: roomSpectators(roomId),
-    ready: room.ready,
-    started: room.started,
+    ready:      room.ready,
+    started:    room.started,
+    name:       room.name,
+    host:       room.createdBy,
   });
 }
 
@@ -321,13 +358,19 @@ function leaveRoom(ws) {
     // Notify others about roster change
     broadcastRoom(roomId);
 
-    // Cleanup empty room
-    if (room.clients.size === 0) rooms.delete(roomId);
+    // Pre-game: close the room once it's completely empty.
+    // Started rooms persist so disconnected players can reconnect via session reclaim.
+    if (!room.started && room.clients.size === 0) {
+      rooms.delete(roomId);
+    }
   }
 
   // Clear clientInfo linkage
   info.roomId = null;
   info.playerIndex = null;
+
+  // Update lobby browsers
+  broadcastRoomList();
 }
 
 /**
@@ -388,6 +431,9 @@ function joinRoom(ws, roomId, name) {
       state: room.state,
     });
   }
+
+  // Update lobby browsers (player count changed)
+  broadcastRoomList();
 }
 
 function closeAllClients() {
@@ -484,6 +530,9 @@ wss.on("connection", (ws, req) => {
 
   console.log(`connected clientId=${clientId} from ${req.socket.remoteAddress}`);
 
+  // Immediately send room list so the game lobby can render without waiting
+  safeSend(ws, { type: "ROOM_LIST", rooms: roomListSnapshot() });
+
   ws.on("message", (buf) => {
     // Parse JSON
     let msg;
@@ -510,11 +559,17 @@ wss.on("connection", (ws, req) => {
         return;
       }
 
+      // Reject joins to non-existent rooms — only CREATE_GAME creates rooms
+      if (!rooms.has(roomId)) {
+        safeSend(ws, { type: "ROOM_NOT_FOUND", roomId });
+        safeSend(ws, { type: "ROOM_LIST", rooms: roomListSnapshot() });
+        return;
+      }
+
       // Restore or create session
       const info = clientInfo.get(ws);
       if (msg.sessionId && sessions.has(msg.sessionId)) {
         info.sessionId = msg.sessionId;
-        // Restore name from session if client didn't send one
         const session = sessions.get(msg.sessionId);
         if (!msg.name && session.name) info.name = session.name;
       } else {
@@ -522,6 +577,48 @@ wss.on("connection", (ws, req) => {
       }
 
       joinRoom(ws, roomId, msg.name);
+      return;
+    }
+
+    // -------------------------
+    // CREATE_GAME
+    // -------------------------
+    if (msg.type === "CREATE_GAME") {
+      const info = clientInfo.get(ws);
+
+      if (msg.sessionId && sessions.has(msg.sessionId)) {
+        info.sessionId = msg.sessionId;
+        const session = sessions.get(msg.sessionId);
+        if (!msg.name && session.name) info.name = session.name;
+      } else if (!info.sessionId) {
+        info.sessionId = generateSessionId();
+      }
+
+      const name = typeof msg.name === "string" && msg.name.trim() ? msg.name.trim() : info.name;
+      info.name = name;
+
+      const roomId = createRoom({ creatorClientId: info.clientId, roomName: `${name}'s Game` });
+      joinRoom(ws, roomId, name);
+      // broadcastRoomList() called inside joinRoom()
+      return;
+    }
+
+    // -------------------------
+    // LEAVE_ROOM
+    // -------------------------
+    if (msg.type === "LEAVE_ROOM") {
+      const info = clientInfo.get(ws);
+
+      // Spectators: clear session roomId so they don't auto-rejoin
+      if (info.playerIndex === null && info.sessionId) {
+        const session = sessions.get(info.sessionId);
+        if (session) { session.roomId = null; session.seatIndex = null; }
+      }
+      // Players: session preserved — they can reclaim their seat on return
+
+      leaveRoom(ws);
+      // leaveRoom() calls broadcastRoomList(); also send directly to this client
+      safeSend(ws, { type: "ROOM_LIST", rooms: roomListSnapshot() });
       return;
     }
 
@@ -608,6 +705,7 @@ wss.on("connection", (ws, req) => {
       room.ready = [false, false, false, false];
 
       broadcastRoom(info.roomId);
+      broadcastRoomList();
       return;
     }
 
@@ -641,7 +739,50 @@ wss.on("connection", (ws, req) => {
       }
 
       broadcastRoom(info.roomId);
-      if (room.started) broadcastState(info.roomId);
+      if (room.started) {
+        broadcastState(info.roomId);
+        broadcastRoomList(); // lobby: room now shows started=true
+      }
+      return;
+    }
+
+    // -------------------------
+    // RENAME_ROOM (host only, pre-game or mid-game)
+    // -------------------------
+    if (msg.type === "RENAME_ROOM") {
+      if (!info.roomId) return;
+      const room = rooms.get(info.roomId);
+      if (!room || info.clientId !== room.createdBy) return;
+      const newName = String(msg.name || "").trim().slice(0, 40);
+      if (!newName) return;
+      room.name = newName;
+      broadcastRoom(info.roomId);
+      broadcastRoomList();
+      return;
+    }
+
+    // -------------------------
+    // CLOSE_ROOM (host only)
+    // -------------------------
+    if (msg.type === "CLOSE_ROOM") {
+      const closingRoomId = String(msg.roomId || "").trim();
+      if (!closingRoomId) return;
+      const room = rooms.get(closingRoomId);
+      if (!room || info.clientId !== room.createdBy) return;
+      for (const clientWs of room.clients) {
+        const clientInf = clientInfo.get(clientWs);
+        if (clientInf) {
+          if (clientInf.sessionId) {
+            const s = sessions.get(clientInf.sessionId);
+            if (s) { s.roomId = null; s.seatIndex = null; }
+          }
+          clientInf.roomId = null;
+          clientInf.playerIndex = null;
+        }
+        safeSend(clientWs, { type: "ROOM_NOT_FOUND", roomId: closingRoomId });
+      }
+      rooms.delete(closingRoomId);
+      broadcastRoomList();
       return;
     }
 
@@ -677,7 +818,21 @@ wss.on("connection", (ws, req) => {
 
   ws.on("close", () => {
     const info = clientInfo.get(ws);
-    leaveRoom(ws);
+    const roomId = info?.roomId;
+    const room = roomId ? rooms.get(roomId) : null;
+
+    // During an active game, preserve the seat for reconnect — just remove
+    // from room.clients so broadcasts stop reaching the dead socket.
+    if (room && room.started && typeof info?.playerIndex === "number") {
+      room.clients.delete(ws);
+      broadcastRoom(roomId);   // dot turns red for others
+      info.roomId = null;
+      info.playerIndex = null;
+      broadcastRoomList();
+    } else {
+      leaveRoom(ws);
+    }
+
     clientInfo.delete(ws);
     console.log(`disconnected clientId=${info?.clientId ?? "?"}`);
   });
@@ -687,6 +842,35 @@ wss.on('close', () => {
   console.log('All connections closed. Server is shutting down.');
   // Perform additional reset logic here, such as restarting the server process
 });
+
+// -----------------------------------------------------------------------------
+// Room TTL cleanup
+// -----------------------------------------------------------------------------
+
+const ROOM_TTL_MS = 24 * 60 * 60 * 1000;
+setInterval(() => {
+  const now = Date.now();
+  let anyDeleted = false;
+  for (const [roomId, room] of rooms) {
+    if (now - room.createdAt > ROOM_TTL_MS) {
+      for (const ws of room.clients) {
+        safeSend(ws, { type: "ROOM_NOT_FOUND", roomId });
+        const inf = clientInfo.get(ws);
+        if (inf) {
+          if (inf.sessionId) {
+            const s = sessions.get(inf.sessionId);
+            if (s) { s.roomId = null; s.seatIndex = null; }
+          }
+          inf.roomId = null;
+          inf.playerIndex = null;
+        }
+      }
+      rooms.delete(roomId);
+      anyDeleted = true;
+    }
+  }
+  if (anyDeleted) broadcastRoomList();
+}, 60 * 60 * 1000); // runs every hour
 
 // -----------------------------------------------------------------------------
 // Start server

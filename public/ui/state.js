@@ -47,5 +47,6 @@ export function createUIState() {
     roomClients: null,
 
     isHovered: null,
+    roomList: [],
   };
 }

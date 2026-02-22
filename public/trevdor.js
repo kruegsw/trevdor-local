@@ -10,7 +10,6 @@
 */
 
 import { render } from "./ui/render.js";
-// import { initialState } from "../engine/state.js"; // (optional) keep for offline mode later
 import { createUIEvents } from "./ui/events.js";
 import { createUIState } from "./ui/state.js";
 import { createUIController } from "./ui/controller.js";
@@ -23,66 +22,97 @@ import { createTransport } from "./net/transport.js";
 // Authoritative state arrives from server
 let state = null;
 
+// Active room (set from WELCOME, cleared on leave)
+let currentRoomId = null;
+
+// Set when a player leaves their in-progress game via the lobby button.
+// Used to show "Resume" on the correct room list entry.
+let myPreviousRoomId = null;
+
+// True when myPreviousRoomId belongs to a game this client created (host).
+// Used to show "Close Game" next to "Resume" in the room list.
+let myPreviousRoomIsHost = false;
+
+// Current session ID (updated from WELCOME; used in CREATE_GAME)
+let mySessionId = localStorage.getItem("trevdor.sessionId") || null;
+
 const uiState = createUIState();
 
 /* ---------------------------------------------------------
-   Lobby
+   DOM references
    --------------------------------------------------------- */
 
-function showLobby() {
-  setScene("join");
-}
+const lobbyScene       = document.getElementById("lobbyScene");
+const gameLobbySection = document.getElementById("gameLobbySection");
+const waitingSection   = document.getElementById("waitingSection");
+const createGameBtn    = document.getElementById("createGameBtn");
+const statusBar        = document.getElementById("statusBar");
+const statusContent    = document.getElementById("statusContent");
 
-const lobbyScene = document.getElementById("lobbyScene");
-const joinSection = document.getElementById("joinSection");
-const waitingSection = document.getElementById("waitingSection");
-const enterGameBtn = document.getElementById("enterGameBtn");
-const statusBar = document.getElementById("statusBar");
+/* ---------------------------------------------------------
+   Scene management
+   --------------------------------------------------------- */
 
 function setScene(scene) {
-  if (scene === "join") {
+  if (scene === "gameLobby") {
     lobbyScene.classList.remove("hidden");
-    joinSection.classList.remove("hidden");
+    gameLobbySection.classList.remove("hidden");
     waitingSection.classList.add("hidden");
     statusBar.classList.add("hidden");
-    enterGameBtn.textContent = "Join Lobby";
-    enterGameBtn.disabled = false;
+    createGameBtn.textContent = "Create Game";
+    createGameBtn.disabled = false;
   } else if (scene === "reconnecting") {
     lobbyScene.classList.remove("hidden");
-    joinSection.classList.remove("hidden");
+    gameLobbySection.classList.remove("hidden");
     waitingSection.classList.add("hidden");
     statusBar.classList.add("hidden");
-    enterGameBtn.textContent = "Reconnecting…";
-    enterGameBtn.disabled = true;
-  } else if (scene === "waiting") {
+    createGameBtn.textContent = "Reconnecting…";
+    createGameBtn.disabled = true;
+  } else if (scene === "roomLobby") {
     lobbyScene.classList.remove("hidden");
-    joinSection.classList.add("hidden");
+    gameLobbySection.classList.add("hidden");
     waitingSection.classList.remove("hidden");
     statusBar.classList.add("hidden");
+    createGameBtn.textContent = "Create Game";
+    createGameBtn.disabled = false;
   } else if (scene === "game") {
     lobbyScene.classList.add("hidden");
     statusBar.classList.remove("hidden");
   }
 }
 
-enterGameBtn.addEventListener("click", () => {
-  console.log("clicked enterGameBtn button");
-  const currentName = cleanName(nameInput.value);
-  uiState.myName = currentName;
-  transport.setName(currentName);
-  setScene("waiting");
-  transport.connect();
-})
+function returnToGameLobby() {
+  if (currentRoomId) {
+    // Remember this room so we can show "Resume" (and "Close Game" for hosts)
+    // in the lobby. Capture before clearing uiState.
+    const wasStartedPlayer = uiState.room?.started && !uiState.isSpectator;
+    myPreviousRoomId     = wasStartedPlayer ? currentRoomId : null;
+    myPreviousRoomIsHost = wasStartedPlayer
+      && uiState.myClientId !== null
+      && uiState.room?.host === uiState.myClientId;
+    transport.sendRaw({ type: "LEAVE_ROOM", roomId: currentRoomId });
+  }
+  currentRoomId = null;
+  state = null;
+  uiState.room = null;
+  uiState.myPlayerIndex = null;
+  uiState.myClientId = null;
+  uiState.isSpectator = false;
+  transport.setRoomId(null);
+  localStorage.removeItem("trevdor.roomId");
+  setScene("gameLobby");
+}
 
-document.getElementById("readyBtn").addEventListener("click", () => {
-  transport.sendRaw({ type: "READY", roomId: ROOM_ID });
-});
+/* ---------------------------------------------------------
+   Name input
+   --------------------------------------------------------- */
 
 const nameInput = document.getElementById("nameInput");
-const nameHint = document.getElementById("nameHint");
+const nameHint  = document.getElementById("nameHint");
 
-// Load saved name
-const savedName = localStorage.getItem("trevdor.name") || "";
+const savedName       = localStorage.getItem("trevdor.name")      || "";
+const STORED_ROOM_ID  = localStorage.getItem("trevdor.roomId")    || null;
+
 nameInput.value = savedName;
 
 function cleanName(s) {
@@ -96,7 +126,6 @@ function setNameHint() {
 
 setNameHint();
 
-// Save as they type
 nameInput.addEventListener("input", () => {
   let n = cleanName(nameInput.value);
   localStorage.setItem("trevdor.name", n);
@@ -104,17 +133,7 @@ nameInput.addEventListener("input", () => {
 });
 
 /* ---------------------------------------------------------
-   Canvas + renderer
-   --------------------------------------------------------- */
-
-const canvas = document.getElementById("c");
-const ctx = canvas.getContext("2d");
-// ctx.imageSmoothingEnabled = false; // enable later for pixel art
-
-const renderer = render(ctx);
-
-/* ---------------------------------------------------------
-   Status bar
+   Utility
    --------------------------------------------------------- */
 
 function escapeHtml(str) {
@@ -124,12 +143,164 @@ function escapeHtml(str) {
     .replace(/>/g, "&gt;");
 }
 
+/* ---------------------------------------------------------
+   Game lobby (room list)
+   --------------------------------------------------------- */
+
+function updateGameLobby() {
+  const roomListEl = document.getElementById("roomList");
+  if (!roomListEl) return;
+  const rooms = uiState.roomList ?? [];
+  if (rooms.length === 0) {
+    roomListEl.innerHTML = '<div class="roomListEmpty">No active games — create one!</div>';
+    return;
+  }
+  roomListEl.innerHTML = rooms.map(r => {
+    const statusText = r.started ? "In Progress" : `${r.playerCount}/4`;
+    const watchLabel = (r.roomId === myPreviousRoomId) ? "Resume"
+                     : r.started                       ? "Watch"
+                     :                                   "Join";
+    const showCloseBtn = myPreviousRoomIsHost && r.roomId === myPreviousRoomId;
+    return `<div class="roomEntry">` +
+      `<div class="roomEntryName">${escapeHtml(r.name)}</div>` +
+      `<div class="roomEntryMeta">${escapeHtml(statusText)}` +
+      (r.spectatorCount ? ` · ${r.spectatorCount} watching` : ``) +
+      `</div>` +
+      `<button class="joinRoomBtn" data-room-id="${escapeHtml(r.roomId)}">${watchLabel}</button>` +
+      (showCloseBtn ? `<button class="closeGameLobbyBtn" data-close-room-id="${escapeHtml(r.roomId)}">Close Game</button>` : ``) +
+      `</div>`;
+  }).join("");
+
+  roomListEl.querySelectorAll(".joinRoomBtn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const roomId = btn.dataset.roomId;
+      const currentName = cleanName(nameInput.value);
+      if (!currentName) {
+        nameHint.textContent = "Please enter your name first.";
+        return;
+      }
+      uiState.myName = currentName;
+      transport.setName(currentName);
+      transport.joinRoom(roomId);
+    });
+  });
+
+  roomListEl.querySelectorAll(".closeGameLobbyBtn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      transport.sendRaw({ type: "CLOSE_ROOM", roomId: btn.dataset.closeRoomId });
+    });
+  });
+}
+
+/* ---------------------------------------------------------
+   Room lobby (waiting room)
+   --------------------------------------------------------- */
+
 function seatFill(slot) {
   if (!slot?.occupied) return '#444';
   if (!slot.wsOpen) return '#e53935';
   const age = slot.lastActivity ? (Date.now() - slot.lastActivity) : 0;
   return age > 60000 ? '#ffd700' : '#4caf50';
 }
+
+function updateWaitingRoom() {
+  // Room name header — editable input for host, plain text for guests
+  const headerEl = document.getElementById("roomLobbyHeader");
+  if (headerEl) {
+    const roomName = uiState.room?.name ?? currentRoomId ?? "";
+    const isHost   = uiState.myClientId !== null
+                  && uiState.room?.host === uiState.myClientId;
+    const nameInputEl = document.getElementById("roomNameInput");
+    // Don't clobber the input while the host is actively typing
+    if (!nameInputEl || document.activeElement !== nameInputEl) {
+      if (isHost) {
+        headerEl.innerHTML =
+          `<div class="roomLobbyNameRow">` +
+          `<input id="roomNameInput" class="roomNameInput" value="${escapeHtml(roomName)}" maxlength="40" placeholder="Room name" />` +
+          `</div>`;
+        document.getElementById("roomNameInput").addEventListener("blur", (e) => {
+          const newName = e.target.value.trim();
+          if (newName && newName !== uiState.room?.name)
+            transport.sendRaw({ type: "RENAME_ROOM", roomId: currentRoomId, name: newName });
+        });
+        document.getElementById("roomNameInput").addEventListener("keydown", (e) => {
+          if (e.key === "Enter") e.target.blur();
+        });
+      } else {
+        headerEl.innerHTML = `<div class="roomLobbyName">${escapeHtml(roomName)}</div>`;
+      }
+    }
+  }
+
+  // Show/hide the Close Room button at the bottom for host only
+  const closeRoomBtnEl = document.getElementById("closeRoomBtn");
+  if (closeRoomBtnEl) {
+    const isHost = uiState.myClientId !== null && uiState.room?.host === uiState.myClientId;
+    closeRoomBtnEl.classList.toggle("hidden", !isHost);
+  }
+
+  const clients = uiState.room?.clients ?? [];
+  const ready   = uiState.room?.ready   ?? [false, false, false, false];
+  const myIdx   = uiState.myPlayerIndex;
+
+  const slots = Array(4).fill(null).map((_, i) => {
+    const c = clients.find(c => c.seat === i);
+    return {
+      seat: i,
+      name: c?.name ?? null,
+      occupied: c?.occupied ?? false,
+      wsOpen: c?.wsOpen ?? false,
+      lastActivity: c?.lastActivity ?? null,
+    };
+  });
+
+  const rosterEl = document.getElementById("waitingRoster");
+  rosterEl.innerHTML = slots.filter(s => s.occupied).map(slot => {
+    const isMe    = typeof myIdx === "number" && slot.seat === myIdx;
+    const isReady = ready[slot.seat];
+    return `<div class="rosterSlot${isMe ? " isMe" : ""}">` +
+      `<span class="playerDot" style="--dot-fill:${seatFill(slot)}"></span>` +
+      `<span>${escapeHtml(slot.name)}</span>` +
+      (isReady ? `<span class="readyCheck">✓</span>` : "") +
+      (isMe ? ` <span class="youLabel">(you)</span>` : "") +
+      `</div>`;
+  }).join("");
+
+  const occupiedSlots = slots.filter(s => s.occupied);
+  const readyCount    = occupiedSlots.filter(s => ready[s.seat]).length;
+  const totalCount    = occupiedSlots.length;
+
+  const statusEl = document.getElementById("waitingStatus");
+  if (totalCount < 2) {
+    statusEl.textContent = "Waiting for more players… (need at least 2)";
+  } else {
+    statusEl.textContent = `${readyCount} / ${totalCount} ready`;
+  }
+
+  // Append spectators below the player roster
+  const spectators = uiState.room?.spectators ?? [];
+  if (spectators.length > 0) {
+    rosterEl.innerHTML += spectators.map(spec => {
+      const isMe = uiState.isSpectator && spec.clientId === uiState.myClientId;
+      return `<div class="rosterSlot">` +
+        `<span class="playerDot" style="--dot-fill:${spec.wsOpen ? '#4caf50' : '#e53935'}"></span>` +
+        `<span>${escapeHtml(spec.name)}</span>` +
+        ` <span class="youLabel">watching${isMe ? " (you)" : ""}</span>` +
+        `</div>`;
+    }).join("");
+  }
+
+  const readyBtn = document.getElementById("readyBtn");
+  if (readyBtn) {
+    const amReady = typeof myIdx === "number" && ready[myIdx];
+    readyBtn.textContent = amReady ? "Not Ready" : "Ready";
+    readyBtn.style.display = uiState.isSpectator ? "none" : "";
+  }
+}
+
+/* ---------------------------------------------------------
+   Status bar
+   --------------------------------------------------------- */
 
 function playerPrestige(playerIndex) {
   const player = state?.players?.[playerIndex];
@@ -152,26 +323,26 @@ function playerTotalTokens(playerIndex) {
 }
 
 function updateStatusBar() {
-  const clients = uiState.room?.clients ?? [];
-  const myIdx = uiState.myPlayerIndex;
+  const clients   = uiState.room?.clients ?? [];
+  const myIdx     = uiState.myPlayerIndex;
   const activeIdx = state?.activePlayerIndex ?? null;
-  const turn = state?.turn ?? null;
+  const turn      = state?.turn ?? null;
 
   // Ensure we always show 4 seat slots
   const slots = Array(4).fill(null).map((_, i) => {
     return clients.find(c => c.seat === i) ?? { seat: i, name: null, occupied: false };
   });
 
-  let html = `<div class="statusRoom">${escapeHtml(ROOM_ID)}</div>`;
+  let html = `<div class="statusRoom">${escapeHtml(currentRoomId ?? "")}</div>`;
 
   for (const slot of slots) {
     // Once the game is running, don't show slots that were never filled
     if (state !== null && !slot.occupied) continue;
 
-    const isMe = typeof myIdx === "number" && slot.seat === myIdx;
+    const isMe     = typeof myIdx === "number" && slot.seat === myIdx;
     const isActive = typeof activeIdx === "number" && slot.seat === activeIdx;
     const prestige = slot.occupied ? playerPrestige(slot.seat) : null;
-    const classes = [
+    const classes  = [
       "statusSeat",
       slot.occupied ? "isOccupied" : "",
       isActive      ? "isActive"   : "",
@@ -211,72 +382,17 @@ function updateStatusBar() {
     html += `<div class="statusTurn">Turn ${turn}</div>`;
   }
 
-  statusBar.innerHTML = html;
+  statusContent.innerHTML = html;
 }
 
 /* ---------------------------------------------------------
-   Waiting room UI
+   Canvas + renderer
    --------------------------------------------------------- */
 
-function updateWaitingRoom() {
-  const clients = uiState.room?.clients ?? [];
-  const ready = uiState.room?.ready ?? [false, false, false, false];
-  const myIdx = uiState.myPlayerIndex;
+const canvas = document.getElementById("c");
+const ctx = canvas.getContext("2d");
 
-  const slots = Array(4).fill(null).map((_, i) => {
-    const c = clients.find(c => c.seat === i);
-    return {
-      seat: i,
-      name: c?.name ?? null,
-      occupied: c?.occupied ?? false,
-      wsOpen: c?.wsOpen ?? false,
-      lastActivity: c?.lastActivity ?? null,
-    };
-  });
-
-  const rosterEl = document.getElementById("waitingRoster");
-  rosterEl.innerHTML = slots.filter(s => s.occupied).map(slot => {
-    const isMe = typeof myIdx === "number" && slot.seat === myIdx;
-    const isReady = ready[slot.seat];
-    return `<div class="rosterSlot${isMe ? " isMe" : ""}">` +
-      `<span class="playerDot" style="--dot-fill:${seatFill(slot)}"></span>` +
-      `<span>${escapeHtml(slot.name)}</span>` +
-      (isReady ? `<span class="readyCheck">✓</span>` : "") +
-      (isMe ? ` <span class="youLabel">(you)</span>` : "") +
-      `</div>`;
-  }).join("");
-
-  const occupiedSlots = slots.filter(s => s.occupied);
-  const readyCount = occupiedSlots.filter(s => ready[s.seat]).length;
-  const totalCount = occupiedSlots.length;
-
-  const statusEl = document.getElementById("waitingStatus");
-  if (totalCount < 2) {
-    statusEl.textContent = "Waiting for more players… (need at least 2)";
-  } else {
-    statusEl.textContent = `${readyCount} / ${totalCount} ready`;
-  }
-
-  // Append spectators below the player roster
-  const spectators = uiState.room?.spectators ?? [];
-  if (spectators.length > 0) {
-    rosterEl.innerHTML += spectators.map(spec => {
-      const isMe = uiState.isSpectator && spec.clientId === uiState.myClientId;
-      return `<div class="rosterSlot">` +
-        `<span class="playerDot" style="--dot-fill:${spec.wsOpen ? '#4caf50' : '#e53935'}"></span>` +
-        `<span>${escapeHtml(spec.name)}</span>` +
-        ` <span class="youLabel">watching${isMe ? " (you)" : ""}</span>` +
-        `</div>`;
-    }).join("");
-  }
-
-  const readyBtn = document.getElementById("readyBtn");
-  if (readyBtn) {
-    const amReady = typeof myIdx === "number" && ready[myIdx];
-    readyBtn.textContent = amReady ? "Not Ready" : "Ready";
-    readyBtn.style.display = uiState.isSpectator ? "none" : "";
-  }
-}
+const renderer = render(ctx);
 
 /* ---------------------------------------------------------
    Draw helper (single source of truth)
@@ -291,42 +407,59 @@ function draw() {
 let didInitialResize = false;
 
 /* ---------------------------------------------------------
-   WebSocket connection
+   WebSocket / transport
    --------------------------------------------------------- */
-
-const ROOM_ID = "room1";
-const PLAYER_NAME = savedName;
-const STORED_SESSION_ID = localStorage.getItem("trevdor.sessionId") || null;
 
 // Prefer this when client is served from the same host as server:
 const WS_URL = (location.protocol === "https:" ? "wss://" : "ws://") + location.host;
 
-// Local dev:
-// const WS_URL = "ws://localhost:8787";  //  this is no longer necessary since static files are served by the server
-// Remote example:
-// const WS_URL = "ws://charlization.com:8787"; // if server is running but need to point client to server, no necessary if server is also sending client
-
 const transport = createTransport({
   url: WS_URL,
-  roomId: ROOM_ID,
-  name: PLAYER_NAME,
-  sessionId: STORED_SESSION_ID,
+  name: savedName || "player",
+  sessionId: mySessionId,
 
   onMessage: (msg) => {
     console.log("[server]", msg);
 
-    if (msg.type === "WELCOME" && msg.roomId === ROOM_ID) {
-      uiState.mySeatIndex = msg.playerIndex;   // 0..3 or null
-      uiState.myPlayerIndex = msg.playerIndex; // null until START, then 0..N-1
-      uiState.isSpectator = !!msg.spectator;
-      uiState.myClientId = msg.clientId;
-      uiState.playerPanelPlayerIndex = uiState.myPlayerIndex; // default player panel to show current player's data
+    // Room list — shown in game lobby
+    if (msg.type === "ROOM_LIST") {
+      uiState.roomList = msg.rooms;
+      updateGameLobby();
+      return;
+    }
+
+    // Room no longer exists (closed by host, expired, etc.) — drop back to game lobby
+    if (msg.type === "ROOM_NOT_FOUND") {
+      localStorage.removeItem("trevdor.roomId");
+      currentRoomId = null;
+      state = null;
+      uiState.room = null;
+      uiState.myPlayerIndex = null;
+      uiState.isSpectator = false;
+      transport.setRoomId(null);
+      myPreviousRoomId = null;
+      myPreviousRoomIsHost = false;
+      setScene("gameLobby");
+      return;
+    }
+
+    if (msg.type === "WELCOME") {
+      currentRoomId = msg.roomId;
+      myPreviousRoomId = null;
+      uiState.mySeatIndex    = msg.playerIndex;
+      uiState.myPlayerIndex  = msg.playerIndex;
+      uiState.isSpectator    = !!msg.spectator;
+      uiState.myClientId     = msg.clientId;
+      uiState.playerPanelPlayerIndex = uiState.myPlayerIndex;
 
       // Persist session token so we can reclaim our seat on reconnect
       if (msg.sessionId) {
+        mySessionId = msg.sessionId;
         localStorage.setItem("trevdor.sessionId", msg.sessionId);
         transport.setSessionId(msg.sessionId);
       }
+      localStorage.setItem("trevdor.roomId", msg.roomId);
+      transport.setRoomId(msg.roomId);
 
       console.log("WELCOME parsed:", uiState.mySeatIndex, uiState.myPlayerIndex);
       updateStatusBar();
@@ -334,17 +467,18 @@ const transport = createTransport({
       return;
     }
 
-    if (msg.type === "ROOM" && msg.roomId === ROOM_ID) {
+    if (msg.type === "ROOM" && msg.roomId === currentRoomId) {
       uiState.room = {
-        started: !!msg.started,
-        ready: msg.ready ?? [false,false,false,false],
-        clients: msg.clients ?? [],
-        spectators: msg.spectators ?? [],
+        started:     !!msg.started,
+        ready:       msg.ready      ?? [false, false, false, false],
+        clients:     msg.clients    ?? [],
+        spectators:  msg.spectators ?? [],
         playerCount: msg.playerCount ?? null,
+        name:        msg.name       ?? currentRoomId,
+        host:        msg.host       ?? null,
       };
       if (!msg.started) {
-        state = null;
-        setScene("waiting");
+        setScene("roomLobby");
       }
       updateStatusBar();
       updateWaitingRoom();
@@ -352,7 +486,7 @@ const transport = createTransport({
       return;
     }
 
-    if (msg.type === "STATE" && msg.roomId === ROOM_ID) {
+    if (msg.type === "STATE" && msg.roomId === currentRoomId) {
       state = msg.state;
       if (state !== null) setScene("game");
       updateStatusBar();
@@ -361,54 +495,78 @@ const transport = createTransport({
       return;
     }
 
-    // 4) If server rejects moves, it’s useful to log clearly
+    // If server rejects moves, log clearly
     if (msg.type === "REJECTED") {
       console.warn("[server rejected]", msg.reason, msg);
     }
   },
 
-  onOpen: () => {
-    console.log("[ws] open");
-    // send test message only after socket is open
-    transport.send("SAY", { text: "hello from trevdor client" });
-  },
-
+  onOpen:  () => console.log("[ws] open"),
   onClose: () => console.log("[ws] close"),
   onError: (e) => console.log("[ws] error", e),
 });
 
-function dispatchGameAction(gameAction) {
-  console.log(gameAction)
+/* ---------------------------------------------------------
+   Game action dispatch
+   --------------------------------------------------------- */
 
-  /////////// TEMPORARY MANUAL RESET BUTTON FOR TO RESET SERVER GAME STATE from CLIENT ////////////
-  if (gameAction.type == "RESET_GAME") {
+function dispatchGameAction(gameAction) {
+  console.log(gameAction);
+
+  /////////// TEMPORARY MANUAL RESET BUTTON ////////////
+  if (gameAction.type === "RESET_GAME") {
     console.log("gameAction.type = RESET_GAME");
-    setScene("waiting");
-    transport.sendRaw({
-      type: "RESET_GAME",
-      roomId: ROOM_ID,
-      action: null,
-    });
-  /////////// TEMPORARY MANUAL RESET BUTTON FOR TO RESET SERVER GAME STATE from CLIENT ////////////
+    setScene("roomLobby");
+    transport.sendRaw({ type: "RESET_GAME", roomId: currentRoomId, action: null });
+  /////////// TEMPORARY MANUAL RESET BUTTON ////////////
   } else {
-    transport.sendRaw({
-    type: "ACTION",
-    roomId: ROOM_ID,
-    action: gameAction,
-  });
+    transport.sendRaw({ type: "ACTION", roomId: currentRoomId, action: gameAction });
   }
 }
 
-// Auto-reconnect for returning players. If a session token and name are
-// stored, skip the join screen and connect immediately; the server's ROOM
-// and STATE responses will drive the scene transition.
-if (savedName && STORED_SESSION_ID) {
+/* ---------------------------------------------------------
+   Button handlers
+   --------------------------------------------------------- */
+
+createGameBtn.addEventListener("click", () => {
+  const currentName = cleanName(nameInput.value);
+  if (!currentName) {
+    nameHint.textContent = "Please enter your name first.";
+    return;
+  }
+  uiState.myName = currentName;
+  transport.setName(currentName);
+  transport.sendRaw({ type: "CREATE_GAME", name: currentName, sessionId: mySessionId });
+});
+
+document.getElementById("readyBtn").addEventListener("click", () => {
+  transport.sendRaw({ type: "READY", roomId: currentRoomId });
+});
+
+document.getElementById("lobbyBtn").addEventListener("click", returnToGameLobby);
+document.getElementById("lobbyFromRoomBtn").addEventListener("click", returnToGameLobby);
+
+document.getElementById("closeRoomBtn").addEventListener("click", () => {
+  transport.sendRaw({ type: "CLOSE_ROOM", roomId: currentRoomId });
+});
+
+
+/* ---------------------------------------------------------
+   Auto-reconnect / initial connection
+   --------------------------------------------------------- */
+
+// If we have a saved name + session + room, try to rejoin automatically.
+// The transport will auto-send JOIN when the socket opens (via setRoomId).
+if (savedName && mySessionId && STORED_ROOM_ID) {
   uiState.myName = savedName;
   setScene("reconnecting");
-  transport.connect();
+  transport.setRoomId(STORED_ROOM_ID);
 } else {
-  setScene("join");
+  setScene("gameLobby");
 }
+
+// Always connect immediately so the room list loads without waiting.
+transport.connect();
 
 /* ---------------------------------------------------------
    UI events + controller
@@ -445,38 +603,41 @@ function resize() {
   const dpr = window.devicePixelRatio || 1;
   const rect = canvas.getBoundingClientRect();
 
-  canvas.width = Math.round(rect.width * dpr);
+  canvas.width  = Math.round(rect.width  * dpr);
   canvas.height = Math.round(rect.height * dpr);
 
-  // REMOVED for scrolling on mobile:  removed ctx.setTransform(...) from here
   renderer.resize({ width: rect.width, height: rect.height, dpr }, uiState);
 
   draw();
 }
 
-
 window.addEventListener("load", resize);
 window.addEventListener("resize", resize);
 
+/* ---------------------------------------------------------
+   Activity ping
+   --------------------------------------------------------- */
+
 // Reports client activity to the server via a throttled PING.
 // Two-speed throttle: immediate if the client was idle (>60s since last ping)
-// so the idle→active dot transition feels instant; otherwise throttled to 15s
-// to avoid spamming the server during normal active play.
+// so the idle→active dot transition feels instant; otherwise throttled to 15s.
 const IDLE_THRESHOLD = 60_000;
 const PING_INTERVAL  = 15_000;
 let lastPingSent = 0;
+
 function reportActivity() {
-  if (!uiState.room) return;
-  const now = Date.now();
+  if (!uiState.room || !currentRoomId) return;
+  const now     = Date.now();
   const elapsed = now - lastPingSent;
   const throttle = elapsed > IDLE_THRESHOLD ? 0 : PING_INTERVAL;
   if (elapsed > throttle) {
     lastPingSent = now;
-    transport.sendRaw({ type: "PING", roomId: ROOM_ID });
+    transport.sendRaw({ type: "PING", roomId: currentRoomId });
   }
 }
-document.addEventListener("mousemove", reportActivity);
-document.addEventListener("click", reportActivity);
+
+document.addEventListener("mousemove",  reportActivity);
+document.addEventListener("click",      reportActivity);
 document.addEventListener("touchstart", reportActivity);
 
 // Periodically re-render dots so the idle (>1 min) color transition
