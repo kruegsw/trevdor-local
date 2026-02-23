@@ -247,13 +247,13 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, tier,
         color: "blue"
       } ) : null;
       return true;
-    case "market.card":
+    case "market.card": {
       //stateObject ? drawCard(ctx, { x, y, w, h } ) : null;
 
       drawCardShadow(ctx, { x, y, w, h }, {})
 
-      if (isHovered(uiID, uiState) ||
-          (uiState.pending?.card?.tier === tier && uiState.pending?.card?.index === index)) { y -= 4 };
+      const cardPending = uiState.pending?.card?.tier === tier && uiState.pending?.card?.index === index;
+      if (isHovered(uiID, uiState) || cardPending) { y -= 4 };
 
       stateObject ? drawDevelopmentCard(ctx, { x, y, w, h }, {
         points: stateObject.points,
@@ -262,18 +262,36 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, tier,
         //banner: stateObject.id
       }) : null;
 
+      if (cardPending) {
+        roundedRectPath(ctx, x - 2, y - 2, w + 4, h + 4, 16);
+        ctx.strokeStyle = "#ffd700";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      }
+
       return true;
-    case "token":
+    }
+    case "token": {
 
       drawTokenShadow(ctx, { x, y, w, h }, {});
 
-      if (isHovered(uiID, uiState) ||
-          (uiID.startsWith("bank.") && (uiState.pending?.tokens?.[color] ?? 0) > 0)) { y -= 4 };
+      const tokenPending = uiID.startsWith("bank.") && (uiState.pending?.tokens?.[color] ?? 0) > 0;
+      if (isHovered(uiID, uiState) || tokenPending) { y -= 4 };
 
       stateObject > 0 ? drawToken(ctx, color, { x, y, w, h }, {
         count: stateObject
       } ) : null;
+
+      if (tokenPending) {
+        const cx = x + w / 2, cy = y + h / 2, r = Math.min(w, h) / 2 + 2;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.strokeStyle = "#ffd700";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      }
       return true;
+    }
     case "noble":
       //stateObject ? drawCard(ctx, { x, y, w, h } ) : null // update this later to draw a noble card
       stateObject ? drawNoble(ctx, { color, x, y, w, h }, stateObject ) : null;
@@ -379,12 +397,19 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, tier,
       return true;
     }
 
-    case "reserved":
+    case "reserved": {
       drawReservedShadow(ctx, { x, y, w, h }, {});
-      if (isHovered(uiID, uiState) ||
-          (uiState.pending?.card?.tier === tier && uiState.pending?.card?.index === index)) { y -= 4 };
+      const resPending = uiState.pending?.card?.tier === tier && uiState.pending?.card?.index === index;
+      if (isHovered(uiID, uiState) || resPending) { y -= 4 };
       stateObject ? drawReserved(ctx, { x, y, w, h }, stateObject ) : null;
+      if (resPending) {
+        roundedRectPath(ctx, x - 2, y - 2, w + 4, h + 4, 16);
+        ctx.strokeStyle = "#ffd700";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      }
       return true;
+    }
     case "fanned.cards": {
       const grouped = groupCardsByBonus(stateObject, ["white","blue","green","red","black"]);
       const pile = grouped[color] ?? [];
