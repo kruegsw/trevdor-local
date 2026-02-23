@@ -542,9 +542,7 @@ function buildPreviewHTML(uiState) {
     for (const [color, count] of Object.entries(tokens)) {
       if (!count) continue;
       const c = CONFIRM_TOKEN_COLORS[color] ?? { bg: "#888", text: "#fff" };
-      for (let i = 0; i < count; i++) {
-        html += `<span class="confirmToken" style="background:${c.bg};color:${c.text}">${escapeHtml(color[0].toUpperCase())}</span>`;
-      }
+      html += `<span class="confirmToken" style="background:${c.bg};color:${c.text}"><span>+${count}</span></span>`;
     }
     return html;
   }
@@ -568,16 +566,24 @@ function buildPreviewHTML(uiState) {
       costHTML += `<span class="confirmCostPip" style="background:${tc.bg};color:${tc.text}">${n}</span>`;
     }
 
-    let html = `<div class="confirmCard">`;
-    html += `<div class="confirmCardHeader" style="background:${cc.bg};color:${cc.text}">`;
-    if (points > 0) html += `<span class="confirmCardPoints">${points}</span> `;
-    html += `${escapeHtml(bonus)}</div>`;
+    const gemColors = {
+      white: "#fff", blue: "#0000FF", green: "#2E9B5F",
+      red: "#D94A4A", black: "#2B2B2B",
+    };
+    const gemBg = gemColors[bonus] ?? cc.bg;
+
+    let html = `<div class="confirmCard" style="background:${cc.bg};color:${cc.text}">`;
+    html += `<div class="confirmCardHeader">`;
+    if (points > 0) html += `<span class="confirmCardPoints">${points}</span>`;
+    else html += `<span></span>`;
+    html += `<span class="confirmCardGem" style="background:${gemBg}"></span>`;
+    html += `</div>`;
     if (costHTML) html += `<div class="confirmCardBody">${costHTML}</div>`;
     html += `</div>`;
 
     if (mode === "reserveCard") {
       const gc = CONFIRM_TOKEN_COLORS.yellow;
-      html += `<span class="confirmToken" style="background:${gc.bg};color:${gc.text}">+1</span>`;
+      html += `<span class="confirmToken" style="background:${gc.bg};color:${gc.text}"><span>+1</span></span>`;
     }
 
     return html;
