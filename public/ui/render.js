@@ -112,6 +112,10 @@ function render(ctx) {
 
         if (!objectDrawn) return;
 
+        // panel.bg is drawn but not clickable — skip hit region so it
+        // doesn't swallow clicks on reserved cards, tokens, etc.
+        if (e.kind === "panel.bg") return;
+
         hitRegions.push({
           uiID: e.uiID,
           kind: e.kind,
@@ -262,7 +266,8 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, playe
 
       drawTokenShadow(ctx, { x, y, w, h }, {});
 
-      if (isHovered(uiID, uiState)) { y -= 4 };
+      if (isHovered(uiID, uiState) ||
+          (uiID.startsWith("bank.") && (uiState.pending?.tokens?.[color] ?? 0) > 0)) { y -= 4 };
 
       stateObject > 0 ? drawToken(ctx, color, { x, y, w, h }, {
         count: stateObject
