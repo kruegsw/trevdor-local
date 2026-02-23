@@ -413,6 +413,20 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, tier,
       drawGem(ctx, rx - 4, headerCenterY, 6, "#888", "");
       rx -= 18;
 
+      // Noble crowns — one per noble, centered in header
+      const nobles = (player?.nobles ?? []).length;
+      if (nobles > 0) {
+        const crownH = 30;
+        const crownW = crownH * 1.2;
+        const crownGap = 4;
+        const totalCrownsW = nobles * crownW + (nobles - 1) * crownGap;
+        const crownStartX = x + w / 2 - totalCrownsW / 2 + crownW / 2;
+        const crownCenterY = y + (panelLayout?.headerH ?? 30) / 2;
+        for (let i = 0; i < nobles; i++) {
+          drawCrown(ctx, crownStartX + i * (crownW + crownGap), crownCenterY, crownH);
+        }
+      }
+
       ctx.restore();
       return true;
     }
@@ -447,10 +461,6 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, tier,
       stateObject ? drawFannedCards(ctx, { color, x, y, w, h }, pile ) : null;
       return true;
     }
-    case "fanned.nobles":
-      stateObject ? drawFannedNobles(ctx, { color, x, y, w, h }, stateObject ) : null;
-      return true;
-
     default:
       // Code to execute if none of the cases match
       return false
@@ -737,6 +747,28 @@ function drawGem(ctx, cx, cy, r, color, label = "") {
     ctx.textBaseline = "middle";
     ctx.fillText(label, cx, cy);
   }
+}
+
+function drawCrown(ctx, cx, cy, height) {
+  const h = height;
+  const w = h * 1.2;
+  const x = cx - w / 2;
+  const y = cy - h / 2;
+
+  ctx.beginPath();
+  ctx.moveTo(x, y + h);
+  ctx.lineTo(x + w * 0.1, y + h * 0.3);
+  ctx.lineTo(x + w * 0.3, y + h * 0.7);
+  ctx.lineTo(x + w * 0.5, y);
+  ctx.lineTo(x + w * 0.7, y + h * 0.7);
+  ctx.lineTo(x + w * 0.9, y + h * 0.3);
+  ctx.lineTo(x + w, y + h);
+  ctx.closePath();
+  ctx.fillStyle = "#D6B04C";
+  ctx.fill();
+  ctx.strokeStyle = "rgba(0,0,0,0.25)";
+  ctx.lineWidth = 0.8;
+  ctx.stroke();
 }
 
 function drawPip(ctx, x, y, s, color, text) {
@@ -1271,25 +1303,7 @@ function drawStackWithPeek(ctx, cards, { color, x, y, w, h, peek }) {
     drawDevelopmentCard(ctx, { x, y: yy, w, h }, card);
   }
 
-  // Card count badge (when 2+ cards)
-  if (n > 1) {
-    const lastY = y + (n - 1) * peek;
-    const badgeR = 10;
-    const bx = x + w - badgeR + 2;
-    const by = lastY + h - badgeR + 2;
-    ctx.beginPath();
-    ctx.arc(bx, by, badgeR, 0, Math.PI * 2);
-    ctx.fillStyle = "#fff";
-    ctx.fill();
-    ctx.strokeStyle = "rgba(0,0,0,0.3)";
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-    ctx.fillStyle = "#111";
-    ctx.font = "bold 12px system-ui, sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(String(n), bx, by);
-  }
+
 }
 
 function groupCardsByBonus(cards, colors) {

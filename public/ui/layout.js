@@ -132,8 +132,7 @@ export function computeLayout(viewport = { width, height }) {
         }
       }),
 
-      // Row 0: yellow token, 3 reserved (sideways), fanned nobles
-      cSlot({ uiID: `${pre}.nobles`, positionIndex: posIdx, kind: "fanned.nobles", dx: GAP * 5 + TOKEN_WH.w + CARD_WH.h * 3, dy: H, w: NOBLE_WH.w, h: NOBLE_WH.h, statePath: ["players", 0, "nobles"] }),
+      // Row 0: yellow token, 3 reserved (sideways)
       cSlot({ uiID: `${pre}.tokens.yellow`, positionIndex: posIdx, color: "yellow", kind: "token", dx: GAP, dy: H, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players", 0, "tokens", "yellow"] }),
 
       // reserved (sideways)
