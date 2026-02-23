@@ -736,6 +736,15 @@ function resize() {
 
   renderer.resize({ width: rect.width, height: rect.height, dpr }, uiState);
 
+  // Auto-zoom: fit board width to viewport on narrow screens
+  const bounds = renderer.getBounds();
+  if (bounds && !uiState.cameraUserAdjusted) {
+    const fitScale = rect.width / bounds.boardRight;
+    uiState.camera.scale = Math.min(1, fitScale);
+    uiState.camera.x = 0;
+    uiState.camera.y = 0;
+  }
+
   draw();
 }
 

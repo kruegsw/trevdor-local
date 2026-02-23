@@ -67,6 +67,10 @@ function render(ctx) {
       ctx.textAlign = "left";
     },
 
+    getBounds() {
+      return layout?.bounds ?? null;
+    },
+
     draw(state, uiState) {
       if (!layout) return;
 
@@ -90,7 +94,7 @@ function render(ctx) {
       // Rebuild clickable regions every frame
       hitRegions.length = 0;
 
-      layout.forEach(e => {
+      layout.slots.forEach(e => {
 
         if (e.uiParent) {e.statePath[1] = uiState.playerPanelPlayerIndex} //else { e.statePath[1] = state.activePlayerIndex } // to render hovered summary card player index in the player panel
         const stateObject = e.statePath ? getByStatePath(state, e.statePath) : {};

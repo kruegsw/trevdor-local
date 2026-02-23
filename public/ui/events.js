@@ -87,7 +87,10 @@ export function createUIEvents({
       if (g.pointers.size === 1 && g.mode === "pan" && ui.pointer.isDown) {
         const dx = sx - g.last.x;
         const dy = sy - g.last.y;
-        if (Math.abs(dx) + Math.abs(dy) > 2) g.wasGesture = true;
+        if (Math.abs(dx) + Math.abs(dy) > 2) {
+          g.wasGesture = true;
+          ui.cameraUserAdjusted = true;
+        }
 
         ui.camera.x -= dx / ui.camera.scale;
         ui.camera.y -= dy / ui.camera.scale;
@@ -104,6 +107,7 @@ export function createUIEvents({
         const d = dist(p1, p2);
 
         g.wasGesture = true;
+        ui.cameraUserAdjusted = true;
 
         const nextScale = g.startScale * (d / g.startDist);
         zoomAtScreenPoint(ui.camera, g.startMid.x, g.startMid.y, nextScale);

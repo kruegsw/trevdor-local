@@ -298,7 +298,12 @@ export function computeLayout(viewport = { width, height }) {
 
   ];
 
-  // If you want, you can also return { BOARD, PLAYER_PANEL, slots }
-  // but keeping your existing "return slots" is fine.
-  return slots;
+  return {
+    slots,
+    bounds: {
+      width: SUMMARY.x + SUMMARY.w,
+      height: PLAYER_PANEL.y + PLAYER_PANEL.h,
+      boardRight: BOARD.x + BOARD.w,
+    }
+  };
 }

@@ -49,5 +49,9 @@ export function createUIState() {
     isHovered: null,
     roomList: [],
     connectedUsers: [],
+
+    // Set to true when the user manually pans/pinches, so resize
+    // auto-zoom doesn't override their preference.
+    cameraUserAdjusted: false,
   };
 }
