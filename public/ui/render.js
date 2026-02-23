@@ -279,6 +279,7 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, playe
       const isMe = uiState.myPlayerIndex === playerIndex;
       const isActive = state.activePlayerIndex === playerIndex;
       const player = stateObject;
+      const pad = panelLayout?.pad ?? 0;
 
       // Compute dynamic panel height based on actual content
       let drawH = h; // fallback to full PANEL_H
@@ -307,36 +308,67 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, playe
       ctx.lineWidth = isMe ? 3 : 1.5;
       ctx.stroke();
 
-      // Active turn accent line at top
+      // Active turn accent — clipped to rounded rect so corners stay clean
       if (isActive) {
-        ctx.beginPath();
-        const accentR = 14;
-        ctx.moveTo(x + accentR, y);
-        ctx.arcTo(x + w, y, x + w, y + accentR, accentR);
-        ctx.lineTo(x + w, y);
-        ctx.lineTo(x, y);
-        ctx.closePath();
+        ctx.save();
+        roundedRectPath(ctx, x, y, w, drawH, 14);
+        ctx.clip();
+        const accentH = (panelLayout?.headerH ?? 30) + pad;
         ctx.fillStyle = "rgba(255, 215, 0, 0.5)";
-        ctx.fill();
+        ctx.fillRect(x, y, w, accentH);
+        ctx.restore();
       }
 
-      // Player name
+      // Player name + stats
       const name = player?.name ?? `Player ${playerIndex + 1}`;
       const fromCards  = (player?.cards ?? []).reduce((s, c) => s + (c.points ?? 0), 0);
       const fromNobles = (player?.nobles ?? []).reduce((s, n) => s + (n.points ?? 0), 0);
       const prestige = fromCards + fromNobles;
+      const gems   = (player?.cards ?? []).filter(c => c.bonus).length;
+      const tokens = Object.values(player?.tokens ?? {}).reduce((s, n) => s + n, 0);
 
+      const headerCenterY = y + pad + (panelLayout?.headerH ?? 30) / 2;
+
+      // Name (left-aligned, inset by pad)
       ctx.fillStyle = "#111";
       ctx.font = `${isMe ? "bold " : ""}16px system-ui, sans-serif`;
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
-      ctx.fillText(name, x + 12, y + 22);
+      ctx.fillText(name, x + pad + 12, headerCenterY);
 
-      // Prestige points (right-aligned)
+      // Stats drawn right-to-left: prestige, then tokens, then gems
       ctx.textAlign = "right";
+      let rx = x + w - pad - 8;
+
+      // Prestige
       ctx.fillStyle = prestige >= 15 ? "#d4a017" : "#555";
-      ctx.font = `bold 15px system-ui, sans-serif`;
-      ctx.fillText(`${prestige} pt`, x + w - 12, y + 22);
+      ctx.font = `bold 14px system-ui, sans-serif`;
+      ctx.fillText(`${prestige}pt`, rx, headerCenterY);
+      rx -= ctx.measureText(`${prestige}pt`).width + 10;
+
+      // Token count (circle icon + number)
+      ctx.fillStyle = "#555";
+      ctx.font = `13px system-ui, sans-serif`;
+      ctx.fillText(String(tokens), rx, headerCenterY);
+      rx -= ctx.measureText(String(tokens)).width + 2;
+      ctx.beginPath();
+      ctx.arc(rx - 4, headerCenterY, 5, 0, Math.PI * 2);
+      ctx.fillStyle = "#aaa";
+      ctx.fill();
+      ctx.strokeStyle = "rgba(0,0,0,0.3)";
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+      rx -= 18;
+
+      // Gem count (diamond icon + number)
+      ctx.fillStyle = "#555";
+      ctx.font = `13px system-ui, sans-serif`;
+      ctx.textAlign = "right";
+      ctx.fillText(String(gems), rx, headerCenterY);
+      rx -= ctx.measureText(String(gems)).width + 2;
+      drawGem(ctx, rx - 4, headerCenterY, 6, "#888", "");
+      rx -= 18;
+
       ctx.restore();
       return true;
     }

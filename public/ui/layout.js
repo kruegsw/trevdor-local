@@ -8,11 +8,13 @@ export function computeLayout(viewport = { width, height }) {
   const CARD_WH  = { w: CARD_W, h: 35 * SCALE };
   const NOBLE_WH = { w: CARD_W, h: 25 * SCALE };
   const TOKEN_WH = { w: 15 * SCALE, h: 15 * SCALE };
+  const PANEL_PAD = 3 * SCALE; // 9px inner margin within player panels
 
   // ---- Full panel dimensions (same internal layout as old single player panel)
-  const PANEL_W = (CARD_W * 5) + (GAP * 4); // same as BOARD.w = 435
+  const PANEL_W = (CARD_W * 5) + (GAP * 4) + 2 * PANEL_PAD;
   const HEADER_H = GAP * 2 + 20; // name header row height (padding + text)
   const PANEL_H =
+    2 * PANEL_PAD +                                          // top + bottom padding
     HEADER_H +                                               // name header
     (TOKEN_WH.h + GAP) +                                    // row 0: yellow token + reserved + nobles
     (CARD_WH.h + Math.floor(CARD_WH.h * 0.25) * 5) +       // row 2: fanned card stacks
@@ -107,8 +109,10 @@ export function computeLayout(viewport = { width, height }) {
   // Each panel has the same internal layout as the old single player panel.
   // positionIndex: 0=bottom(you), 1=right(+1), 2=top(+2), 3=left(+3)
   function generatePanelSlots(posIdx, px, py) {
-    const P = (dx, dy) => ({ x: px + dx, y: py + dy });
+    const P  = (dx, dy) => ({ x: px + dx, y: py + dy });                           // panel origin (for bg)
+    const Pc = (dx, dy) => ({ x: px + PANEL_PAD + dx, y: py + PANEL_PAD + dy });   // padded content
     const pSlot = (obj) => ({ ...obj, ...P(obj.dx ?? 0, obj.dy ?? 0) });
+    const cSlot = (obj) => ({ ...obj, ...Pc(obj.dx ?? 0, obj.dy ?? 0) });
     const pre = `panel.${posIdx}`;
     const H = HEADER_H; // vertical offset for content below name header
 
@@ -118,35 +122,36 @@ export function computeLayout(viewport = { width, height }) {
       pSlot({ uiID: `${pre}.bg`, positionIndex: posIdx, kind: "panel.bg", dx: 0, dy: 0, w: PANEL_W, h: PANEL_H, statePath: ["players", 0],
         panelLayout: {
           headerH: HEADER_H,
-          cardRowY: HEADER_H + CARD_WH.w + GAP * 2 + TOKEN_WH.h, // Y offset where fanned cards start
+          pad: PANEL_PAD,
+          cardRowY: PANEL_PAD + HEADER_H + CARD_WH.w + GAP * 2 + TOKEN_WH.h, // Y offset where fanned cards start
           cardH: CARD_WH.h,
           cardPeek: Math.floor(CARD_WH.h * 0.25),
-          padding: GAP,
+          padding: GAP + PANEL_PAD,
         }
       }),
 
       // Row 0: yellow token, 3 reserved (sideways), fanned nobles
-      pSlot({ uiID: `${pre}.nobles`, positionIndex: posIdx, kind: "fanned.nobles", dx: GAP * 5 + TOKEN_WH.w + CARD_WH.h * 3, dy: H, w: NOBLE_WH.w, h: NOBLE_WH.h, statePath: ["players", 0, "nobles"] }),
-      pSlot({ uiID: `${pre}.tokens.yellow`, positionIndex: posIdx, color: "yellow", kind: "token", dx: GAP, dy: H, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players", 0, "tokens", "yellow"] }),
+      cSlot({ uiID: `${pre}.nobles`, positionIndex: posIdx, kind: "fanned.nobles", dx: GAP * 5 + TOKEN_WH.w + CARD_WH.h * 3, dy: H, w: NOBLE_WH.w, h: NOBLE_WH.h, statePath: ["players", 0, "nobles"] }),
+      cSlot({ uiID: `${pre}.tokens.yellow`, positionIndex: posIdx, color: "yellow", kind: "token", dx: GAP, dy: H, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players", 0, "tokens", "yellow"] }),
 
       // reserved (sideways)
-      pSlot({ uiID: `${pre}.reserved.1`, positionIndex: posIdx, kind: "reserved", tier: "reserved", index: 0, dx: GAP * 2 + TOKEN_WH.w,               dy: H, w: CARD_WH.h, h: CARD_WH.w, statePath: ["players", 0, "reserved", 0] }),
-      pSlot({ uiID: `${pre}.reserved.2`, positionIndex: posIdx, kind: "reserved", tier: "reserved", index: 1, dx: GAP * 3 + TOKEN_WH.w + CARD_WH.h,   dy: H, w: CARD_WH.h, h: CARD_WH.w, statePath: ["players", 0, "reserved", 1] }),
-      pSlot({ uiID: `${pre}.reserved.3`, positionIndex: posIdx, kind: "reserved", tier: "reserved", index: 2, dx: GAP * 4 + TOKEN_WH.w + CARD_WH.h*2, dy: H, w: CARD_WH.h, h: CARD_WH.w, statePath: ["players", 0, "reserved", 2] }),
+      cSlot({ uiID: `${pre}.reserved.1`, positionIndex: posIdx, kind: "reserved", tier: "reserved", index: 0, dx: GAP * 2 + TOKEN_WH.w,               dy: H, w: CARD_WH.h, h: CARD_WH.w, statePath: ["players", 0, "reserved", 0] }),
+      cSlot({ uiID: `${pre}.reserved.2`, positionIndex: posIdx, kind: "reserved", tier: "reserved", index: 1, dx: GAP * 3 + TOKEN_WH.w + CARD_WH.h,   dy: H, w: CARD_WH.h, h: CARD_WH.w, statePath: ["players", 0, "reserved", 1] }),
+      cSlot({ uiID: `${pre}.reserved.3`, positionIndex: posIdx, kind: "reserved", tier: "reserved", index: 2, dx: GAP * 4 + TOKEN_WH.w + CARD_WH.h*2, dy: H, w: CARD_WH.h, h: CARD_WH.w, statePath: ["players", 0, "reserved", 2] }),
 
       // Row 1: 5 color tokens aligned to board columns
-      pSlot({ uiID: `${pre}.tokens.green`, positionIndex: posIdx, color: "green", kind: "token", dx: COL_X[0] + GAP, dy: H + CARD_WH.w + GAP, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players", 0, "tokens", "green"] }),
-      pSlot({ uiID: `${pre}.tokens.red`,   positionIndex: posIdx, color: "red",   kind: "token", dx: COL_X[1] + GAP, dy: H + CARD_WH.w + GAP, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players", 0, "tokens", "red"] }),
-      pSlot({ uiID: `${pre}.tokens.blue`,  positionIndex: posIdx, color: "blue",  kind: "token", dx: COL_X[2] + GAP, dy: H + CARD_WH.w + GAP, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players", 0, "tokens", "blue"] }),
-      pSlot({ uiID: `${pre}.tokens.black`, positionIndex: posIdx, color: "black", kind: "token", dx: COL_X[3] + GAP, dy: H + CARD_WH.w + GAP, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players", 0, "tokens", "black"] }),
-      pSlot({ uiID: `${pre}.tokens.white`, positionIndex: posIdx, color: "white", kind: "token", dx: COL_X[4] + GAP, dy: H + CARD_WH.w + GAP, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players", 0, "tokens", "white"] }),
+      cSlot({ uiID: `${pre}.tokens.green`, positionIndex: posIdx, color: "green", kind: "token", dx: COL_X[0] + GAP, dy: H + CARD_WH.w + GAP, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players", 0, "tokens", "green"] }),
+      cSlot({ uiID: `${pre}.tokens.red`,   positionIndex: posIdx, color: "red",   kind: "token", dx: COL_X[1] + GAP, dy: H + CARD_WH.w + GAP, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players", 0, "tokens", "red"] }),
+      cSlot({ uiID: `${pre}.tokens.blue`,  positionIndex: posIdx, color: "blue",  kind: "token", dx: COL_X[2] + GAP, dy: H + CARD_WH.w + GAP, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players", 0, "tokens", "blue"] }),
+      cSlot({ uiID: `${pre}.tokens.black`, positionIndex: posIdx, color: "black", kind: "token", dx: COL_X[3] + GAP, dy: H + CARD_WH.w + GAP, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players", 0, "tokens", "black"] }),
+      cSlot({ uiID: `${pre}.tokens.white`, positionIndex: posIdx, color: "white", kind: "token", dx: COL_X[4] + GAP, dy: H + CARD_WH.w + GAP, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["players", 0, "tokens", "white"] }),
 
       // Row 2: fanned card stacks by color
-      pSlot({ uiID: `${pre}.cards.green`, positionIndex: posIdx, color: "green", kind: "fanned.cards", dx: COL_X[0], dy: H + CARD_WH.w + GAP*2 + TOKEN_WH.h, w: CARD_WH.w, h: CARD_WH.h, statePath: ["players", 0, "cards"] }),
-      pSlot({ uiID: `${pre}.cards.red`,   positionIndex: posIdx, color: "red",   kind: "fanned.cards", dx: COL_X[1], dy: H + CARD_WH.w + GAP*2 + TOKEN_WH.h, w: CARD_WH.w, h: CARD_WH.h, statePath: ["players", 0, "cards"] }),
-      pSlot({ uiID: `${pre}.cards.blue`,  positionIndex: posIdx, color: "blue",  kind: "fanned.cards", dx: COL_X[2], dy: H + CARD_WH.w + GAP*2 + TOKEN_WH.h, w: CARD_WH.w, h: CARD_WH.h, statePath: ["players", 0, "cards"] }),
-      pSlot({ uiID: `${pre}.cards.black`, positionIndex: posIdx, color: "black", kind: "fanned.cards", dx: COL_X[3], dy: H + CARD_WH.w + GAP*2 + TOKEN_WH.h, w: CARD_WH.w, h: CARD_WH.h, statePath: ["players", 0, "cards"] }),
-      pSlot({ uiID: `${pre}.cards.white`, positionIndex: posIdx, color: "white", kind: "fanned.cards", dx: COL_X[4], dy: H + CARD_WH.w + GAP*2 + TOKEN_WH.h, w: CARD_WH.w, h: CARD_WH.h, statePath: ["players", 0, "cards"] }),
+      cSlot({ uiID: `${pre}.cards.green`, positionIndex: posIdx, color: "green", kind: "fanned.cards", dx: COL_X[0], dy: H + CARD_WH.w + GAP*2 + TOKEN_WH.h, w: CARD_WH.w, h: CARD_WH.h, statePath: ["players", 0, "cards"] }),
+      cSlot({ uiID: `${pre}.cards.red`,   positionIndex: posIdx, color: "red",   kind: "fanned.cards", dx: COL_X[1], dy: H + CARD_WH.w + GAP*2 + TOKEN_WH.h, w: CARD_WH.w, h: CARD_WH.h, statePath: ["players", 0, "cards"] }),
+      cSlot({ uiID: `${pre}.cards.blue`,  positionIndex: posIdx, color: "blue",  kind: "fanned.cards", dx: COL_X[2], dy: H + CARD_WH.w + GAP*2 + TOKEN_WH.h, w: CARD_WH.w, h: CARD_WH.h, statePath: ["players", 0, "cards"] }),
+      cSlot({ uiID: `${pre}.cards.black`, positionIndex: posIdx, color: "black", kind: "fanned.cards", dx: COL_X[3], dy: H + CARD_WH.w + GAP*2 + TOKEN_WH.h, w: CARD_WH.w, h: CARD_WH.h, statePath: ["players", 0, "cards"] }),
+      cSlot({ uiID: `${pre}.cards.white`, positionIndex: posIdx, color: "white", kind: "fanned.cards", dx: COL_X[4], dy: H + CARD_WH.w + GAP*2 + TOKEN_WH.h, w: CARD_WH.w, h: CARD_WH.h, statePath: ["players", 0, "cards"] }),
     ];
   }
 
