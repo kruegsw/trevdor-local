@@ -37,6 +37,7 @@ import { initialState } from "../engine/state.js";
 import { applyAction } from "../engine/reducer.js";
 
 const PORT = Number(process.env.PORT || 8787);
+const DEBUG = process.env.DEBUG === "1";
 
 // -----------------------------------------------------------------------------
 // Static hosting config
@@ -550,7 +551,6 @@ wss.on("connection", (ws, req) => {
   // Assign a server-side clientId for debugging / roster.
   // (This is separate from playerIndex/seat.)
   const clientId = nextClientId++;
-  //console.log(`${JSON.stringify(ws)} from line 348`)
   clientInfo.set(ws, {
     clientId,
     name: `guest-${clientId}`,
@@ -560,7 +560,7 @@ wss.on("connection", (ws, req) => {
     lastActivity: Date.now(),
   });
 
-  console.log(`connected clientId=${clientId} from ${req.socket.remoteAddress}`);
+  if (DEBUG) console.log(`connected clientId=${clientId} from ${req.socket.remoteAddress}`);
 
   // Immediately send room list so the game lobby can render without waiting
   safeSend(ws, { type: "ROOM_LIST", rooms: roomListSnapshot(), users: connectedUsersSnapshot(), yourClientId: clientId });
@@ -581,8 +581,7 @@ wss.on("connection", (ws, req) => {
     const info = clientInfo.get(ws);
     const prevActivity = info.lastActivity;
     info.lastActivity = Date.now();
-    console.log("clientInfo.get(ws) = info from line 369");
-    console.log(info);
+    if (DEBUG) console.log("msg from", info.clientId, msg.type);
 
     // -------------------------
     // JOIN
@@ -858,7 +857,7 @@ wss.on("connection", (ws, req) => {
 
     clientInfo.delete(ws);
     broadcastRoomList(); // update lobby users list (disconnected user vanishes)
-    console.log(`disconnected clientId=${info?.clientId ?? "?"}`);
+    if (DEBUG) console.log(`disconnected clientId=${info?.clientId ?? "?"}`);
   });
 });
 

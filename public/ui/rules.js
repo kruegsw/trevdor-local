@@ -15,9 +15,11 @@
         //          end game if winner
         //      next Player turn
 
+import { DEBUG } from "../debug.js";
+
 export function rulesCheck({ getState, uiState, pending, action, color, card }) {
 
-        console.log({action, color, card});
+        if (DEBUG) console.log({action, color, card});
         const state = getState();
 
         const me = (typeof uiState?.myPlayerIndex === "function")

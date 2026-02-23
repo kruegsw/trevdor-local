@@ -1,3 +1,5 @@
+import { DEBUG } from "../../debug.js";
+
 export function handleHover({getState, uiState, hit}) {
 
     let state = getState();
@@ -6,7 +8,7 @@ export function handleHover({getState, uiState, hit}) {
 
     hit ? uiState.isHovered = hit : uiState.isHovered = null;
 
-    console.log(`hovered hit is : ${JSON.stringify(hit)}`)
+    if (DEBUG) console.log(`hovered hit is : ${JSON.stringify(hit)}`);
 
     if (!hit) {
         uiState.hovered = null;

@@ -2,7 +2,8 @@
 import { handleClick } from "./handlers/handleClick.js";
 import { handleHover } from "./handlers/handleHover.js";
 import { Intent } from "./intent.js";
-import { rulesCheck } from "./rules.js"
+import { rulesCheck } from "./rules.js";
+import { DEBUG } from "../debug.js";
 
 /**
  * UI Controller
@@ -51,7 +52,7 @@ export function createUIController({ getState, uiState, requestDraw, dispatchGam
           if (actionRequested) {
             const gameAction = Intent.buildCommitAction(state, uiState);
             if (gameAction) {
-              console.log(gameAction)
+              if (DEBUG) console.log(gameAction);
               dispatchGameAction(gameAction);
               Intent.clear(uiState);
             }
@@ -61,7 +62,7 @@ export function createUIController({ getState, uiState, requestDraw, dispatchGam
         }
 
         case "hover": {
-          console.log("hover")
+          if (DEBUG) console.log("hover");
           handleHover({getState, uiState, hit: uiAction.hit});
           break;
         }

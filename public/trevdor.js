@@ -14,6 +14,7 @@ import { createUIEvents } from "./ui/events.js";
 import { createUIState } from "./ui/state.js";
 import { createUIController } from "./ui/controller.js";
 import { createTransport } from "./net/transport.js";
+import { DEBUG } from "./debug.js";
 
 /* ---------------------------------------------------------
    Game + UI state
@@ -503,7 +504,7 @@ const transport = createTransport({
   sessionId: mySessionId,
 
   onMessage: (msg) => {
-    console.log("[server]", msg);
+    if (DEBUG) console.log("[server]", msg);
 
     // Room list — shown in game lobby
     if (msg.type === "ROOM_LIST") {
@@ -558,7 +559,7 @@ const transport = createTransport({
       localStorage.setItem("trevdor.roomId", msg.roomId);
       transport.setRoomId(msg.roomId);
 
-      console.log("WELCOME parsed:", uiState.mySeatIndex, uiState.myPlayerIndex);
+      if (DEBUG) console.log("WELCOME parsed:", uiState.mySeatIndex, uiState.myPlayerIndex);
       updateStatusBar();
       draw();
       return;
@@ -599,14 +600,14 @@ const transport = createTransport({
   },
 
   onOpen:  () => {
-    console.log("[ws] open");
+    if (DEBUG) console.log("[ws] open");
     // If we have a remembered name but aren't auto-joining a room,
     // tell the server our name so the connected users list shows it.
     const n = cleanName(nameInput.value);
     if (n) transport.sendRaw({ type: "IDENTIFY", name: n });
   },
-  onClose: () => console.log("[ws] close"),
-  onError: (e) => console.log("[ws] error", e),
+  onClose: () => { if (DEBUG) console.log("[ws] close"); },
+  onError: (e) => { if (DEBUG) console.log("[ws] error", e); },
 });
 
 /* ---------------------------------------------------------
@@ -614,7 +615,7 @@ const transport = createTransport({
    --------------------------------------------------------- */
 
 function dispatchGameAction(gameAction) {
-  console.log(gameAction);
+  if (DEBUG) console.log(gameAction);
   transport.sendRaw({ type: "ACTION", roomId: currentRoomId, action: gameAction });
 }
 

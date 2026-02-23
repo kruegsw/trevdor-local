@@ -1,5 +1,6 @@
 // ui/intent.js
 import { Actions } from "../engine/actions.js";
+import { DEBUG } from "../debug.js";
 
 /**
  * Intent module
@@ -69,11 +70,11 @@ export const Intent = {
   buildCommitAction(state, uiState) {
     if (!this.isCommitReady(state, uiState)) return null;
 
-    console.log("uiState.mode = " + uiState.mode)
+    if (DEBUG) console.log("uiState.mode = " + uiState.mode);
 
     switch (uiState.mode) {
       case "takeTokens":
-        console.log({ ...uiState.pending.tokens });  // {red: 2}
+        if (DEBUG) console.log({ ...uiState.pending.tokens });
         return Actions.takeTokens({ ...uiState.pending.tokens });
 
       case "reserveCard":

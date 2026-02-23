@@ -1,3 +1,5 @@
+import { DEBUG } from "../../debug.js";
+
 export function handleClick({rulesCheck, getState, uiState, hit}) {
 
     let state = getState();
@@ -32,7 +34,7 @@ export function handleClick({rulesCheck, getState, uiState, hit}) {
         return;
     }
 
-    console.log(hit);
+    if (DEBUG) console.log(hit);
 
     // 2) Token pile => toggle UI-only picks (limit total to 3)
     if (hit.kind === "token") {
@@ -53,7 +55,7 @@ export function handleClick({rulesCheck, getState, uiState, hit}) {
                 uiState.mode = "takeTokens";
             }
         }
-        console.log(uiState);
+        if (DEBUG) console.log(uiState);
         return;
     }
 
@@ -75,7 +77,7 @@ export function handleClick({rulesCheck, getState, uiState, hit}) {
             }
         }
 
-        console.log(uiState);
+        if (DEBUG) console.log(uiState);
         return;
     }
 
@@ -88,7 +90,7 @@ export function handleClick({rulesCheck, getState, uiState, hit}) {
             clearPending();
             addCardToPending(card);
         }
-        console.log(uiState);
+        if (DEBUG) console.log(uiState);
     }
 
     // 3) Confirm => commit picks to game state (real action)
@@ -116,7 +118,7 @@ export function handleClick({rulesCheck, getState, uiState, hit}) {
     if (hit?.kind === "summary.card") {
         if (state.hotSeat) {
             uiState.myPlayerIndex = hit.playerIndex;
-            console.log(`myPlayerIndex is ${uiState.myPlayerIndex}`)
+            if (DEBUG) console.log(`myPlayerIndex is ${uiState.myPlayerIndex}`);
             return
         }
     }

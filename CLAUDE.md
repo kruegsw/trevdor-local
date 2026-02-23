@@ -80,8 +80,8 @@ Guard added: `if (!room || !room.state) return`. This prevents broadcasting null
 ## What's Next
 - Replace the debug reset button with proper end-of-game flow
 - Gate `hotSeat` behind a dev flag once multi-device testing is stable
-- Remove `engine/dispatch.js` (unused legacy code)
-- Gate the ~34 `console.log` calls behind a debug flag
+- ~~Remove `engine/dispatch.js`~~ (done)
+- ~~Gate `console.log` calls behind a debug flag~~ (done — server: `DEBUG=1`, client: `?debug` URL param)
 
 ## Status Indicators
 Each seat has a `.playerDot` (10px circle) that encodes two dimensions independently:
@@ -101,8 +101,8 @@ A fixed HTML overlay (`#statusBar` in `index.html`) shows all 4 seat slots, whos
 
 ## Known Technical Debt (Do Not "Fix" Without Discussion)
 - `public/ui/rules.js` duplicates server validation logic and can drift out of sync. Exists for UI feedback only. Flagged for future removal.
-- `engine/dispatch.js` is unused legacy code. Safe to delete eventually.
-- ~34 `console.log` calls scattered throughout — intentional during development, not yet gated behind a debug flag.
+- ~~`engine/dispatch.js`~~ deleted.
+- `console.log` calls gated behind `DEBUG` flag (server: `DEBUG=1` env var, client: `?debug` URL param via `public/debug.js`).
 - The reset button and its `RESET_GAME` message path are explicitly temporary debug tooling. Leave them in place until proper end-of-game flow is implemented.
 - `public/ui/rules.js` client rules are not used for server validation — the server always has final say.
 
