@@ -14,6 +14,7 @@ import { createUIEvents } from "./ui/events.js";
 import { createUIState } from "./ui/state.js";
 import { createUIController } from "./ui/controller.js";
 import { createTransport } from "./net/transport.js";
+import { Intent } from "./ui/intent.js";
 import { DEBUG } from "./debug.js";
 
 /* ---------------------------------------------------------
@@ -58,6 +59,11 @@ const waitingSection   = document.getElementById("waitingSection");
 const createGameBtn    = document.getElementById("createGameBtn");
 const statusBar        = document.getElementById("statusBar");
 const statusContent    = document.getElementById("statusContent");
+const confirmOverlay   = document.getElementById("confirmOverlay");
+const confirmLabel     = document.getElementById("confirmLabel");
+const confirmPreview   = document.getElementById("confirmPreview");
+const confirmBtn       = document.getElementById("confirmBtn");
+const cancelBtn        = document.getElementById("cancelBtn");
 
 /* ---------------------------------------------------------
    Scene management
@@ -486,8 +492,98 @@ const renderer = render(ctx);
    --------------------------------------------------------- */
 
 function draw() {
-  if (!state) return; // don't render until we have state
+  if (!state) {
+    confirmOverlay.classList.add("hidden");
+    return; // don't render until we have state
+  }
   renderer.draw(state, uiState);
+  updateConfirmOverlay();
+}
+
+/* ---------------------------------------------------------
+   Confirm overlay (HTML popup for pending actions)
+   --------------------------------------------------------- */
+
+const CONFIRM_TOKEN_COLORS = {
+  white:  { bg: "#E9EEF3", text: "#111" },
+  blue:   { bg: "#0000FF", text: "#E9EEF3" },
+  green:  { bg: "#2E9B5F", text: "#E9EEF3" },
+  red:    { bg: "#D94A4A", text: "#E9EEF3" },
+  black:  { bg: "#2B2B2B", text: "#E9EEF3" },
+  yellow: { bg: "#D6B04C", text: "#111" },
+};
+
+const CONFIRM_CARD_COLORS = {
+  white:  { bg: "#E9EEF3", text: "#111" },
+  blue:   { bg: "#2D6CDF", text: "#E9EEF3" },
+  green:  { bg: "#2E9B5F", text: "#E9EEF3" },
+  red:    { bg: "#D94A4A", text: "#E9EEF3" },
+  black:  { bg: "#2B2B2B", text: "#E9EEF3" },
+};
+
+function updateConfirmOverlay() {
+  if (!state || !Intent.isCommitReady(state, uiState)) {
+    confirmOverlay.classList.add("hidden");
+    return;
+  }
+  confirmOverlay.classList.remove("hidden");
+
+  const labels = { buyCard: "Buy Card?", reserveCard: "Reserve Card?", takeTokens: "Take Tokens?" };
+  confirmLabel.textContent = labels[uiState.mode] ?? "Confirm?";
+  confirmPreview.innerHTML = buildPreviewHTML(uiState);
+}
+
+function buildPreviewHTML(uiState) {
+  const mode = uiState.mode;
+
+  if (mode === "takeTokens") {
+    const tokens = uiState.pending?.tokens ?? {};
+    let html = "";
+    for (const [color, count] of Object.entries(tokens)) {
+      if (!count) continue;
+      const c = CONFIRM_TOKEN_COLORS[color] ?? { bg: "#888", text: "#fff" };
+      for (let i = 0; i < count; i++) {
+        html += `<span class="confirmToken" style="background:${c.bg};color:${c.text}">${escapeHtml(color[0].toUpperCase())}</span>`;
+      }
+    }
+    return html;
+  }
+
+  if (mode === "buyCard" || mode === "reserveCard") {
+    const card = uiState.pending?.card;
+    const meta = card?.meta;
+    if (!meta) return "";
+
+    const bonus = meta.bonus ?? "white";
+    const cc = CONFIRM_CARD_COLORS[bonus] ?? { bg: "#ccc", text: "#111" };
+    const points = meta.points ?? 0;
+    const cost = meta.cost ?? {};
+    const costOrder = ["white", "blue", "green", "red", "black"];
+
+    let costHTML = "";
+    for (const c of costOrder) {
+      const n = cost[c];
+      if (!n) continue;
+      const tc = CONFIRM_TOKEN_COLORS[c] ?? { bg: "#888", text: "#fff" };
+      costHTML += `<span class="confirmCostPip" style="background:${tc.bg};color:${tc.text}">${n}</span>`;
+    }
+
+    let html = `<div class="confirmCard">`;
+    html += `<div class="confirmCardHeader" style="background:${cc.bg};color:${cc.text}">`;
+    if (points > 0) html += `<span class="confirmCardPoints">${points}</span> `;
+    html += `${escapeHtml(bonus)}</div>`;
+    if (costHTML) html += `<div class="confirmCardBody">${costHTML}</div>`;
+    html += `</div>`;
+
+    if (mode === "reserveCard") {
+      const gc = CONFIRM_TOKEN_COLORS.yellow;
+      html += `<span class="confirmToken" style="background:${gc.bg};color:${gc.text}">+1</span>`;
+    }
+
+    return html;
+  }
+
+  return "";
 }
 
 // Track whether we have sized the canvas at least once
@@ -719,6 +815,14 @@ const controller = createUIController({
 ui.setHandlers({
   onAction: controller.onUIAction,
   onUIChange: controller.onUIChange,
+});
+
+// Wire HTML confirm/cancel buttons into controller
+confirmBtn.addEventListener("click", () => {
+  controller.onUIAction({ type: "click", hit: { kind: "button.confirm" } });
+});
+cancelBtn.addEventListener("click", () => {
+  controller.onUIAction({ type: "cancel" });
 });
 
 /* ---------------------------------------------------------

@@ -93,27 +93,8 @@ export function handleClick({rulesCheck, getState, uiState, hit}) {
         if (DEBUG) console.log(uiState);
     }
 
-    // 3) Confirm => commit picks to game state (real action)
+    // Confirm => commit picks to game state (triggered by HTML overlay button)
     if (hit.kind === "button.confirm") {
-
-        /*
-        if (totalPicks() > 0) {
-            const action = Actions.takeTokens(uiState.pendingPicks);
-
-            // reducer mutates state in place
-            applyAction(getState(), action);
-
-            clearPendingPicks();
-        }
-        */
         return true;  // action requested
     }
-
-    // 4) Cancel => clear UI-only picks
-    if (hit.kind === "button.cancel") {
-        clearPending();
-        return;
-    }
-
-    // 5) Later: cards, nobles, reserve, buy, etc.
 }

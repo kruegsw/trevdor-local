@@ -101,31 +101,6 @@ export function computeLayout(viewport = { width, height }) {
     slot(B, { uiID: "bank.black",  color: "black",  kind: "token", dx: GAP * 8 + TOKEN_WH.w * 4, dy: BANK_Y, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["market","bank","black"] }),
     slot(B, { uiID: "bank.white",  color: "white",  kind: "token", dx: GAP * 9 + TOKEN_WH.w * 5, dy: BANK_Y, w: TOKEN_WH.w, h: TOKEN_WH.h, statePath: ["market","bank","white"] }),
 
-    // UI row (board-relative, since it lives under the bank on the board area)
-    slot(B, {
-      uiID: "ui.prompt",
-      kind: "ui.prompt",
-      dx: 0,
-      dy: BANK_Y + TOKEN_WH.h + GAP,
-      w: BOARD.w - (CARD_WH.w + GAP) * 2,
-      h: TOKEN_WH.h + GAP,
-    }),
-    slot(B, {
-      uiID: "ui.button.confirm",
-      kind: "button.confirm",
-      dx: BOARD.w - (CARD_WH.w + GAP) * 2,
-      dy: BANK_Y + TOKEN_WH.h + GAP,
-      w: CARD_WH.w,
-      h: TOKEN_WH.h + GAP,
-    }),
-    slot(B, {
-      uiID: "ui.button.cancel",
-      kind: "button.cancel",
-      dx: BOARD.w - (CARD_WH.w + GAP),
-      dy: BANK_Y + TOKEN_WH.h + GAP,
-      w: CARD_WH.w,
-      h: TOKEN_WH.h + GAP,
-    }),
   ];
 
   // ---- Generate 4 full player panels around the board

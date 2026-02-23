@@ -272,71 +272,6 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, playe
       //stateObject ? drawCard(ctx, { x, y, w, h } ) : null // update this later to draw a noble card
       stateObject ? drawNoble(ctx, { color, x, y, w, h }, stateObject ) : null;
       return true;
-    ////////////////////////
-    case "ui.prompt": {
-      const pendingTokens = uiState?.pending?.tokens ?? {};
-      const pendingCard = uiState?.pending?.card ?? {};
-      const hasPendingToken = (
-        Object.values(pendingTokens).some(n => n > 0)
-      );
-      const hasPendingCard = (
-        pendingCard
-      );
-      if (!hasPendingToken && !hasPendingCard) break;
-      let pendingText = "";
-      if (hasPendingToken) { pendingText = pendingTokens }
-      if (hasPendingCard) { pendingText = pendingCard}
-
-      drawUIPanel(ctx, { x, y, w, h });
-
-      ctx.save();
-      ctx.fillStyle = "#111";
-      ctx.font = "14px sans-serif";
-      ctx.textAlign = "left";
-      ctx.textBaseline = "middle";
-      ctx.fillText(
-        `Pending: ${pendingTokensToText(pendingText)}`,
-        x + 10,
-        y + h / 2
-      );
-      ctx.restore();
-      return true;
-    }
-
-    case "button.confirm": {
-      const pendingTokens = uiState?.pending?.tokens ?? {};
-      const pendingCard = uiState?.pending?.card ?? {};
-      const hasPendingToken = (
-        Object.values(pendingTokens).some(n => n > 0)
-      );
-      const hasPendingCard = (
-        pendingCard
-      );
-      if (!hasPendingToken && !hasPendingCard) break;
-
-      const label = "Confirm";
-
-      drawUIButton(ctx, { x, y, w, h }, label);
-      return true;
-    }
-
-    case "button.cancel": {
-      const pendingTokens = uiState?.pending?.tokens ?? {};
-      const pendingCard = uiState?.pending?.card ?? {};
-      const hasPendingToken = (
-        Object.values(pendingTokens).some(n => n > 0)
-      );
-      const hasPendingCard = (
-        pendingCard
-      );
-      if (!hasPendingToken && !hasPendingCard) break;
-
-      const label = "Cancel";
-
-      drawUIButton(ctx, { x, y, w, h }, label);
-      return true;
-    }
-
     case "panel.bg": {
       const numPlayers = state.players?.length ?? 0;
       const my = typeof uiState.myPlayerIndex === "number" ? uiState.myPlayerIndex : 0;
@@ -1246,36 +1181,6 @@ function groupCardsByBonus(cards, colors) {
   return out;
 }
 
-function drawUIPanel(ctx, r, { fill = "rgba(255,255,255,0.9)", stroke = "#111" } = {}) {
-  ctx.save();
-  ctx.fillStyle = fill;
-  ctx.strokeStyle = stroke;
-  ctx.lineWidth = 2;
-  ctx.fillRect(r.x, r.y, r.w, r.h);
-  ctx.strokeRect(r.x, r.y, r.w, r.h);
-  ctx.restore();
-}
-
-function drawUIButton(ctx, r, label, { fill = "#E9EEF3", stroke = "#111" } = {}) {
-  drawUIPanel(ctx, r, { fill, stroke });
-  ctx.save();
-  ctx.fillStyle = "#111";
-  ctx.font = "14px sans-serif";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText(label, r.x + r.w / 2, r.y + r.h / 2);
-  ctx.restore();
-}
-
-function pendingTokensToText(picks) {
-  if (!picks) return "";
-  const parts = [];
-  for (const [color, n] of Object.entries(picks)) {
-    if (!n) continue;
-    parts.push(`${color}:${n}`);
-  }
-  return parts.join("  ");
-}
 
 
 //////////////////////////////////////////////
