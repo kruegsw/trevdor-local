@@ -411,8 +411,7 @@ function updateStatusBar() {
   let html = `<div class="statusRoom">${escapeHtml(roomName)}</div>`;
 
   for (const slot of slots) {
-    // Once the game is running, don't show slots that were never filled
-    if (effectState !== null && !slot.occupied) continue;
+    if (!slot.occupied) continue;
 
     const isMe     = typeof myIdx === "number" && slot.seat === myIdx;
     const isActive = typeof activeIdx === "number" && slot.seat === activeIdx;
