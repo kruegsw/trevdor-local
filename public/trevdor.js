@@ -27,11 +27,12 @@ let currentRoomId = null;
 
 // Set when a player leaves their in-progress game via the lobby button.
 // Used to show "Resume" on the correct room list entry.
-let myPreviousRoomId = null;
+// Persisted in localStorage so the label survives page refresh.
+let myPreviousRoomId = localStorage.getItem("trevdor.previousRoomId") || null;
 
 // True when myPreviousRoomId belongs to a game this client created (host).
 // Used to show "Close Game" next to "Resume" in the room list.
-let myPreviousRoomIsHost = false;
+let myPreviousRoomIsHost = localStorage.getItem("trevdor.previousRoomIsHost") === "true";
 
 // Snapshot of the last started game the player was in.
 // Kept after returnToGameLobby() so the status bar can stay visible
@@ -100,14 +101,28 @@ function setScene(scene) {
   }
 }
 
+function setPreviousRoom(roomId, isHost) {
+  myPreviousRoomId = roomId;
+  myPreviousRoomIsHost = isHost;
+  if (roomId) {
+    localStorage.setItem("trevdor.previousRoomId", roomId);
+    localStorage.setItem("trevdor.previousRoomIsHost", String(isHost));
+  } else {
+    localStorage.removeItem("trevdor.previousRoomId");
+    localStorage.removeItem("trevdor.previousRoomIsHost");
+  }
+}
+
 function returnToGameLobby() {
   if (currentRoomId) {
     // Capture before clearing uiState — used by room list and status bar snap.
     const wasStartedPlayer = uiState.room?.started && !uiState.isSpectator;
-    myPreviousRoomId     = wasStartedPlayer ? currentRoomId : null;
-    myPreviousRoomIsHost = wasStartedPlayer
-      && uiState.myClientId !== null
-      && uiState.room?.host === uiState.myClientId;
+    setPreviousRoom(
+      wasStartedPlayer ? currentRoomId : null,
+      wasStartedPlayer
+        && uiState.myClientId !== null
+        && uiState.room?.host === uiState.myClientId,
+    );
     if (wasStartedPlayer) {
       snapRoomId = currentRoomId;
       snapRoom   = uiState.room;
@@ -466,8 +481,7 @@ const transport = createTransport({
       // If the snap room has disappeared, clear the snapshot and hide the status bar
       if (snapRoomId && !msg.rooms.find(r => r.roomId === snapRoomId)) {
         snapRoomId = null; snapRoom = null; snapState = null; snapMyIdx = null;
-        myPreviousRoomId = null;
-        myPreviousRoomIsHost = false;
+        setPreviousRoom(null, false);
         statusBar.classList.add("hidden");
         lobbyScene.classList.remove("withStatusBar");
       }
@@ -481,8 +495,7 @@ const transport = createTransport({
       // Only wipe snap/previous if it's that specific room that vanished
       if (msg.roomId === snapRoomId || msg.roomId === myPreviousRoomId) {
         snapRoomId = null; snapRoom = null; snapState = null; snapMyIdx = null;
-        myPreviousRoomId = null;
-        myPreviousRoomIsHost = false;
+        setPreviousRoom(null, false);
       }
       currentRoomId = null;
       state = null;
@@ -496,8 +509,7 @@ const transport = createTransport({
 
     if (msg.type === "WELCOME") {
       currentRoomId = msg.roomId;
-      myPreviousRoomId = null;
-      myPreviousRoomIsHost = false;
+      setPreviousRoom(null, false);
       snapRoomId = null; snapRoom = null; snapState = null; snapMyIdx = null;
       uiState.mySeatIndex    = msg.playerIndex;
       uiState.myPlayerIndex  = msg.playerIndex;

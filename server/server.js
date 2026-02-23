@@ -270,7 +270,20 @@ function assignSeat(room, ws, stringRoomId) {
     const session = sessions.get(info.sessionId);
     if (session && session.roomId === stringRoomId && typeof session.seatIndex === "number") {
       const saved = session.seatIndex;
-      if (room.seats[saved] === null) {
+      const occupant = room.seats[saved];
+      const occupantInfo = occupant ? clientInfo.get(occupant.ws) : null;
+      // Reclaim if seat is empty, occupant ws already cleaned up, or occupant
+      // is the same player reconnecting (same sessionId — stale ws from a
+      // page refresh whose close event hasn't fired yet).
+      if (occupant === null || !occupantInfo || occupantInfo.sessionId === info.sessionId) {
+        // Clean up the stale ws if it's still lingering
+        if (occupant && occupant.ws !== ws) {
+          room.clients.delete(occupant.ws);
+          if (occupantInfo) {
+            occupantInfo.roomId = null;
+            occupantInfo.playerIndex = null;
+          }
+        }
         room.seats[saved] = { ws, clientId: info.clientId, name: info.name };
         return saved;
       }
