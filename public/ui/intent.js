@@ -1,5 +1,5 @@
 // ui/intent.js
-import { Actions } from "../../engine/actions.js";
+import { Actions } from "../engine/actions.js";
 
 /**
  * Intent module
