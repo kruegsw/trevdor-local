@@ -14,15 +14,40 @@ export function createTransport({
   onError = () => {},
   reconnect = true,
   reconnectDelayMs = 500,
+  connectTimeoutMs = 5000,
 } = {}) {
   let ws = null;
   let closedByUser = false;
   let currentRoomId = null; // set by joinRoom(); cleared by leaveRoom()
+  let connectTimer = null;
+  let generation = 0; // increments on each connect(); stale sockets ignore their close handler
+  let retryCount = 0; // tracks consecutive failures for backoff
 
   function connect() {
+    const gen = ++generation;
+    clearTimeout(connectTimer);
+
+    // Abandon any previous socket without triggering its reconnect logic
+    // (the generation check in the close handler will skip it).
+    if (ws) {
+      try { ws.close(); } catch {}
+      ws = null;
+    }
+
     ws = new WebSocket(url);
 
+    // If the socket is still CONNECTING after the timeout, kill it and retry.
+    // This catches mobile browsers that throttle network during page load.
+    connectTimer = setTimeout(() => {
+      if (gen === generation && ws && ws.readyState === 0) {
+        try { ws.close(); } catch {}
+      }
+    }, connectTimeoutMs);
+
     ws.addEventListener("open", () => {
+      if (gen !== generation) return;
+      clearTimeout(connectTimer);
+      retryCount = 0;
       // Auto-rejoin on reconnect: if we have a currentRoomId (e.g. mid-game
       // WS drop), send JOIN immediately so the server restores our session.
       if (currentRoomId) {
@@ -34,6 +59,7 @@ export function createTransport({
     });
 
     ws.addEventListener("message", (e) => {
+      if (gen !== generation) return;
       let msg;
       try {
         msg = JSON.parse(e.data);
@@ -45,13 +71,19 @@ export function createTransport({
     });
 
     ws.addEventListener("close", () => {
+      if (gen !== generation) return; // stale socket — a new connect() already took over
+      clearTimeout(connectTimer);
       onClose();
       if (!closedByUser && reconnect) {
-        setTimeout(connect, reconnectDelayMs);
+        // Fast retries at first (100ms), then back off to reconnectDelayMs
+        const delay = retryCount < 5 ? 100 : reconnectDelayMs;
+        retryCount++;
+        setTimeout(connect, delay);
       }
     });
 
     ws.addEventListener("error", (err) => {
+      if (gen !== generation) return;
       onError(err);
       // close event will follow
     });
@@ -87,7 +119,27 @@ export function createTransport({
 
   function close() {
     closedByUser = true;
+    generation++; // prevent any pending reconnect
+    clearTimeout(connectTimer);
     try { ws?.close(); } catch {}
+  }
+
+  // Mobile browsers can kill WebSockets during page refreshes or tab suspensions.
+  // Multiple recovery strategies:
+  // 1) visibilitychange — fires when switching back from another app
+  // 2) pageshow — fires after bfcache restores and after refreshes on mobile Safari
+  // 3) focus — fires when the browser window/tab regains focus
+  if (typeof document !== "undefined") {
+    function ensureConnected() {
+      if (!closedByUser && (!ws || ws.readyState > 1)) {
+        connect();
+      }
+    }
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") ensureConnected();
+    });
+    window.addEventListener("pageshow", ensureConnected);
+    window.addEventListener("focus", ensureConnected);
   }
 
   function setSessionId(id) { sessionId = id; }

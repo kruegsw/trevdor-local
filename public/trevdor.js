@@ -601,12 +601,16 @@ const transport = createTransport({
 
   onOpen:  () => {
     if (DEBUG) console.log("[ws] open");
-    // If we have a remembered name but aren't auto-joining a room,
-    // tell the server our name so the connected users list shows it.
+    const connStatus = document.getElementById("connStatus");
+    if (connStatus) connStatus.textContent = "Game Lobby";
     const n = cleanName(nameInput.value);
     if (n) transport.sendRaw({ type: "IDENTIFY", name: n });
   },
-  onClose: () => { if (DEBUG) console.log("[ws] close"); },
+  onClose: () => {
+    if (DEBUG) console.log("[ws] close");
+    const connStatus = document.getElementById("connStatus");
+    if (connStatus && !currentRoomId) connStatus.textContent = "Connecting…";
+  },
   onError: (e) => { if (DEBUG) console.log("[ws] error", e); },
 });
 
@@ -669,8 +673,22 @@ if (savedName && mySessionId && STORED_ROOM_ID) {
   setScene("gameLobby");
 }
 
-// Always connect immediately so the room list loads without waiting.
-transport.connect();
+// Connect once the page is fully loaded. On mobile refreshes, connecting
+// during module evaluation fails because the browser is still tearing down
+// the old page's WebSocket. The load event fires after that cleanup.
+if (document.readyState === "complete") {
+  transport.connect();
+} else {
+  window.addEventListener("load", () => transport.connect());
+}
+
+// Safety net: if we're still not connected after 3 seconds, force a retry.
+// On mobile Safari, the load-event connect can get killed by the browser
+// during page transition. This catches that case without relying on user
+// interaction (switching apps, tapping).
+setTimeout(() => {
+  if (!transport.isOpen()) transport.connect();
+}, 3000);
 
 /* ---------------------------------------------------------
    UI events + controller

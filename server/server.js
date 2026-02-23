@@ -496,6 +496,7 @@ function closeAllClients() {
  */
 const server = http.createServer((req, res) => {
   const urlPath = (req.url || "/").split("?")[0];
+  if (DEBUG) console.log(`HTTP ${req.method} ${req.url} from ${req.socket.remoteAddress}`);
 
   // Health check
   if (urlPath === "/health") {
@@ -536,6 +537,7 @@ const server = http.createServer((req, res) => {
     const ext = path.extname(filePath).toLowerCase();
     res.writeHead(200, {
       "Content-Type": MIME[ext] || "application/octet-stream",
+      "Cache-Control": "no-cache",
     });
     res.end(data);
   });
@@ -744,6 +746,7 @@ wss.on("connection", (ws, req) => {
 
       if (allReady) {
         room.state = initialState(occupiedIndices.length, info.roomId);
+        if (DEBUG) room.state.hotSeat = true;
         room.started = true;
         room.seats.forEach((seat, i) => {
           if (seat && room.state.players[i]) room.state.players[i].name = seat.name;
@@ -839,8 +842,9 @@ wss.on("connection", (ws, req) => {
     safeSend(ws, { type: "ERROR", message: `Unknown type: ${msg.type}` });
   });
 
-  ws.on("close", () => {
+  ws.on("close", (code, reason) => {
     const info = clientInfo.get(ws);
+    if (DEBUG) console.log(`ws close code=${code} reason="${reason}" clientId=${info?.clientId ?? "?"}`);
     const roomId = info?.roomId;
     const room = roomId ? rooms.get(roomId) : null;
 

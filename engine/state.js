@@ -26,7 +26,7 @@ const initialState = (numbersOfPlayers, gameID) => {
     turn: 1,
     activePlayerIndex: 0,
     log: [], // optional: helps debugging
-    hotSeat: true
+    hotSeat: false
   };
 
   state.players = createPlayers(numbersOfPlayers);

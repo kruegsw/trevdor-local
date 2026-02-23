@@ -68,8 +68,8 @@ When a player leaves a started game via "← Lobby", `myPreviousRoomId` and `myP
 ### `uiState.myPlayerIndex` must be a number
 The controller in `controller.js` checks `typeof my === "number"` to gate turns. It must be set from the server's `WELCOME` message (`msg.playerIndex`). There was a bug (now fixed) where a stale line `uiState.myPlayerIndex = () => myPlayerIndex` overwrote the correct server-assigned value with a broken function. That line is gone — do not re-introduce it.
 
-### `hotSeat: true` is intentional
-`state.hotSeat = true` (set in `engine/state.js`) disables server-side turn enforcement. This allows a single machine to play all seats for testing. The server's ACTION handler checks `if (actorIndex !== active && !room.state.hotSeat)`. Keep this until proper multi-device testing is established.
+### `hotSeat` is gated behind DEBUG
+`state.hotSeat` defaults to `false` in `engine/state.js`. The server sets it to `true` only when `DEBUG=1` env var is set. This disables server-side turn enforcement so a single machine can play all seats for testing. The server's ACTION handler checks `if (actorIndex !== active && !room.state.hotSeat)`. The client-side click handler in `handleClick.js` also reads `state.hotSeat` to allow switching the viewed player panel.
 
 ### RESET_GAME returns all clients to the waiting room
 The reset button sends `RESET_GAME` to the server. The server sets `room.state = null`, `room.started = false`, `room.ready = [false,false,false,false]`, and broadcasts ROOM. The client's ROOM handler checks `msg.started` — if false, it sets `state = null` and calls `setScene("waiting")`. This means all clients (not just the one who pressed reset) transition back to the waiting room. Connections are NOT closed. The `closeAllClients()` function still exists in server.js but is no longer called.
@@ -79,7 +79,7 @@ Guard added: `if (!room || !room.state) return`. This prevents broadcasting null
 
 ## What's Next
 - Replace the debug reset button with proper end-of-game flow
-- Gate `hotSeat` behind a dev flag once multi-device testing is stable
+- ~~Gate `hotSeat` behind a dev flag~~ (done — server sets `hotSeat=true` only when `DEBUG=1`)
 - ~~Remove `engine/dispatch.js`~~ (done)
 - ~~Gate `console.log` calls behind a debug flag~~ (done — server: `DEBUG=1`, client: `?debug` URL param)
 
@@ -106,8 +106,17 @@ A fixed HTML overlay (`#statusBar` in `index.html`) shows all 4 seat slots, whos
 - The reset button and its `RESET_GAME` message path are explicitly temporary debug tooling. Leave them in place until proper end-of-game flow is implemented.
 - `public/ui/rules.js` client rules are not used for server validation — the server always has final say.
 
+### Mobile WebSocket reconnect strategy
+Mobile Safari kills WebSocket connections on page refresh (close code 1001 "Going Away") while still fetching the new page's JS modules. The new page's `transport.connect()` then fails repeatedly because the browser hasn't finished its page transition. Fixed with a multi-layered approach in `transport.js` and `trevdor.js`:
+- **Generation counter** in `transport.js` — each `connect()` call increments a counter; stale sockets' close handlers are ignored, preventing an infinite connect/disconnect loop.
+- **Deferred connect** — `transport.connect()` is called from the `load` event (not during module evaluation) so the browser has finished tearing down the old page.
+- **3-second safety net** — a `setTimeout` in `trevdor.js` calls `transport.connect()` if still not connected after 3s, catching cases where the `load`-event connect gets killed.
+- **Recovery listeners** in `transport.js` — `visibilitychange`, `pageshow`, and `focus` events all trigger reconnect if the socket is dead, so switching apps and back always recovers.
+- **Fast initial retries** — first 5 reconnect attempts use 100ms delay instead of the normal 500ms, for snappy recovery.
+- **"Connecting…" indicator** — the lobby subtitle (`#connStatus`) shows "Connecting…" while disconnected, switching to "Game Lobby" on open. Desktop and iPad are unaffected; the issue is specific to mobile phone browsers.
+
 ## Known Bugs — To Fix
-- **Mobile connection intermittently fails on initial load.** Some mobile browsers don't establish the WebSocket connection right away. Clicking out of and back into the browser sometimes resolves it, suggesting the browser may be suspending the tab or throttling network activity before the connection is established. Root cause not yet confirmed — needs console logging on a mobile device to determine whether the socket is failing to open, closing immediately, or connecting but not sending JOIN. Investigate before fixing.
+- None currently tracked.
 
 ## Engine Quick Reference
 ```javascript
