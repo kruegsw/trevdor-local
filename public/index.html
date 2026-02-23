@@ -350,6 +350,38 @@
             border-radius: 8px !important;
         }
 
+        #connectedUsers {
+            width: 100%;
+            margin: 14px 0 14px;
+            text-align: left;
+        }
+
+        .connectedUsersHeader {
+            font-size: 12px;
+            opacity: 0.45;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+
+        .connectedUserEntry {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+            font-size: 14px;
+        }
+
+        .connectedUserName {
+            opacity: 0.85;
+        }
+
+        .connectedUserLocation {
+            margin-left: auto;
+            font-size: 12px;
+            opacity: 0.4;
+        }
+
         .roomListEmpty {
             text-align: center;
             opacity: 0.4;
@@ -425,6 +457,7 @@
                 <div id="nameHint" class="nameHint"></div>
             </div>
             <div id="roomList"></div>
+            <div id="connectedUsers"></div>
             <button id="createGameBtn">Create Game</button>
         </div>
 

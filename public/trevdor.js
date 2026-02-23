@@ -194,8 +194,7 @@ function updateGameLobby() {
   const rooms = uiState.roomList ?? [];
   if (rooms.length === 0) {
     roomListEl.innerHTML = '<div class="roomListEmpty">No active games — create one!</div>';
-    return;
-  }
+  } else {
   roomListEl.innerHTML = rooms.map(r => {
     const statusText = r.started ? "In Progress" : `${r.playerCount}/4`;
     const watchLabel = (r.roomId === myPreviousRoomId) ? "Resume"
@@ -231,6 +230,28 @@ function updateGameLobby() {
       transport.sendRaw({ type: "CLOSE_ROOM", roomId: btn.dataset.closeRoomId });
     });
   });
+  } // end else (rooms.length > 0)
+
+  // Connected users section
+  const usersEl = document.getElementById("connectedUsers");
+  if (usersEl) {
+    const users = uiState.connectedUsers ?? [];
+    if (users.length === 0) {
+      usersEl.innerHTML = "";
+    } else {
+      usersEl.innerHTML =
+        `<div class="connectedUsersHeader">Online (${users.length})</div>` +
+        users.map(u => {
+          const isMe = u.clientId === uiState.myClientId;
+          return `<div class="connectedUserEntry">` +
+            `<span class="playerDot" style="--dot-fill:${userDotFill(u)}"></span>` +
+            `<span class="connectedUserName">${escapeHtml(u.name)}</span>` +
+            (isMe ? `<span class="youLabel">(you)</span>` : ``) +
+            `<span class="connectedUserLocation">${escapeHtml(u.location)}</span>` +
+            `</div>`;
+        }).join("");
+    }
+  }
 }
 
 /* ---------------------------------------------------------
@@ -241,6 +262,12 @@ function seatFill(slot) {
   if (!slot?.occupied) return '#444';
   if (!slot.wsOpen) return '#e53935';
   const age = slot.lastActivity ? (Date.now() - slot.lastActivity) : 0;
+  return age > 60000 ? '#ffd700' : '#4caf50';
+}
+
+function userDotFill(user) {
+  if (!user.wsOpen) return '#e53935';
+  const age = user.lastActivity ? (Date.now() - user.lastActivity) : 0;
   return age > 60000 ? '#ffd700' : '#4caf50';
 }
 
@@ -481,7 +508,9 @@ const transport = createTransport({
 
     // Room list — shown in game lobby
     if (msg.type === "ROOM_LIST") {
+      if (msg.yourClientId != null) uiState.myClientId = msg.yourClientId;
       uiState.roomList = msg.rooms;
+      uiState.connectedUsers = msg.users ?? [];
       // If the snap room has disappeared, clear the snapshot and hide the status bar
       if (snapRoomId && !msg.rooms.find(r => r.roomId === snapRoomId)) {
         snapRoomId = null; snapRoom = null; snapState = null; snapMyIdx = null;
@@ -570,7 +599,13 @@ const transport = createTransport({
     }
   },
 
-  onOpen:  () => console.log("[ws] open"),
+  onOpen:  () => {
+    console.log("[ws] open");
+    // If we have a remembered name but aren't auto-joining a room,
+    // tell the server our name so the connected users list shows it.
+    const n = cleanName(nameInput.value);
+    if (n) transport.sendRaw({ type: "IDENTIFY", name: n });
+  },
   onClose: () => console.log("[ws] close"),
   onError: (e) => console.log("[ws] error", e),
 });
@@ -695,13 +730,12 @@ const PING_INTERVAL  = 15_000;
 let lastPingSent = 0;
 
 function reportActivity() {
-  if (!uiState.room || !currentRoomId) return;
   const now     = Date.now();
   const elapsed = now - lastPingSent;
   const throttle = elapsed > IDLE_THRESHOLD ? 0 : PING_INTERVAL;
   if (elapsed > throttle) {
     lastPingSent = now;
-    transport.sendRaw({ type: "PING", roomId: currentRoomId });
+    transport.sendRaw({ type: "PING", roomId: currentRoomId ?? null });
   }
 }
 
@@ -714,4 +748,5 @@ document.addEventListener("touchstart", reportActivity);
 setInterval(() => {
   updateStatusBar();
   updateWaitingRoom();
+  updateGameLobby();
 }, 15_000);

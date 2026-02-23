@@ -158,10 +158,30 @@ function roomListSnapshot() {
   return list;
 }
 
+function connectedUsersSnapshot() {
+  const list = [];
+  for (const [ws, info] of clientInfo) {
+    let location = "Lobby";
+    if (info.roomId) {
+      const room = rooms.get(info.roomId);
+      location = room?.name ?? info.roomId;
+    }
+    list.push({
+      clientId: info.clientId,
+      name: info.name,
+      location,
+      lastActivity: info.lastActivity ?? null,
+      wsOpen: ws.readyState === 1,
+    });
+  }
+  return list;
+}
+
 function broadcastRoomList() {
   const snapshot = roomListSnapshot();
+  const users = connectedUsersSnapshot();
   for (const [ws, info] of clientInfo) {
-    if (info.roomId === null) safeSend(ws, { type: "ROOM_LIST", rooms: snapshot });
+    if (info.roomId === null) safeSend(ws, { type: "ROOM_LIST", rooms: snapshot, users });
   }
 }
 
@@ -543,7 +563,10 @@ wss.on("connection", (ws, req) => {
   console.log(`connected clientId=${clientId} from ${req.socket.remoteAddress}`);
 
   // Immediately send room list so the game lobby can render without waiting
-  safeSend(ws, { type: "ROOM_LIST", rooms: roomListSnapshot() });
+  safeSend(ws, { type: "ROOM_LIST", rooms: roomListSnapshot(), users: connectedUsersSnapshot(), yourClientId: clientId });
+
+  // Notify existing lobby clients about the new connection
+  broadcastRoomList();
 
   ws.on("message", (buf) => {
     // Parse JSON
@@ -777,10 +800,21 @@ wss.on("connection", (ws, req) => {
     }
 
     // -------------------------
+    // IDENTIFY (set display name before joining a room)
+    // -------------------------
+    if (msg.type === "IDENTIFY") {
+      const newName = typeof msg.name === "string" ? msg.name.trim().slice(0, 20) : "";
+      if (newName) info.name = newName;
+      broadcastRoomList();
+      return;
+    }
+
+    // -------------------------
     // PING (client activity heartbeat — lastActivity already updated above)
     // -------------------------
     if (msg.type === "PING") {
       if (info.roomId) broadcastRoom(info.roomId);
+      else broadcastRoomList(); // lobby user activity — refresh dots
       return;
     }
 
@@ -818,12 +852,12 @@ wss.on("connection", (ws, req) => {
       broadcastRoom(roomId);   // dot turns red for others
       info.roomId = null;
       info.playerIndex = null;
-      broadcastRoomList();
     } else {
       leaveRoom(ws);
     }
 
     clientInfo.delete(ws);
+    broadcastRoomList(); // update lobby users list (disconnected user vanishes)
     console.log(`disconnected clientId=${info?.clientId ?? "?"}`);
   });
 });

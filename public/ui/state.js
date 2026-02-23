@@ -48,5 +48,6 @@ export function createUIState() {
 
     isHovered: null,
     roomList: [],
+    connectedUsers: [],
   };
 }
