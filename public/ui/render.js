@@ -106,7 +106,7 @@ function render(ctx) {
         }
 
         const stateObject = e.statePath ? getByStatePath(state, e.statePath) : {};
-        if (!stateObject) return;
+        if (!stateObject && e.kind !== "reserved") return;
 
         const objectDrawn = drawSelect(ctx, state, uiState, stateObject, e);
 
@@ -306,6 +306,7 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, tier,
       const pad = panelLayout?.pad ?? 0;
 
       // Compute dynamic panel height based on actual content
+      // Minimum always includes the card row (dashed placeholders visible)
       let drawH = h; // fallback to full PANEL_H
       if (panelLayout && player) {
         const { cardRowY, cardH, cardPeek, padding } = panelLayout;
@@ -314,30 +315,49 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, tier,
         const counts = {};
         for (const c of cards) { const b = c?.bonus; if (b) counts[b] = (counts[b] ?? 0) + 1; }
         const maxStack = Math.max(0, ...Object.values(counts));
-        // Height = card row top + base card height + peek per extra card + padding
-        if (maxStack > 0) {
-          drawH = cardRowY + cardH + cardPeek * (maxStack - 1) + padding;
-        } else {
-          // No cards yet — shrink to just header + reserved/token rows + padding
-          drawH = cardRowY + padding;
-        }
+        // Minimum: card row top + one base card height + padding (shows empty placeholders)
+        const minH = cardRowY + cardH + padding;
+        // If stacked cards exceed that, expand
+        const stackH = maxStack > 1 ? cardRowY + cardH + cardPeek * (maxStack - 1) + padding : minH;
+        drawH = Math.max(minH, stackH);
       }
 
       // Panel background
+      const accentColor = SEAT_ACCENT_COLORS[positionIndex] ?? "rgba(0,0,0,0.25)";
       ctx.save();
       roundedRectPath(ctx, x, y, w, drawH, 14);
+      // Feature 4: elevated active panel shadow
+      if (isActive) {
+        ctx.shadowColor = "rgba(0,0,0,0.35)";
+        ctx.shadowBlur = 18;
+        ctx.shadowOffsetY = 6;
+      }
       ctx.fillStyle = isActive ? "rgba(255, 215, 0, 0.12)" : "rgba(243, 243, 243, 0.85)";
       ctx.fill();
-      ctx.strokeStyle = isMe ? "#111" : "rgba(0,0,0,0.25)";
+      // Clear shadow before stroke
+      ctx.shadowColor = "transparent";
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetY = 0;
+      ctx.strokeStyle = accentColor;
       ctx.lineWidth = isMe ? 3 : 1.5;
       ctx.stroke();
 
-      // Active turn accent — clipped to rounded rect so corners stay clean
+      // Feature 2: token row background band
+      if (panelLayout) {
+        ctx.save();
+        roundedRectPath(ctx, x, y, w, drawH, 14);
+        ctx.clip();
+        ctx.fillStyle = "rgba(0,0,0,0.04)";
+        ctx.fillRect(x, y + panelLayout.tokenRowY, w, panelLayout.tokenRowH + pad);
+        ctx.restore();
+      }
+
+      // Active turn accent — clipped to rounded rect, just the header area
       if (isActive) {
         ctx.save();
         roundedRectPath(ctx, x, y, w, drawH, 14);
         ctx.clip();
-        const accentH = (panelLayout?.headerH ?? 30) + pad;
+        const accentH = panelLayout?.headerH ?? 30;
         ctx.fillStyle = "rgba(255, 215, 0, 0.5)";
         ctx.fillRect(x, y, w, accentH);
         ctx.restore();
@@ -354,7 +374,7 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, tier,
       const headerCenterY = y + pad + (panelLayout?.headerH ?? 30) / 2;
 
       // Name (left-aligned, inset by pad)
-      ctx.fillStyle = "#111";
+      ctx.fillStyle = accentColor;
       ctx.font = `${isMe ? "bold " : ""}16px system-ui, sans-serif`;
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
@@ -398,10 +418,21 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, tier,
     }
 
     case "reserved": {
+      if (!stateObject) {
+        // Empty slot placeholder — dashed outline
+        const inset = 2;
+        roundedRectPath(ctx, x + inset, y + inset, w - inset * 2, h - inset * 2, 10);
+        ctx.setLineDash([6, 4]);
+        ctx.strokeStyle = "rgba(0,0,0,0.15)";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.setLineDash([]);
+        return true;
+      }
       drawReservedShadow(ctx, { x, y, w, h }, {});
       const resPending = uiState.pending?.card?.tier === tier && uiState.pending?.card?.index === index;
       if (isHovered(uiID, uiState) || resPending) { y -= 4 };
-      stateObject ? drawReserved(ctx, { x, y, w, h }, stateObject ) : null;
+      drawReserved(ctx, { x, y, w, h }, stateObject);
       if (resPending) {
         roundedRectPath(ctx, x - 2, y - 2, w + 4, h + 4, 16);
         ctx.strokeStyle = "#ffd700";
@@ -543,6 +574,8 @@ export { render };
 /**
  rather messy Chat GPT code for drawing cards cards, clean up later
  */
+const SEAT_ACCENT_COLORS = ["#2D6CDF", "#D94A4A", "#2E9B5F", "#D6B04C"];
+
 const GEM_COLORS = {
   white: "#fff",
   blue:  "#0000FF",
@@ -1219,6 +1252,18 @@ function drawFannedCards(ctx, { color, x, y, w, h }, stateObject ) {
 function drawStackWithPeek(ctx, cards, { color, x, y, w, h, peek }) {
   const n = cards?.length ?? 0;
 
+  // Empty placeholder — dashed outline
+  if (n === 0) {
+    const inset = 2;
+    roundedRectPath(ctx, x + inset, y + inset, w - inset * 2, h - inset * 2, 10);
+    ctx.setLineDash([6, 4]);
+    ctx.strokeStyle = "rgba(0,0,0,0.15)";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.setLineDash([]);
+    return;
+  }
+
   // Draw from top -> bottom so the bottom-most (largest y) is drawn last and ends up on top.
   for (let i = 0; i < n; i++) {
     const card = cards[i];
@@ -1226,13 +1271,25 @@ function drawStackWithPeek(ctx, cards, { color, x, y, w, h, peek }) {
     drawDevelopmentCard(ctx, { x, y: yy, w, h }, card);
   }
 
-  // placeholder if empty
-  //if (n === 0) {
-  //  roundedRectPath(ctx, x, y, w, h, 10);
-  //  ctx.strokeStyle = "rgba(0,0,0,.25)";
-  //  ctx.lineWidth = 1;
-  //  ctx.stroke();
-  //}
+  // Card count badge (when 2+ cards)
+  if (n > 1) {
+    const lastY = y + (n - 1) * peek;
+    const badgeR = 10;
+    const bx = x + w - badgeR + 2;
+    const by = lastY + h - badgeR + 2;
+    ctx.beginPath();
+    ctx.arc(bx, by, badgeR, 0, Math.PI * 2);
+    ctx.fillStyle = "#fff";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(0,0,0,0.3)";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.fillStyle = "#111";
+    ctx.font = "bold 12px system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(String(n), bx, by);
+  }
 }
 
 function groupCardsByBonus(cards, colors) {

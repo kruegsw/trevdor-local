@@ -15,7 +15,7 @@ export function computeLayout(viewport = { width, height }) {
   const HEADER_H = GAP * 2 + 20; // name header row height (padding + text)
   const PANEL_H =
     2 * PANEL_PAD +                                          // top + bottom padding
-    HEADER_H +                                               // name header
+    HEADER_H + GAP +                                         // name header + gap below header
     (TOKEN_WH.h + GAP) +                                    // row 0: yellow token + reserved + nobles
     (CARD_WH.h + Math.floor(CARD_WH.h * 0.25) * 5) +       // row 2: fanned card stacks
     (NOBLE_WH.h + GAP * 2);                                 // bottom padding
@@ -114,7 +114,7 @@ export function computeLayout(viewport = { width, height }) {
     const pSlot = (obj) => ({ ...obj, ...P(obj.dx ?? 0, obj.dy ?? 0) });
     const cSlot = (obj) => ({ ...obj, ...Pc(obj.dx ?? 0, obj.dy ?? 0) });
     const pre = `panel.${posIdx}`;
-    const H = HEADER_H; // vertical offset for content below name header
+    const H = HEADER_H + GAP; // vertical offset for content below name header (includes gap after header)
 
     return [
       // Panel background + name header (drawn first, behind everything)
@@ -123,7 +123,9 @@ export function computeLayout(viewport = { width, height }) {
         panelLayout: {
           headerH: HEADER_H,
           pad: PANEL_PAD,
-          cardRowY: PANEL_PAD + HEADER_H + CARD_WH.w + GAP * 2 + TOKEN_WH.h, // Y offset where fanned cards start
+          tokenRowY: PANEL_PAD + HEADER_H + GAP + CARD_WH.w + GAP,
+          tokenRowH: TOKEN_WH.h,
+          cardRowY: PANEL_PAD + HEADER_H + GAP + CARD_WH.w + GAP * 2 + TOKEN_WH.h, // Y offset where fanned cards start
           cardH: CARD_WH.h,
           cardPeek: Math.floor(CARD_WH.h * 0.25),
           padding: GAP + PANEL_PAD,
