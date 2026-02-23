@@ -77,8 +77,22 @@ The reset button sends `RESET_GAME` to the server. The server sets `room.state =
 ### `broadcastState()` is a no-op when state is null
 Guard added: `if (!room || !room.state) return`. This prevents broadcasting null state to already-connected clients while waiting for the 2nd player to join.
 
+### End-of-game detection
+The reducer in `engine/reducer.js` implements Splendor's end-of-game rules:
+- **15 prestige threshold**: After each turn-ending action (TAKE_TOKENS, RESERVE_CARD, BUY_CARD), the reducer checks if the active player has ≥15 prestige (cards + nobles). If so, `state.finalRound = true`.
+- **Complete the round**: The game continues until `activePlayerIndex` wraps back to 0, so all players get equal turns.
+- **Game over**: When `finalRound` is true and `activePlayerIndex` returns to 0, `state.gameOver = true` and `state.winner` is set to the index of the winning player.
+- **Winner determination**: `determineWinner()` picks the player with the highest prestige. Tiebreak: fewest purchased cards (per Splendor rules).
+- **Action rejection**: Once `state.gameOver` is true, `applyAction()` returns `prev` (no-op) for all further actions.
+
+**Client-side display:**
+- Status bar shows "Winner: [name] (Xpt)" in gold when `gameOver`, "Final Round!" in orange when `finalRound`.
+- Canvas draws a semi-transparent overlay with the winner's name and prestige points.
+- Controller blocks clicks when `gameOver` but allows hover so players can still inspect the board.
+- Games remain on the server after ending — no automatic cleanup yet. Players can use RESET_GAME to return to the waiting room or navigate to the lobby.
+
 ## What's Next
-- Replace the debug reset button with proper end-of-game flow
+- ~~Replace the debug reset button with proper end-of-game flow~~ (done — end-of-game detection and display implemented)
 - ~~Gate `hotSeat` behind a dev flag~~ (done — server sets `hotSeat=true` only when `DEBUG=1`)
 - ~~Remove `engine/dispatch.js`~~ (done)
 - ~~Gate `console.log` calls behind a debug flag~~ (done — server: `DEBUG=1`, client: `?debug` URL param)
@@ -134,6 +148,11 @@ TAKE_TOKENS   // { tokens: { color: count, ... } }
 RESERVE_CARD  // { card }
 BUY_CARD      // { card }
 END_TURN      // (usually automatic after above)
+
+// End-of-game state fields (set by reducer)
+state.finalRound  // true once any player reaches ≥15 prestige
+state.gameOver    // true when final round completes (activePlayerIndex wraps to 0)
+state.winner      // index of winning player (set when gameOver becomes true)
 ```
 
 ## Token Colors

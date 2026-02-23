@@ -266,13 +266,16 @@ export function applyAction(prev, action) {
     }
   }
 
+  // Game is over — reject all further actions
+  if (state.gameOver) return prev;
+
   // Apply action
   const changed = implementAction(state, action);
 
   // Invalid => preserve reducer contract: return prev reference
   if (!changed) return prev;
 
-  // End-of-turn effects for “commit” actions
+  // End-of-turn effects for "commit" actions
   const endsTurn =
     action.type === "TAKE_TOKENS" ||
     action.type === "RESERVE_CARD" ||
@@ -283,9 +286,43 @@ export function applyAction(prev, action) {
     const player = state.players[state.activePlayerIndex];
     claimOneEligibleNoble(state, player);
 
-    // 2) Advance to next player's turn
+    // 2) Check if this player triggered the final round (>= 15 prestige)
+    if (!state.finalRound && playerPrestige(player) >= 15) {
+      state.finalRound = true;
+    }
+
+    // 3) Advance to next player's turn
     advanceTurn(state);
+
+    // 4) If final round and we've wrapped back to player 0, the game is over
+    if (state.finalRound && state.activePlayerIndex === 0) {
+      state.gameOver = true;
+      state.winner = determineWinner(state.players);
+    }
   }
 
   return state;
+}
+
+function playerPrestige(player) {
+  const fromCards  = (player.cards  ?? []).reduce((sum, c) => sum + (c.points ?? 0), 0);
+  const fromNobles = (player.nobles ?? []).reduce((sum, n) => sum + (n.points ?? 0), 0);
+  return fromCards + fromNobles;
+}
+
+function determineWinner(players) {
+  let best = -1;
+  let bestIdx = 0;
+  let bestCards = Infinity;
+
+  for (let i = 0; i < players.length; i++) {
+    const p = playerPrestige(players[i]);
+    const cards = (players[i].cards ?? []).length;
+    if (p > best || (p === best && cards < bestCards)) {
+      best = p;
+      bestIdx = i;
+      bestCards = cards;
+    }
+  }
+  return bestIdx;
 }

@@ -374,8 +374,8 @@ function updateWaitingRoom() {
 function playerPrestige(playerIndex, fromState = state) {
   const player = fromState?.players?.[playerIndex];
   if (!player) return null;
-  const fromCards  = player.cards.reduce((sum, c) => sum + (c.points ?? 0), 0);
-  const fromNobles = player.nobles.reduce((sum, n) => sum + (n.points ?? 0), 0);
+  const fromCards  = (player.cards ?? []).reduce((sum, c) => sum + (c.points ?? 0), 0);
+  const fromNobles = (player.nobles ?? []).reduce((sum, n) => sum + (n.points ?? 0), 0);
   return fromCards + fromNobles;
 }
 
@@ -453,7 +453,13 @@ function updateStatusBar() {
     html += `<div class="statusSpectators"><span>Spectators:</span>${specItems}</div>`;
   }
 
-  if (turn !== null) {
+  if (effectState?.gameOver && typeof effectState.winner === "number") {
+    const winnerName = effectState.players[effectState.winner]?.name ?? `Player ${effectState.winner + 1}`;
+    const winnerPts = playerPrestige(effectState.winner, effectState);
+    html += `<div class="statusTurn statusWinner">Winner: ${escapeHtml(winnerName)} (${winnerPts}pt)</div>`;
+  } else if (effectState?.finalRound) {
+    html += `<div class="statusTurn statusFinalRound">Final Round! · Turn ${turn ?? ""}</div>`;
+  } else if (turn !== null) {
     html += `<div class="statusTurn">Turn ${turn}</div>`;
   }
 

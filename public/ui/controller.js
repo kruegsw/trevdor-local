@@ -37,6 +37,8 @@ export function createUIController({ getState, uiState, requestDraw, dispatchGam
         const isMyTurn = (typeof my === "number") && (my === active);
 
         if (uiAction.type === "click") {
+          // Game over — block all clicks (hover still works)
+          if (state.gameOver) return;
           // If we're a spectator or it's not our turn, ignore clicks that could mutate intent
           if (!isMyTurn) { // if not your turn then ignore click
             if (uiAction.hit?.kind != "summary.card") { return };

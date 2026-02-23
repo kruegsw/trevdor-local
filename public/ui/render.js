@@ -116,6 +116,35 @@ function render(ctx) {
         
       });
 
+      // Game-over overlay
+      if (state.gameOver && typeof state.winner === "number") {
+        // Reset to screen space (undo camera transform)
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        const w = viewport.width;
+        const h = viewport.height;
+
+        // Dim the board
+        ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
+        ctx.fillRect(0, 0, w, h);
+
+        // Winner banner
+        const winnerName = state.players[state.winner]?.name ?? `Player ${state.winner + 1}`;
+        const prestige = (state.players[state.winner]?.cards ?? []).reduce((s, c) => s + (c.points ?? 0), 0)
+          + (state.players[state.winner]?.nobles ?? []).reduce((s, n) => s + (n.points ?? 0), 0);
+
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+
+        ctx.fillStyle = "#ffd700";
+        ctx.font = `bold ${Math.max(28, Math.floor(w * 0.06))}px system-ui, sans-serif`;
+        ctx.fillText(`${winnerName} wins!`, w / 2, h / 2 - 20);
+
+        ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
+        ctx.font = `${Math.max(16, Math.floor(w * 0.03))}px system-ui, sans-serif`;
+        ctx.fillText(`${prestige} prestige points`, w / 2, h / 2 + 20);
+      }
+
     },
 
     /*
