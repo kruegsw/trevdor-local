@@ -464,8 +464,12 @@ let didInitialResize = false;
    WebSocket / transport
    --------------------------------------------------------- */
 
-// Prefer this when client is served from the same host as server:
-const WS_URL = (location.protocol === "https:" ? "wss://" : "ws://") + location.host;
+// When served behind Apache reverse proxy (charlization.com/trevdor/),
+// the WS URL needs the /trevdor prefix so Apache routes the upgrade.
+// When accessed directly (localhost:8787 or LAN IP:8787), no prefix needed.
+const isBehindProxy = !location.port || location.port === "80" || location.port === "443";
+const basePath = isBehindProxy ? "/trevdor" : "";
+const WS_URL = (location.protocol === "https:" ? "wss://" : "ws://") + location.host + basePath;
 
 const transport = createTransport({
   url: WS_URL,
