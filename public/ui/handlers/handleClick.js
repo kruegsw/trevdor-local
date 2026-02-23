@@ -115,13 +115,5 @@ export function handleClick({rulesCheck, getState, uiState, hit}) {
         return;
     }
 
-    if (hit?.kind === "summary.card") {
-        if (state.hotSeat) {
-            uiState.myPlayerIndex = hit.playerIndex;
-            if (DEBUG) console.log(`myPlayerIndex is ${uiState.myPlayerIndex}`);
-            return
-        }
-    }
-
     // 5) Later: cards, nobles, reserve, buy, etc.
 }

@@ -739,7 +739,7 @@ function resize() {
   // Auto-zoom: fit board width to viewport on narrow screens
   const bounds = renderer.getBounds();
   if (bounds && !uiState.cameraUserAdjusted) {
-    const fitScale = rect.width / bounds.boardRight;
+    const fitScale = rect.width / bounds.width;
     uiState.camera.scale = Math.min(1, fitScale);
     uiState.camera.x = 0;
     uiState.camera.y = 0;

@@ -96,12 +96,20 @@ function render(ctx) {
 
       layout.slots.forEach(e => {
 
-        if (e.uiParent) {e.statePath[1] = uiState.playerPanelPlayerIndex} //else { e.statePath[1] = state.activePlayerIndex } // to render hovered summary card player index in the player panel
+        // Resolve positionIndex → actual playerIndex for panel slots
+        if (e.positionIndex != null) {
+          const numPlayers = state.players?.length ?? 0;
+          if (e.positionIndex >= numPlayers) return; // skip panels for absent players
+          const my = typeof uiState.myPlayerIndex === "number" ? uiState.myPlayerIndex : 0;
+          const playerIndex = (my + e.positionIndex) % numPlayers;
+          e.statePath[1] = playerIndex;
+        }
+
         const stateObject = e.statePath ? getByStatePath(state, e.statePath) : {};
         if (!stateObject) return;
-        
+
         const objectDrawn = drawSelect(ctx, state, uiState, stateObject, e);
-        
+
         if (!objectDrawn) return;
 
         hitRegions.push({
@@ -110,6 +118,7 @@ function render(ctx) {
           tier: e.tier ?? null,
           index: e.index ?? null,
           playerIndex: e.playerIndex ?? null,
+          positionIndex: e.positionIndex ?? null,
           color: e.color ?? null,
 
           // World-space hit rect (NO CLAMPING)
@@ -214,7 +223,7 @@ function isHovered(uiID, uiState) {
   return uiState.isHovered?.uiID === uiID;
 }
 
-function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, playerIndex, x, y, w, h, text }) {
+function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, playerIndex, positionIndex, x, y, w, h, text }) {
   switch (kind) {
     case "decks.tier1":
       //drawCard(ctx, { x, y, w, h } );
@@ -263,31 +272,6 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, playe
       //stateObject ? drawCard(ctx, { x, y, w, h } ) : null // update this later to draw a noble card
       stateObject ? drawNoble(ctx, { color, x, y, w, h }, stateObject ) : null;
       return true;
-    //case "player.panel.bottom":
-    //  drawPlayerPanelBottom(ctx, { x, y, w, h }, stateObject);
-    //  break;
-    case "reserved":
-      //drawDevelopmentCard(ctx, { x, y, w, h }, {
-      //  points: stateObject.points,
-      //  bonus: stateObject.bonus,
-      //  cost: stateObject.cost,
-      //  //banner: stateObject.id
-      //});
-      drawReservedShadow(ctx, { x, y, w, h }, {});
-
-      if (isHovered(uiID, uiState)) { y -= 4 };
-
-      stateObject ? drawReserved(ctx, { x, y, w, h }, stateObject ) : null;
-      return true;
-    case "fanned.cards":
-      const grouped = groupCardsByBonus(stateObject, ["white","blue","green","red","black"]);
-      const pile = grouped[color] ?? [];
-      stateObject ? drawFannedCards(ctx, { color, x, y, w, h }, pile ) : null;
-      return true;
-    case "fanned.nobles":
-      stateObject ? drawFannedNobles(ctx, { color, x, y, w, h }, stateObject ) : null;
-      return true;
-
     ////////////////////////
     case "ui.prompt": {
       const pendingTokens = uiState?.pending?.tokens ?? {};
@@ -353,94 +337,71 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, playe
       return true;
     }
 
-    // ----------------------------
-    // SUMMARY UI (right of board)
-    // ----------------------------
-    case "summary.container":
-      // optional: draw nothing, or a faint outline for debugging
-      // drawSummaryCard(ctx, { x, y, w, h }); // uncomment if you want container visible
-      return true;
+    case "panel.bg": {
+      const numPlayers = state.players?.length ?? 0;
+      const my = typeof uiState.myPlayerIndex === "number" ? uiState.myPlayerIndex : 0;
+      const playerIndex = (my + positionIndex) % numPlayers;
+      const isMe = uiState.myPlayerIndex === playerIndex;
+      const isActive = state.activePlayerIndex === playerIndex;
+      const player = stateObject;
 
-    case "summary.card":
-      if (!state.players[playerIndex]) {break};
-      //const outlineColor = "black";
-      const makeOutlineBold = uiState.myPlayerIndex === playerIndex;
-      const highlightedCenter = state.activePlayerIndex === playerIndex;
-      //if (uiState.myPlayerIndex === playerIndex)
-      drawSummaryCard(ctx, { x, y, w, h }, makeOutlineBold, highlightedCenter);
-      return true;
-
-    case "summary.text.name": {
-      if (!state.players[playerIndex]) {break};
-      // stateObject could later be the name string; for now use slot.text
-      const label = state.players[playerIndex].name ?? text ?? "";
-
+      // Panel background
       ctx.save();
+      roundedRectPath(ctx, x, y, w, h, 14);
+      ctx.fillStyle = isActive ? "rgba(255, 215, 0, 0.12)" : "rgba(243, 243, 243, 0.85)";
+      ctx.fill();
+      ctx.strokeStyle = isMe ? "#111" : "rgba(0,0,0,0.25)";
+      ctx.lineWidth = isMe ? 3 : 1.5;
+      ctx.stroke();
+
+      // Active turn accent line at top
+      if (isActive) {
+        ctx.beginPath();
+        const accentR = 14;
+        ctx.moveTo(x + accentR, y);
+        ctx.arcTo(x + w, y, x + w, y + accentR, accentR);
+        ctx.lineTo(x + w, y);
+        ctx.lineTo(x, y);
+        ctx.closePath();
+        ctx.fillStyle = "rgba(255, 215, 0, 0.5)";
+        ctx.fill();
+      }
+
+      // Player name
+      const name = player?.name ?? `Player ${playerIndex + 1}`;
+      const fromCards  = (player?.cards ?? []).reduce((s, c) => s + (c.points ?? 0), 0);
+      const fromNobles = (player?.nobles ?? []).reduce((s, n) => s + (n.points ?? 0), 0);
+      const prestige = fromCards + fromNobles;
+
       ctx.fillStyle = "#111";
-      ctx.font = "16px sans-serif";
+      ctx.font = `${isMe ? "bold " : ""}16px system-ui, sans-serif`;
       ctx.textAlign = "left";
-      ctx.textBaseline = "top";
-      ctx.fillText(label, x, y);
-      ctx.restore();
-      return true;
-    }
+      ctx.textBaseline = "middle";
+      ctx.fillText(name, x + 12, y + 22);
 
-    case "summary.text.bonus": {
-      if (!state.players[playerIndex]) {break};
-      const noblesAndCard = [...state.players[playerIndex].cards, ...state.players[playerIndex].nobles]
-      const points = noblesAndCard.reduce((sum, {points}) => sum + points, 0); 
-      const label = points ? (text + ": " + points) : (text + ": 0");
-
-      ctx.save();
-      ctx.fillStyle = "#111";
-      ctx.font = "16px sans-serif";
+      // Prestige points (right-aligned)
       ctx.textAlign = "right";
-      ctx.textBaseline = "top";
-      ctx.fillText(label, x + w, y);
+      ctx.fillStyle = prestige >= 15 ? "#d4a017" : "#555";
+      ctx.font = `bold 15px system-ui, sans-serif`;
+      ctx.fillText(`${prestige} pt`, x + w - 12, y + 22);
       ctx.restore();
       return true;
     }
 
-    case "summary.text.rowlabel": {
-      if (!state.players[playerIndex]) {break};
-      const label = text ?? ""
-
-      ctx.save();
-      ctx.fillStyle = "#111";
-      ctx.font = "16px sans-serif";
-      ctx.textAlign = "left";
-      ctx.textBaseline = "top";
-      ctx.fillText(label, x, y);
-      ctx.restore();
+    case "reserved":
+      drawReservedShadow(ctx, { x, y, w, h }, {});
+      if (isHovered(uiID, uiState)) { y -= 4 };
+      stateObject ? drawReserved(ctx, { x, y, w, h }, stateObject ) : null;
+      return true;
+    case "fanned.cards": {
+      const grouped = groupCardsByBonus(stateObject, ["white","blue","green","red","black"]);
+      const pile = grouped[color] ?? [];
+      stateObject ? drawFannedCards(ctx, { color, x, y, w, h }, pile ) : null;
       return true;
     }
-
-    case "summary.gems": {
-      if (!state.players[playerIndex]) {break};
-      const colors = ["white","blue","green","red","black"];
-      const cards = state.players[playerIndex].cards
-      const grouped = {};
-        for (const c of colors) grouped[c] = 0;
-          for (const card of (cards ?? [])) {
-            const b = card?.bonus;
-            (grouped[b]++);
-          }
-      if ( !grouped[color] ) { break }
-      const value = grouped[color];
-      const r = Math.min(h * 0.35);
-      drawGem(ctx, x, y, r, color, value)
-      //drawPipValue(ctx, color, { x, y, w, h }, value);
+    case "fanned.nobles":
+      stateObject ? drawFannedNobles(ctx, { color, x, y, w, h }, stateObject ) : null;
       return true;
-    }
-
-    case "summary.tokens": {
-      if (!state.players[playerIndex]) {break};
-      if ( !state.players[playerIndex].tokens[color] ) { break }
-      const value = state.players[playerIndex].tokens[color];
-      drawPipValue(ctx, color, { x, y, w, h }, value);
-      return true;
-    }
-
 
     default:
       // Code to execute if none of the cases match
