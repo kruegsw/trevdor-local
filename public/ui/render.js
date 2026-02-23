@@ -227,7 +227,7 @@ function isHovered(uiID, uiState) {
   return uiState.isHovered?.uiID === uiID;
 }
 
-function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, playerIndex, positionIndex, x, y, w, h, text, panelLayout }) {
+function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, tier, index, playerIndex, positionIndex, x, y, w, h, text, panelLayout }) {
   switch (kind) {
     case "decks.tier1":
       //drawCard(ctx, { x, y, w, h } );
@@ -252,7 +252,8 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, playe
 
       drawCardShadow(ctx, { x, y, w, h }, {})
 
-      if (isHovered(uiID, uiState)) { y -= 4 };
+      if (isHovered(uiID, uiState) ||
+          (uiState.pending?.card?.tier === tier && uiState.pending?.card?.index === index)) { y -= 4 };
 
       stateObject ? drawDevelopmentCard(ctx, { x, y, w, h }, {
         points: stateObject.points,
@@ -380,7 +381,8 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, playe
 
     case "reserved":
       drawReservedShadow(ctx, { x, y, w, h }, {});
-      if (isHovered(uiID, uiState)) { y -= 4 };
+      if (isHovered(uiID, uiState) ||
+          (uiState.pending?.card?.tier === tier && uiState.pending?.card?.index === index)) { y -= 4 };
       stateObject ? drawReserved(ctx, { x, y, w, h }, stateObject ) : null;
       return true;
     case "fanned.cards": {
