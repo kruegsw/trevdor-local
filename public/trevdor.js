@@ -736,13 +736,42 @@ function resize() {
 
   renderer.resize({ width: rect.width, height: rect.height, dpr }, uiState);
 
-  // Auto-zoom: fit board width to viewport on narrow screens
+  // Auto-zoom: fit relevant content (board + visible panels) into viewport
   const bounds = renderer.getBounds();
   if (bounds && !uiState.cameraUserAdjusted) {
-    const fitScale = rect.width / bounds.width;
-    uiState.camera.scale = Math.min(1, fitScale);
-    uiState.camera.x = 0;
-    uiState.camera.y = 0;
+    const numPlayers = state?.players?.length ?? 0;
+
+    // Compute tight bounding box of board + visible panels only
+    // Panel positions: 0=bottom(you), 1=right(+1), 2=top(+2), 3=left(+3)
+    const rects = [bounds.boardRect];
+    if (bounds.panelRects) {
+      for (let i = 0; i < Math.min(numPlayers, 4); i++) {
+        rects.push(bounds.panelRects[i]);
+      }
+    }
+
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const r of rects) {
+      minX = Math.min(minX, r.x);
+      minY = Math.min(minY, r.y);
+      maxX = Math.max(maxX, r.x + r.w);
+      maxY = Math.max(maxY, r.y + r.h);
+    }
+
+    const pad = 15; // small margin around the content
+    minX -= pad; minY -= pad; maxX += pad; maxY += pad;
+    const contentW = maxX - minX;
+    const contentH = maxY - minY;
+
+    // Scale to fit the tighter bounding box in the viewport
+    const scaleX = rect.width / contentW;
+    const scaleY = rect.height / contentH;
+    const fitScale = Math.min(scaleX, scaleY, 1);
+
+    // Center the content in the viewport
+    uiState.camera.scale = fitScale;
+    uiState.camera.x = minX - (rect.width / fitScale - contentW) / 2;
+    uiState.camera.y = minY - (rect.height / fitScale - contentH) / 2;
   }
 
   draw();

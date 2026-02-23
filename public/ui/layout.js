@@ -139,7 +139,16 @@ export function computeLayout(viewport = { width, height }) {
 
     return [
       // Panel background + name header (drawn first, behind everything)
-      pSlot({ uiID: `${pre}.bg`, positionIndex: posIdx, kind: "panel.bg", dx: 0, dy: 0, w: PANEL_W, h: PANEL_H, statePath: ["players", 0] }),
+      // Includes layout metrics so render.js can compute dynamic height
+      pSlot({ uiID: `${pre}.bg`, positionIndex: posIdx, kind: "panel.bg", dx: 0, dy: 0, w: PANEL_W, h: PANEL_H, statePath: ["players", 0],
+        panelLayout: {
+          headerH: HEADER_H,
+          cardRowY: HEADER_H + CARD_WH.w + GAP * 2 + TOKEN_WH.h, // Y offset where fanned cards start
+          cardH: CARD_WH.h,
+          cardPeek: Math.floor(CARD_WH.h * 0.25),
+          padding: GAP,
+        }
+      }),
 
       // Row 0: yellow token, 3 reserved (sideways), fanned nobles
       pSlot({ uiID: `${pre}.nobles`, positionIndex: posIdx, kind: "fanned.nobles", dx: GAP * 5 + TOKEN_WH.w + CARD_WH.h * 3, dy: H, w: NOBLE_WH.w, h: NOBLE_WH.h, statePath: ["players", 0, "nobles"] }),
@@ -181,6 +190,8 @@ export function computeLayout(viewport = { width, height }) {
       width: totalW,
       height: totalH,
       boardRight: BOARD.x + BOARD.w,
+      boardRect: { x: BOARD.x, y: BOARD.y, w: BOARD.w, h: BOARD.h },
+      panelRects: panelPositions.map(p => ({ x: p.x, y: p.y, w: PANEL_W, h: PANEL_H })),
     }
   };
 }

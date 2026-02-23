@@ -223,7 +223,7 @@ function isHovered(uiID, uiState) {
   return uiState.isHovered?.uiID === uiID;
 }
 
-function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, playerIndex, positionIndex, x, y, w, h, text }) {
+function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, playerIndex, positionIndex, x, y, w, h, text, panelLayout }) {
   switch (kind) {
     case "decks.tier1":
       //drawCard(ctx, { x, y, w, h } );
@@ -345,9 +345,27 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, playe
       const isActive = state.activePlayerIndex === playerIndex;
       const player = stateObject;
 
+      // Compute dynamic panel height based on actual content
+      let drawH = h; // fallback to full PANEL_H
+      if (panelLayout && player) {
+        const { cardRowY, cardH, cardPeek, padding } = panelLayout;
+        // Find max cards of a single color
+        const cards = player.cards ?? [];
+        const counts = {};
+        for (const c of cards) { const b = c?.bonus; if (b) counts[b] = (counts[b] ?? 0) + 1; }
+        const maxStack = Math.max(0, ...Object.values(counts));
+        // Height = card row top + base card height + peek per extra card + padding
+        if (maxStack > 0) {
+          drawH = cardRowY + cardH + cardPeek * (maxStack - 1) + padding;
+        } else {
+          // No cards yet — shrink to just header + reserved/token rows + padding
+          drawH = cardRowY + padding;
+        }
+      }
+
       // Panel background
       ctx.save();
-      roundedRectPath(ctx, x, y, w, h, 14);
+      roundedRectPath(ctx, x, y, w, drawH, 14);
       ctx.fillStyle = isActive ? "rgba(255, 215, 0, 0.12)" : "rgba(243, 243, 243, 0.85)";
       ctx.fill();
       ctx.strokeStyle = isMe ? "#111" : "rgba(0,0,0,0.25)";
