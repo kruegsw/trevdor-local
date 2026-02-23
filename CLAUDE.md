@@ -8,7 +8,7 @@ A multiplayer browser implementation of the board game Splendor. Players take to
 node server/server.js   # serves HTTP + WebSocket on port 8787
 # open http://localhost:8787 in browser
 ```
-No build step. The server also serves all static files from `/public` and engine modules from `/engine` via `/engine/*`.
+No build step. The server serves static files from `/public` and engine modules from `/engine` via `/engine/*`. For remote deployment behind Apache reverse proxy, see `public/DEPLOY.md`.
 
 ## Architecture in One Paragraph
 The `/engine` directory is a pure, framework-agnostic game state machine shared between client and server. The server holds the **only authoritative game state**. Clients send action messages; the server validates them with `rulesCheck()`, applies them with `applyAction()` (a pure reducer), increments `room.version`, and broadcasts the full new state to all room clients. The client never mutates state locally — it waits for the server's STATE message. If the reducer returns the same state reference (no-op), the action is rejected.
@@ -16,72 +16,85 @@ The `/engine` directory is a pure, framework-agnostic game state machine shared 
 ## Key Files
 | File | Role |
 |---|---|
-| `server/server.js` | HTTP + WebSocket server, room management, seat assignment, session persistence |
-| `public/trevdor.js` | Client entry point — wires transport, UI events, controller, status bar |
-| `public/net/transport.js` | WebSocket client with auto-reconnect |
+| `server/server.js` | HTTP + WebSocket server, room management, seat assignment, session persistence, room TTL cleanup |
+| `public/trevdor.js` | Client entry point — wires transport, UI events, controller, status bar, lobby UI |
+| `public/net/transport.js` | WebSocket client with auto-reconnect, generation counter, mobile recovery |
+| `public/debug.js` | Exports `DEBUG` flag from `?debug` URL param |
 | `public/ui/render.js` | All canvas drawing (~1350 lines) — do not refactor casually |
-| `public/ui/controller.js` | Translates UI events → game actions, enforces turn gating |
+| `public/ui/controller.js` | Translates UI events → game actions, enforces turn gating + game-over block |
 | `public/ui/events.js` | Pointer/touch event handling, hit testing |
-| `public/ui/state.js` | UI-only state (camera, hover, pending intent, identity) |
+| `public/ui/state.js` | UI-only state (camera, hover, pending intent, identity, lobby data) |
 | `public/ui/intent.js` | Accumulates multi-step player intent (e.g. picking 3 tokens) |
+| `public/ui/layout.js` | Canvas geometry computation (card positions, panels, scaling) |
+| `public/ui/camera.js` | Zoom/pan camera with clamping |
+| `public/ui/handlers/handleClick.js` | Click → intent mutations (token selection, card selection, confirm/cancel) |
+| `public/ui/handlers/handleHover.js` | Hover → UI state (highlights, player panel switching) |
+| `public/ui/rules.js` | Client-side validation mirror (see "Client-side rules.js" below) |
 | `engine/reducer.js` | Pure state transitions — returns same ref if action is invalid |
-| `engine/rules.js` | Server-side validation (authoritative) |
+| `engine/rules.js` | Authoritative validation (server-side) |
+| `engine/actions.js` | Action builder functions (TAKE_TOKENS, RESERVE_CARD, BUY_CARD, END_TURN) |
 | `engine/state.js` | `initialState(numberOfPlayers, gameID)` — creates fresh game |
-| `engine/defs.js` | Card/noble/token definitions |
-| `public/ui/rules.js` | Client-side validation mirror — NOT kept in sync with engine/rules.js, used only for UI feedback |
+| `engine/defs.js` | Card/noble/token definitions (full Splendor base set) |
+| `public/DEPLOY.md` | Deployment guide for Ubuntu + Apache reverse proxy |
 
 ## WebSocket Protocol
 **Client → Server**
 ```
-{ type: "JOIN",       roomId, name, sessionId? }
-{ type: "READY",      roomId }          // toggles ready state for sender's seat
-{ type: "ACTION",     roomId, action: { type, ...payload } }
-{ type: "PING",       roomId }          // throttled heartbeat for activity tracking
-{ type: "RESET_GAME", roomId }          // debug only
-{ type: "SAY",        text }            // debug chat broadcast
+{ type: "JOIN",        roomId, name, sessionId? }
+{ type: "CREATE_GAME", name, sessionId? }
+{ type: "LEAVE_ROOM",  roomId }
+{ type: "READY",       roomId }          // toggles ready state for sender's seat
+{ type: "ACTION",      roomId, action: { type, ...payload } }
+{ type: "RENAME_ROOM", roomId, name }    // host only
+{ type: "CLOSE_ROOM",  roomId }          // host only — evicts all clients, deletes room
+{ type: "IDENTIFY",    name }            // set display name before joining any room
+{ type: "PING",        roomId }          // throttled heartbeat for activity tracking
+{ type: "SAY",         text }            // debug chat broadcast
 ```
 **Server → Client**
 ```
-{ type: "WELCOME", roomId, clientId, playerIndex, sessionId }
-{ type: "ROOM",    roomId, clients: [{seat, clientId, name, occupied, wsOpen, lastActivity}], ready: [bool,bool,bool,bool], started: bool }
-{ type: "STATE",   roomId, version, state }
-{ type: "REJECTED",roomId, reason, ...details }
-{ type: "ERROR",   message }
-{ type: "MSG",     from, text }
+{ type: "WELCOME",        roomId, clientId, playerIndex, sessionId }
+{ type: "ROOM",           roomId, clients: [{seat, clientId, name, occupied, wsOpen, lastActivity}], ready: [...], started }
+{ type: "STATE",          roomId, version, state }
+{ type: "ROOM_LIST",      rooms: [...], users: [...], yourClientId }
+{ type: "ROOM_NOT_FOUND", roomId }
+{ type: "REJECTED",       roomId, reason, ...details }
+{ type: "ERROR",          message }
+{ type: "MSG",            from, text }
 ```
-`playerIndex` === `seatIndex` (0–3). They are the same value in the current implementation — seat 0 is player 0, seat 1 is player 1, etc.
+`playerIndex` === `seatIndex` (0–3). Seat 0 is player 0, seat 1 is player 1, etc. If all 4 seats are full, additional clients join as spectators (`playerIndex: -1`).
 
 ## Decisions Made — Read Before Touching
 
-### Lobby and ready system
-The lobby is fully implemented. `getRoom()` sets `state: null`, `started: false`, `ready: [false,false,false,false]`. Game state is never created on join — it is only created when all occupied seats (minimum 2) toggle ready via the `READY` message. `joinRoom()` no longer auto-starts the game. The `READY` handler toggles `room.ready[seat]`, checks if all occupied seats are ready, and if so calls `initialState(N)` and sets `started: true`, then broadcasts STATE to all clients.
+### Game lobby and connected users
+The game lobby shows all open rooms (with Join/Watch/Resume buttons) and all connected users with status dots and location. `ROOM_LIST` messages include a `users` array from `connectedUsersSnapshot()` and a `yourClientId` field. The client sends `IDENTIFY` on WebSocket open so the server knows the player's saved name before they join a room. The lobby re-renders on a 15-second interval so idle dot transitions appear without a server event.
+
+### Room lobby and ready system
+`getRoom()` creates rooms with `state: null`, `started: false`, `ready: [false,false,false,false]`. Game state is only created when all occupied seats (minimum 2) toggle ready via `READY`. The host (room creator) can rename the room via `RENAME_ROOM` and close it via `CLOSE_ROOM`. The host sees a "Close Room" button; the room name is editable in the UI header.
 
 ### Seat compaction on leave (pre-game only)
-When a player leaves during the lobby (`!room.started`), `compactSeats()` is called. It packs remaining players into consecutive seats starting at 0, resets all ready flags, updates `clientInfo.playerIndex` and session data for moved players, and sends each moved player a new WELCOME with their updated `playerIndex`. This ensures `initialState(N)` player indices always match the seated `playerIndex` values.
+When a player leaves during the lobby (`!room.started`), `compactSeats()` packs remaining players into consecutive seats starting at 0, resets all ready flags, updates `clientInfo.playerIndex` and session data, and sends each moved player a new WELCOME with their updated `playerIndex`.
 
 ### Session persistence for reconnect
-`sessions` Map on the server: `sessionId → { roomId, seatIndex, name }`. The server generates a random `sessionId` and sends it in `WELCOME`. The client stores it in `localStorage("trevdor.sessionId")` and sends it back on every JOIN (including auto-reconnects). `assignSeat()` checks the session first and reclaims the saved seat if it's empty, if the old ws was cleaned up, or if the occupant has the same sessionId (stale ws from a page refresh whose close event hasn't fired yet). This means a player who drops and reconnects gets their original seat back even in race conditions.
+`sessions` Map on the server: `sessionId → { roomId, seatIndex, name }`. The server generates a random `sessionId` and sends it in `WELCOME`. The client stores it in `localStorage("trevdor.sessionId")` and sends it back on every JOIN. `assignSeat()` checks the session first and reclaims the saved seat if it's empty, if the old ws was cleaned up, or if the occupant has the same sessionId (stale ws from a page refresh whose close event hasn't fired yet).
 
 ### "Previous room" persistence for Resume button
-When a player leaves a started game via "← Lobby", `myPreviousRoomId` and `myPreviousRoomIsHost` are persisted to `localStorage` (keys `trevdor.previousRoomId`, `trevdor.previousRoomIsHost`). This allows the game lobby to show "Resume" instead of "Watch" for the player's own game, even after a page refresh. All writes go through `setPreviousRoom(roomId, isHost)` in `trevdor.js`, which keeps the JS variables and localStorage in sync. The values are cleared when the player joins a room (WELCOME), when the room disappears (ROOM_NOT_FOUND / ROOM_LIST), or when the player creates a new game.
+When a player leaves a started game via "← Lobby", `myPreviousRoomId` and `myPreviousRoomIsHost` are persisted to `localStorage` (keys `trevdor.previousRoomId`, `trevdor.previousRoomIsHost`). This allows the lobby to show "Resume" instead of "Watch" for the player's own game, even after a page refresh. All writes go through `setPreviousRoom(roomId, isHost)` in `trevdor.js`. Values are cleared on WELCOME, ROOM_NOT_FOUND, ROOM_LIST (if room gone), or when creating a new game.
 
 ### `uiState.myPlayerIndex` must be a number
-The controller in `controller.js` checks `typeof my === "number"` to gate turns. It must be set from the server's `WELCOME` message (`msg.playerIndex`). There was a bug (now fixed) where a stale line `uiState.myPlayerIndex = () => myPlayerIndex` overwrote the correct server-assigned value with a broken function. That line is gone — do not re-introduce it.
+The controller checks `typeof my === "number"` to gate turns. It must be set from the server's `WELCOME` message (`msg.playerIndex`). Do not overwrite it with a function or other type.
 
 ### `hotSeat` is gated behind DEBUG
 `state.hotSeat` defaults to `false` in `engine/state.js`. The server sets it to `true` only when `DEBUG=1` env var is set. This disables server-side turn enforcement so a single machine can play all seats for testing. The server's ACTION handler checks `if (actorIndex !== active && !room.state.hotSeat)`. The client-side click handler in `handleClick.js` also reads `state.hotSeat` to allow switching the viewed player panel.
 
-### RESET_GAME returns all clients to the waiting room
-The reset button sends `RESET_GAME` to the server. The server sets `room.state = null`, `room.started = false`, `room.ready = [false,false,false,false]`, and broadcasts ROOM. The client's ROOM handler checks `msg.started` — if false, it sets `state = null` and calls `setScene("waiting")`. This means all clients (not just the one who pressed reset) transition back to the waiting room. Connections are NOT closed. The `closeAllClients()` function still exists in server.js but is no longer called.
-
 ### `broadcastState()` is a no-op when state is null
-Guard added: `if (!room || !room.state) return`. This prevents broadcasting null state to already-connected clients while waiting for the 2nd player to join.
+Guard: `if (!room || !room.state) return`. Prevents broadcasting null state while waiting for players.
 
 ### End-of-game detection
 The reducer in `engine/reducer.js` implements Splendor's end-of-game rules:
-- **15 prestige threshold**: After each turn-ending action (TAKE_TOKENS, RESERVE_CARD, BUY_CARD), the reducer checks if the active player has ≥15 prestige (cards + nobles). If so, `state.finalRound = true`.
+- **15 prestige threshold**: After each turn-ending action, the reducer checks if the active player has ≥15 prestige (cards + nobles). If so, `state.finalRound = true`.
 - **Complete the round**: The game continues until `activePlayerIndex` wraps back to 0, so all players get equal turns.
-- **Game over**: When `finalRound` is true and `activePlayerIndex` returns to 0, `state.gameOver = true` and `state.winner` is set to the index of the winning player.
+- **Game over**: When `finalRound` is true and `activePlayerIndex` returns to 0, `state.gameOver = true` and `state.winner` is set to the winning player index.
 - **Winner determination**: `determineWinner()` picks the player with the highest prestige. Tiebreak: fewest purchased cards (per Splendor rules).
 - **Action rejection**: Once `state.gameOver` is true, `applyAction()` returns `prev` (no-op) for all further actions.
 
@@ -89,13 +102,20 @@ The reducer in `engine/reducer.js` implements Splendor's end-of-game rules:
 - Status bar shows "Winner: [name] (Xpt)" in gold when `gameOver`, "Final Round!" in orange when `finalRound`.
 - Canvas draws a semi-transparent overlay with the winner's name and prestige points.
 - Controller blocks clicks when `gameOver` but allows hover so players can still inspect the board.
-- Games remain on the server after ending — no automatic cleanup yet. Players can use RESET_GAME to return to the waiting room or navigate to the lobby.
+- Games remain on the server after ending. Players can navigate to the lobby via the "← Lobby" button. Rooms are cleaned up by the 24-hour TTL.
 
-## What's Next
-- ~~Replace the debug reset button with proper end-of-game flow~~ (done — end-of-game detection and display implemented)
-- ~~Gate `hotSeat` behind a dev flag~~ (done — server sets `hotSeat=true` only when `DEBUG=1`)
-- ~~Remove `engine/dispatch.js`~~ (done)
-- ~~Gate `console.log` calls behind a debug flag~~ (done — server: `DEBUG=1`, client: `?debug` URL param)
+### Token limit enforcement
+`engine/rules.js` enforces a 10-token maximum. TAKE_TOKENS is rejected if `currentTokens + newTokens > 10`. This is preventative — the action is simply not allowed rather than requiring a return-tokens step.
+
+### Room TTL cleanup
+The server runs an hourly interval that deletes rooms older than 24 hours and cleans up associated sessions.
+
+### Client-side rules.js
+`public/ui/rules.js` is a separate copy of validation logic used only for client-side UI feedback (e.g. graying out invalid token selections). It is intentionally separate from `engine/rules.js` because the client cannot directly import from the engine folder's rules module due to deployment path resolution constraints (see `public/DEPLOY.md` subpath notes). The server always has final say — this client copy exists purely for responsive UI.
+
+## Debug Mode
+- **Server**: Set `DEBUG=1` env var. Enables verbose logging, sets `hotSeat=true` on new games.
+- **Client**: Add `?debug` to the URL. Enables console logging throughout UI code. Flag exported from `public/debug.js`.
 
 ## Status Indicators
 Each seat has a `.playerDot` (10px circle) that encodes two dimensions independently:
@@ -104,21 +124,14 @@ Each seat has a `.playerDot` (10px circle) that encodes two dimensions independe
 
 Activity tracking: the client sends a throttled `PING` via `reportActivity()` on mousemove/click/touchstart. Two-speed throttle: immediate if idle >60s (snappy idle→active transition), 15s otherwise. The server broadcasts ROOM on every PING so all clients get fresh `lastActivity` timestamps. A 15s `setInterval` re-renders dots for the active→idle transition.
 
-The same `.playerDot` class is used in both the waiting room roster and the status bar. Ready state in the waiting room is shown as a separate `✓` text label, not the dot.
+The same `.playerDot` class is used in the waiting room roster, the status bar, and the game lobby connected users list.
 
 ## Status Bar
-A fixed HTML overlay (`#statusBar` in `index.html`) shows all 4 seat slots, whose turn it is (pulsing dot), and the turn number. It is:
+A fixed HTML overlay (`#statusBar` in `index.html`) shows all 4 seat slots with prestige/gems/tokens, whose turn it is (pulsing dot), spectators, turn number, final round notice, and winner. It is:
 - Hidden in the lobby/waiting scene, shown in the game scene via `setScene()`
 - Updated by `updateStatusBar()` in `trevdor.js` on every WELCOME, ROOM, and STATE message
-- `pointer-events: none` so it never blocks canvas interaction
-- Intentionally HTML (not canvas) for simplicity — migrating to canvas later is straightforward since `updateStatusBar()` is self-contained
-
-## Known Technical Debt (Do Not "Fix" Without Discussion)
-- `public/ui/rules.js` duplicates server validation logic and can drift out of sync. Exists for UI feedback only. Flagged for future removal.
-- ~~`engine/dispatch.js`~~ deleted.
-- `console.log` calls gated behind `DEBUG` flag (server: `DEBUG=1` env var, client: `?debug` URL param via `public/debug.js`).
-- The reset button and its `RESET_GAME` message path are explicitly temporary debug tooling. Leave them in place until proper end-of-game flow is implemented.
-- `public/ui/rules.js` client rules are not used for server validation — the server always has final say.
+- `pointer-events: none` so it never blocks canvas interaction (except the "← Lobby" button which has `pointer-events: auto`)
+- Intentionally HTML (not canvas) for simplicity
 
 ### Mobile WebSocket reconnect strategy
 Mobile Safari kills WebSocket connections on page refresh (close code 1001 "Going Away") while still fetching the new page's JS modules. The new page's `transport.connect()` then fails repeatedly because the browser hasn't finished its page transition. Fixed with a multi-layered approach in `transport.js` and `trevdor.js`:
@@ -129,8 +142,13 @@ Mobile Safari kills WebSocket connections on page refresh (close code 1001 "Goin
 - **Fast initial retries** — first 5 reconnect attempts use 100ms delay instead of the normal 500ms, for snappy recovery.
 - **"Connecting…" indicator** — the lobby subtitle (`#connStatus`) shows "Connecting…" while disconnected, switching to "Game Lobby" on open. Desktop and iPad are unaffected; the issue is specific to mobile phone browsers.
 
-## Known Bugs — To Fix
-- None currently tracked.
+## Dead Code to Clean Up
+- `closeAllClients()` in `server/server.js` (line ~472) — defined but never called. Legacy from a removed RESET_GAME feature. Safe to delete.
+- `public/actions.js` — a copy of `engine/actions.js` that nothing imports. The client imports actions via the `/engine/*` server route instead. Safe to delete.
+
+## What's Next
+- Mobile UX — canvas layout and interaction for small screens
+- Post-game flow — "Play Again" or "New Game" button after game ends (currently players use "← Lobby")
 
 ## Engine Quick Reference
 ```javascript

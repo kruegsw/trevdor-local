@@ -97,11 +97,11 @@ When served behind Apache at `/trevdor/`, a few things need to be true in the cl
    Locally (with a port like `8787`), no prefix is added. The WS URL always ends
    with `/ws` to match the Apache `ProxyPass` rule.
 
-2. **Engine imports**: The `engine/` folder lives outside `public/`, but the client
-   needs to import `actions.js` from it. A copy of `engine/actions.js` is kept at
-   `public/engine/actions.js` so client imports use `../engine/actions.js` (stays
-   within the `public/` tree and resolves correctly behind the proxy). If action
-   types change in `engine/actions.js`, update `public/engine/actions.js` too.
+2. **Engine imports**: The `engine/` folder lives outside `public/`, but the server
+   maps `/engine/*` requests to the `engine/` directory at the project root. Client
+   code imports engine modules via relative paths that resolve to `/engine/...`
+   (e.g. `../engine/actions.js` from `public/ui/intent.js`). This works because the
+   server serves both `/public` and `/engine` as separate roots. No copies needed.
 
 3. **All other imports** in `public/` use relative paths (`./`, `../`) which resolve
    correctly in both environments.
