@@ -469,20 +469,6 @@ function joinRoom(ws, roomId, name) {
   broadcastRoomList();
 }
 
-function closeAllClients() {
-  // Define a close code and reason (optional, but good practice)
-  const closeCode = 1000; // Normal Closure
-  const closeReason = 'Server reset initiated';
-
-  // Iterate over all clients in the Set
-  wss.clients.forEach(function each(ws) {
-    //if (ws.readyState === WebSocket.OPEN) {
-      // Initiate the closing handshake
-      ws.close(closeCode, closeReason);
-    //}
-  });
-  //nextClientId = 1;
-}
 
 // -----------------------------------------------------------------------------
 // HTTP server (health + static hosting)

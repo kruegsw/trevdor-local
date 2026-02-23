@@ -142,10 +142,6 @@ Mobile Safari kills WebSocket connections on page refresh (close code 1001 "Goin
 - **Fast initial retries** — first 5 reconnect attempts use 100ms delay instead of the normal 500ms, for snappy recovery.
 - **"Connecting…" indicator** — the lobby subtitle (`#connStatus`) shows "Connecting…" while disconnected, switching to "Game Lobby" on open. Desktop and iPad are unaffected; the issue is specific to mobile phone browsers.
 
-## Dead Code to Clean Up
-- `closeAllClients()` in `server/server.js` (line ~472) — defined but never called. Legacy from a removed RESET_GAME feature. Safe to delete.
-- `public/actions.js` — a copy of `engine/actions.js` that nothing imports. The client imports actions via the `/engine/*` server route instead. Safe to delete.
-
 ## What's Next
 - Mobile UX — canvas layout and interaction for small screens
 - Post-game flow — "Play Again" or "New Game" button after game ends (currently players use "← Lobby")
