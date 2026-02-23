@@ -33,6 +33,14 @@ let myPreviousRoomId = null;
 // Used to show "Close Game" next to "Resume" in the room list.
 let myPreviousRoomIsHost = false;
 
+// Snapshot of the last started game the player was in.
+// Kept after returnToGameLobby() so the status bar can stay visible
+// with a "Jump to Game" button while the player browses the lobby.
+let snapRoomId = null;
+let snapRoom   = null;   // uiState.room at time of departure
+let snapState  = null;   // engine state at time of departure
+let snapMyIdx  = null;   // myPlayerIndex at time of departure
+
 // Current session ID (updated from WELCOME; used in CREATE_GAME)
 let mySessionId = localStorage.getItem("trevdor.sessionId") || null;
 
@@ -58,13 +66,22 @@ function setScene(scene) {
     lobbyScene.classList.remove("hidden");
     gameLobbySection.classList.remove("hidden");
     waitingSection.classList.add("hidden");
-    statusBar.classList.add("hidden");
     createGameBtn.textContent = "Create Game";
     createGameBtn.disabled = false;
+    // Keep status bar visible as a snapshot of the last game if one exists
+    if (snapRoomId) {
+      statusBar.classList.remove("hidden");
+      lobbyScene.classList.add("withStatusBar");
+      updateStatusBar(); // refresh label ("Jump to Game") and snap content immediately
+    } else {
+      statusBar.classList.add("hidden");
+      lobbyScene.classList.remove("withStatusBar");
+    }
   } else if (scene === "reconnecting") {
     lobbyScene.classList.remove("hidden");
     gameLobbySection.classList.remove("hidden");
     waitingSection.classList.add("hidden");
+    lobbyScene.classList.remove("withStatusBar");
     statusBar.classList.add("hidden");
     createGameBtn.textContent = "Reconnecting…";
     createGameBtn.disabled = true;
@@ -72,24 +89,33 @@ function setScene(scene) {
     lobbyScene.classList.remove("hidden");
     gameLobbySection.classList.add("hidden");
     waitingSection.classList.remove("hidden");
+    lobbyScene.classList.remove("withStatusBar");
     statusBar.classList.add("hidden");
     createGameBtn.textContent = "Create Game";
     createGameBtn.disabled = false;
   } else if (scene === "game") {
     lobbyScene.classList.add("hidden");
+    lobbyScene.classList.remove("withStatusBar");
     statusBar.classList.remove("hidden");
   }
 }
 
 function returnToGameLobby() {
   if (currentRoomId) {
-    // Remember this room so we can show "Resume" (and "Close Game" for hosts)
-    // in the lobby. Capture before clearing uiState.
+    // Capture before clearing uiState — used by room list and status bar snap.
     const wasStartedPlayer = uiState.room?.started && !uiState.isSpectator;
     myPreviousRoomId     = wasStartedPlayer ? currentRoomId : null;
     myPreviousRoomIsHost = wasStartedPlayer
       && uiState.myClientId !== null
       && uiState.room?.host === uiState.myClientId;
+    if (wasStartedPlayer) {
+      snapRoomId = currentRoomId;
+      snapRoom   = uiState.room;
+      snapState  = state;
+      snapMyIdx  = uiState.myPlayerIndex;
+    } else {
+      snapRoomId = null; snapRoom = null; snapState = null; snapMyIdx = null;
+    }
     transport.sendRaw({ type: "LEAVE_ROOM", roomId: currentRoomId });
   }
   currentRoomId = null;
@@ -302,54 +328,61 @@ function updateWaitingRoom() {
    Status bar
    --------------------------------------------------------- */
 
-function playerPrestige(playerIndex) {
-  const player = state?.players?.[playerIndex];
+function playerPrestige(playerIndex, fromState = state) {
+  const player = fromState?.players?.[playerIndex];
   if (!player) return null;
   const fromCards  = player.cards.reduce((sum, c) => sum + (c.points ?? 0), 0);
   const fromNobles = player.nobles.reduce((sum, n) => sum + (n.points ?? 0), 0);
   return fromCards + fromNobles;
 }
 
-function playerTotalGems(playerIndex) {
-  const player = state?.players?.[playerIndex];
+function playerTotalGems(playerIndex, fromState = state) {
+  const player = fromState?.players?.[playerIndex];
   if (!player) return null;
   return player.cards.filter(c => c.bonus).length;
 }
 
-function playerTotalTokens(playerIndex) {
-  const player = state?.players?.[playerIndex];
+function playerTotalTokens(playerIndex, fromState = state) {
+  const player = fromState?.players?.[playerIndex];
   if (!player) return null;
   return Object.values(player.tokens ?? {}).reduce((s, n) => s + n, 0);
 }
 
 function updateStatusBar() {
-  const clients   = uiState.room?.clients ?? [];
-  const myIdx     = uiState.myPlayerIndex;
-  const activeIdx = state?.activePlayerIndex ?? null;
-  const turn      = state?.turn ?? null;
+  // When browsing the game lobby after leaving a game, use the saved snapshot.
+  const isSnap      = !currentRoomId && !!snapRoomId;
+  const room        = isSnap ? snapRoom  : uiState.room;
+  const effectState = isSnap ? snapState : state;
+  const myIdx       = isSnap ? snapMyIdx : uiState.myPlayerIndex;
+  const roomId      = isSnap ? snapRoomId : currentRoomId;
+
+  const clients   = room?.clients ?? [];
+  const activeIdx = effectState?.activePlayerIndex ?? null;
+  const turn      = effectState?.turn ?? null;
+  const roomName  = room?.name ?? roomId ?? "";
 
   // Ensure we always show 4 seat slots
   const slots = Array(4).fill(null).map((_, i) => {
     return clients.find(c => c.seat === i) ?? { seat: i, name: null, occupied: false };
   });
 
-  let html = `<div class="statusRoom">${escapeHtml(currentRoomId ?? "")}</div>`;
+  let html = `<div class="statusRoom">${escapeHtml(roomName)}</div>`;
 
   for (const slot of slots) {
     // Once the game is running, don't show slots that were never filled
-    if (state !== null && !slot.occupied) continue;
+    if (effectState !== null && !slot.occupied) continue;
 
     const isMe     = typeof myIdx === "number" && slot.seat === myIdx;
     const isActive = typeof activeIdx === "number" && slot.seat === activeIdx;
-    const prestige = slot.occupied ? playerPrestige(slot.seat) : null;
+    const prestige = slot.occupied ? playerPrestige(slot.seat, effectState) : null;
     const classes  = [
       "statusSeat",
       slot.occupied ? "isOccupied" : "",
       isActive      ? "isActive"   : "",
     ].filter(Boolean).join(" ");
 
-    const gems   = slot.occupied ? playerTotalGems(slot.seat)   : null;
-    const tokens = slot.occupied ? playerTotalTokens(slot.seat) : null;
+    const gems   = slot.occupied ? playerTotalGems(slot.seat, effectState)   : null;
+    const tokens = slot.occupied ? playerTotalTokens(slot.seat, effectState) : null;
 
     html += `<div class="${classes}">`;
     html += `<span class="playerDot${isActive ? ' isActive' : ''}" style="--dot-fill:${seatFill(slot)}"></span>`;
@@ -365,10 +398,10 @@ function updateStatusBar() {
     html += `</div>`;
   }
 
-  const spectators = uiState.room?.spectators ?? [];
+  const spectators = room?.spectators ?? [];
   if (spectators.length > 0) {
     const specItems = spectators.map(spec => {
-      const isMe = uiState.isSpectator && spec.clientId === uiState.myClientId;
+      const isMe = !isSnap && uiState.isSpectator && spec.clientId === uiState.myClientId;
       const fill = spec.wsOpen ? '#4caf50' : '#e53935';
       return `<span class="statusSpectatorEntry">` +
         `<span class="playerDot" style="--dot-fill:${fill}"></span>` +
@@ -383,6 +416,12 @@ function updateStatusBar() {
   }
 
   statusContent.innerHTML = html;
+
+  // Swap lobby button label depending on context
+  const lobbyBtnEl = document.getElementById("lobbyBtn");
+  if (lobbyBtnEl) {
+    lobbyBtnEl.textContent = isSnap ? "Jump to Game" : "← Lobby";
+  }
 }
 
 /* ---------------------------------------------------------
@@ -424,6 +463,14 @@ const transport = createTransport({
     // Room list — shown in game lobby
     if (msg.type === "ROOM_LIST") {
       uiState.roomList = msg.rooms;
+      // If the snap room has disappeared, clear the snapshot and hide the status bar
+      if (snapRoomId && !msg.rooms.find(r => r.roomId === snapRoomId)) {
+        snapRoomId = null; snapRoom = null; snapState = null; snapMyIdx = null;
+        myPreviousRoomId = null;
+        myPreviousRoomIsHost = false;
+        statusBar.classList.add("hidden");
+        lobbyScene.classList.remove("withStatusBar");
+      }
       updateGameLobby();
       return;
     }
@@ -431,14 +478,18 @@ const transport = createTransport({
     // Room no longer exists (closed by host, expired, etc.) — drop back to game lobby
     if (msg.type === "ROOM_NOT_FOUND") {
       localStorage.removeItem("trevdor.roomId");
+      // Only wipe snap/previous if it's that specific room that vanished
+      if (msg.roomId === snapRoomId || msg.roomId === myPreviousRoomId) {
+        snapRoomId = null; snapRoom = null; snapState = null; snapMyIdx = null;
+        myPreviousRoomId = null;
+        myPreviousRoomIsHost = false;
+      }
       currentRoomId = null;
       state = null;
       uiState.room = null;
       uiState.myPlayerIndex = null;
       uiState.isSpectator = false;
       transport.setRoomId(null);
-      myPreviousRoomId = null;
-      myPreviousRoomIsHost = false;
       setScene("gameLobby");
       return;
     }
@@ -446,6 +497,8 @@ const transport = createTransport({
     if (msg.type === "WELCOME") {
       currentRoomId = msg.roomId;
       myPreviousRoomId = null;
+      myPreviousRoomIsHost = false;
+      snapRoomId = null; snapRoom = null; snapState = null; snapMyIdx = null;
       uiState.mySeatIndex    = msg.playerIndex;
       uiState.myPlayerIndex  = msg.playerIndex;
       uiState.isSpectator    = !!msg.spectator;
@@ -543,7 +596,16 @@ document.getElementById("readyBtn").addEventListener("click", () => {
   transport.sendRaw({ type: "READY", roomId: currentRoomId });
 });
 
-document.getElementById("lobbyBtn").addEventListener("click", returnToGameLobby);
+document.getElementById("lobbyBtn").addEventListener("click", () => {
+  if (currentRoomId) {
+    returnToGameLobby();
+  } else if (snapRoomId) {
+    // "Jump to Game" — rejoin the last game from the game lobby
+    const name = cleanName(nameInput.value) || uiState.myName || "player";
+    transport.setName(name);
+    transport.joinRoom(snapRoomId);
+  }
+});
 document.getElementById("lobbyFromRoomBtn").addEventListener("click", returnToGameLobby);
 
 document.getElementById("closeRoomBtn").addEventListener("click", () => {
