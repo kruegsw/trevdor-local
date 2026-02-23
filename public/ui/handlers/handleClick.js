@@ -121,12 +121,5 @@ export function handleClick({rulesCheck, getState, uiState, hit}) {
         }
     }
 
-    /////////// TEMPORARY MANUAL RESET BUTTON FOR TO RESET SERVER GAME STATE from CLIENT ////////////
-    if (hit.kind === "button.reset") {
-        uiState.mode = "resetGame";
-        return true;
-    }
-    /////////// TEMPORARY MANUAL RESET BUTTON FOR TO RESET SERVER GAME STATE from CLIENT ////////////
-
     // 5) Later: cards, nobles, reserve, buy, etc.
 }

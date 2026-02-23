@@ -17,7 +17,6 @@
 // Protocol (client -> server):
 //   { type:"JOIN", roomId:"abc", name?:"Sam" }
 //   { type:"ACTION", roomId:"abc", action:{ type:"TAKE_TOKENS" | ... } }
-//   { type:"RESET_GAME", roomId:"abc" }   // temporary manual reset (debug)
 //
 // Protocol (server -> client):
 //   { type:"WELCOME", roomId, clientId, playerIndex }           // sent to joiner only
@@ -684,28 +683,6 @@ wss.on("connection", (ws, req) => {
       room.version += 1;
 
       broadcastState(info.roomId);
-      return;
-    }
-
-    // -------------------------
-    // RESET_GAME (temporary debug)
-    // -------------------------
-    if (msg.type === "RESET_GAME") {
-      if (!info.roomId) {
-        safeSend(ws, { type: "ERROR", message: "You must JOIN a room first" });
-        return;
-      }
-
-      const room = rooms.get(info.roomId);
-      if (!room) return;
-
-      room.state = null;
-      room.version = 0;
-      room.started = false;
-      room.ready = [false, false, false, false];
-
-      broadcastRoom(info.roomId);
-      broadcastRoomList();
       return;
     }
 

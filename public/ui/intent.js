@@ -61,11 +61,6 @@ export const Intent = {
       case "buyCard":
         return hasCard;
 
-      /////////// TEMPORARY MANUAL RESET BUTTON FOR TO RESET SERVER GAME STATE from CLIENT ////////////
-      case "resetGame":
-        return true;
-      /////////// TEMPORARY MANUAL RESET BUTTON FOR TO RESET SERVER GAME STATE from CLIENT ////////////
-
       default:
         return false;
     }
@@ -87,11 +82,6 @@ export const Intent = {
 
       case "buyCard":
         return Actions.buyCard(uiState.pending.card);
-
-      /////////// TEMPORARY MANUAL RESET BUTTON FOR TO RESET SERVER GAME STATE from CLIENT ////////////
-      case "resetGame":
-        return Actions.resetGame()
-      /////////// TEMPORARY MANUAL RESET BUTTON FOR TO RESET SERVER GAME STATE from CLIENT ////////////
 
       default:
         return null;

@@ -24,9 +24,5 @@ export const Actions = {
     card
   }),
 
-  /////////// TEMPORARY MANUAL RESET BUTTON FOR TO RESET SERVER GAME STATE from CLIENT ////////////
-  resetGame: () => ({
-    type: "RESET_GAME"
-  }),
-  /////////// TEMPORARY MANUAL RESET BUTTON FOR TO RESET SERVER GAME STATE from CLIENT ////////////
+
 };

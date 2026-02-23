@@ -565,16 +565,7 @@ const transport = createTransport({
 
 function dispatchGameAction(gameAction) {
   console.log(gameAction);
-
-  /////////// TEMPORARY MANUAL RESET BUTTON ////////////
-  if (gameAction.type === "RESET_GAME") {
-    console.log("gameAction.type = RESET_GAME");
-    setScene("roomLobby");
-    transport.sendRaw({ type: "RESET_GAME", roomId: currentRoomId, action: null });
-  /////////// TEMPORARY MANUAL RESET BUTTON ////////////
-  } else {
-    transport.sendRaw({ type: "ACTION", roomId: currentRoomId, action: gameAction });
-  }
+  transport.sendRaw({ type: "ACTION", roomId: currentRoomId, action: gameAction });
 }
 
 /* ---------------------------------------------------------

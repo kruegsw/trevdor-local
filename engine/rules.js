@@ -85,9 +85,6 @@ export function rulesCheck({ state, action }) {
   // -------------------------
 
   switch (action.type) {
-    case "RESET_GAME":
-      return true; // allow (you can tighten later: host only, etc.)
-
     case "END_TURN":
       return true; // placeholder for later turn logic
 
