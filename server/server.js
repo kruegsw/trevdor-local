@@ -154,7 +154,11 @@ function roomListSnapshot() {
       const info = clientInfo.get(ws);
       if (info && info.playerIndex === null) spectatorCount++;
     }
-    list.push({ roomId, name: room.name, playerCount, spectatorCount, started: room.started });
+    const gameOver = room.state?.gameOver ?? false;
+    const winnerName = gameOver && typeof room.state.winner === "number"
+      ? (room.state.players[room.state.winner]?.name ?? `Player ${room.state.winner + 1}`)
+      : null;
+    list.push({ roomId, name: room.name, playerCount, spectatorCount, started: room.started, gameOver, winnerName });
   }
   return list;
 }

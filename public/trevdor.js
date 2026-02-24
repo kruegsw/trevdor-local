@@ -203,17 +203,22 @@ function updateGameLobby() {
     roomListEl.innerHTML = '<div class="roomListEmpty">No active games — create one!</div>';
   } else {
   roomListEl.innerHTML = rooms.map(r => {
-    const statusText = r.started ? "In Progress" : `${r.playerCount}/4`;
+    const statusText = r.gameOver ? `${escapeHtml(r.winnerName)} Won`
+                     : r.started ? "In Progress"
+                     : `${r.playerCount}/4`;
+    const statusStyle = r.gameOver ? ' style="color:#ffd700;font-weight:bold"' : '';
     const watchLabel = (r.roomId === myPreviousRoomId) ? "Resume"
+                     : r.gameOver                      ? "Results"
                      : r.started                       ? "Watch"
                      :                                   "Join";
+    const btnStyle = r.gameOver ? ' style="background:#c0c0c0;color:#111"' : '';
     const showCloseBtn = myPreviousRoomIsHost && r.roomId === myPreviousRoomId;
     return `<div class="roomEntry">` +
       `<div class="roomEntryName">${escapeHtml(r.name)}</div>` +
-      `<div class="roomEntryMeta">${escapeHtml(statusText)}` +
+      `<div class="roomEntryMeta"${statusStyle}>${statusText}` +
       (r.spectatorCount ? ` · ${r.spectatorCount} watching` : ``) +
       `</div>` +
-      `<button class="joinRoomBtn" data-room-id="${escapeHtml(r.roomId)}">${watchLabel}</button>` +
+      `<button class="joinRoomBtn"${btnStyle} data-room-id="${escapeHtml(r.roomId)}">${watchLabel}</button>` +
       (showCloseBtn ? `<button class="closeGameLobbyBtn" data-close-room-id="${escapeHtml(r.roomId)}">Close Game</button>` : ``) +
       `</div>`;
   }).join("");
