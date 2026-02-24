@@ -26,7 +26,7 @@ export { CARD_SPRITE_MAP };
 let spriteSheet = null;
 let spriteSheetReady = false;
 
-export function loadSpriteSheet() {
+export function loadSpriteSheet(basePath = "") {
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
@@ -35,10 +35,10 @@ export function loadSpriteSheet() {
       resolve(true);
     };
     img.onerror = () => {
-      console.warn("Card sprite sheet not found at /assets/cards.png — using fallback colors");
+      console.warn("Card sprite sheet not found — using fallback colors");
       resolve(false);
     };
-    img.src = "/assets/cards.png";
+    img.src = basePath + "/assets/cards.png";
   });
 }
 

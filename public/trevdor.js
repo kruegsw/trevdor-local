@@ -951,7 +951,7 @@ window.addEventListener("load", resize);
 window.addEventListener("resize", resize);
 
 // Load card sprite sheet (non-blocking — cards use flat color fallback until loaded)
-loadSpriteSheet().then(() => draw());
+loadSpriteSheet(basePath).then(() => draw());
 
 /* ---------------------------------------------------------
    Activity ping
