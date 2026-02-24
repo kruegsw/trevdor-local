@@ -574,7 +574,7 @@ function drawToken(ctx, color, { x, y, w, h }, { count }) {
   }
 }
 
-export { render, drawGem, loadSpriteSheet };
+export { render, drawGem, loadSpriteSheet, drawCardSprite };
 
 
 

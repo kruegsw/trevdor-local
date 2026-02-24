@@ -9,7 +9,7 @@
     - handle resize + redraw
 */
 
-import { render, drawGem, loadSpriteSheet } from "./ui/render.js";
+import { render, drawGem, loadSpriteSheet, drawCardSprite } from "./ui/render.js";
 import { createUIEvents } from "./ui/events.js";
 import { createUIState } from "./ui/state.js";
 import { createUIController } from "./ui/controller.js";
@@ -587,7 +587,8 @@ function buildPreviewHTML(uiState) {
       costHTML += `<span class="confirmCostPip" style="background:${tc.bg};color:${tc.text}" data-gem-color="${c}">${n}</span>`;
     }
 
-    let html = `<div class="confirmCard" style="background:${cc.bg};color:${cc.text}">`;
+    const cardId = meta.id ?? "";
+    let html = `<div class="confirmCard" data-card-id="${cardId}" style="background:${cc.bg};color:${cc.text}">`;
     html += `<div class="confirmCardHeader">`;
     if (points > 0) html += `<span class="confirmCardPoints">${points}</span>`;
     else html += `<span></span>`;
@@ -608,6 +609,42 @@ function buildPreviewHTML(uiState) {
 }
 
 function renderConfirmGems(container) {
+  // Render sprite background on confirm card
+  container.querySelectorAll(".confirmCard[data-card-id]").forEach(el => {
+    const cardId = el.dataset.cardId;
+    if (!cardId) return;
+    const dpr = window.devicePixelRatio || 1;
+    const w = 72, h = 100;
+    const c = document.createElement("canvas");
+    c.width = w * dpr; c.height = h * dpr;
+    c.style.cssText = `position:absolute;top:0;left:0;width:${w}px;height:${h}px;border-radius:8px;z-index:0;`;
+    const ctx = c.getContext("2d");
+    ctx.scale(dpr, dpr);
+    if (drawCardSprite(ctx, 0, 0, w, h, cardId)) {
+      // Tinted header band
+      const bonus = el.querySelector(".confirmCardGem")?.dataset.gemColor ?? "white";
+      const cc = CONFIRM_CARD_COLORS[bonus] ?? { bg: "#ccc" };
+      ctx.fillStyle = cc.bg.replace(")", ",0.55)").replace("rgb", "rgba");
+      // Simple approach: parse hex to rgba
+      const hex = cc.bg.replace("#", "");
+      const r = parseInt(hex.slice(0,2),16), g = parseInt(hex.slice(2,4),16), b = parseInt(hex.slice(4,6),16);
+      ctx.fillStyle = `rgba(${r},${g},${b},0.55)`;
+      ctx.fillRect(0, 0, w, h * 0.25);
+      // Footer band
+      ctx.fillStyle = "rgba(0,0,0,0.5)";
+      ctx.fillRect(0, h - h * 0.22, w, h * 0.22);
+      el.style.background = "none";
+      el.style.color = "#fff";
+      el.insertBefore(c, el.firstChild);
+      // Elevate header/body above sprite canvas
+      el.querySelectorAll(".confirmCardHeader, .confirmCardBody").forEach(ch => {
+        ch.style.position = "relative";
+        ch.style.zIndex = "1";
+      });
+      // White text with shadow for readability
+      el.querySelector(".confirmCardPoints")?.style.setProperty("text-shadow", "0 1px 3px rgba(0,0,0,0.7)");
+    }
+  });
   // Replace CSS gem on tokens with canvas-drawn gem
   container.querySelectorAll(".confirmToken[data-gem-color]").forEach(el => {
     const color = el.dataset.gemColor;
