@@ -82,6 +82,8 @@ function render(ctx) {
       const canvas = ctx.canvas;
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#3a3a3c";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       // 2) Set DPR transform so our units are CSS pixels
       const dpr = viewport.dpr ?? 1;
@@ -322,44 +324,44 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, tier,
         drawH = Math.max(minH, stackH);
       }
 
-      // Panel background
+      // Panel background with player color tint
       const accentColor = SEAT_ACCENT_COLORS[positionIndex] ?? "rgba(0,0,0,0.25)";
       ctx.save();
       roundedRectPath(ctx, x, y, w, drawH, 14);
-      // Feature 4: elevated active panel shadow
+      // Active panel: colored glow in accent color
       if (isActive) {
-        ctx.shadowColor = "rgba(0,0,0,0.35)";
-        ctx.shadowBlur = 18;
-        ctx.shadowOffsetY = 6;
+        ctx.shadowColor = accentColor;
+        ctx.shadowBlur = 24;
+        ctx.shadowOffsetY = 0;
       }
-      ctx.fillStyle = isActive ? "rgba(255, 215, 0, 0.12)" : "rgba(243, 243, 243, 0.85)";
+      ctx.fillStyle = "rgba(243, 243, 243, 0.85)";
       ctx.fill();
       // Clear shadow before stroke
       ctx.shadowColor = "transparent";
       ctx.shadowBlur = 0;
       ctx.shadowOffsetY = 0;
+      // Player color tint overlay
+      ctx.save();
+      roundedRectPath(ctx, x, y, w, drawH, 14);
+      ctx.clip();
+      ctx.fillStyle = accentColor;
+      ctx.globalAlpha = isActive ? 0.08 : 0.06;
+      ctx.fillRect(x, y, w, drawH);
+      ctx.globalAlpha = 1;
+      ctx.restore();
+      // Border — active player gets thicker
+      roundedRectPath(ctx, x, y, w, drawH, 14);
       ctx.strokeStyle = accentColor;
-      ctx.lineWidth = isMe ? 3 : 1.5;
+      ctx.lineWidth = isActive ? (isMe ? 5 : 4) : (isMe ? 3 : 1.5);
       ctx.stroke();
 
-      // Feature 2: token row background band
+      // Token row background band
       if (panelLayout) {
         ctx.save();
         roundedRectPath(ctx, x, y, w, drawH, 14);
         ctx.clip();
         ctx.fillStyle = "rgba(0,0,0,0.04)";
         ctx.fillRect(x, y + panelLayout.tokenRowY, w, panelLayout.tokenRowH + pad);
-        ctx.restore();
-      }
-
-      // Active turn accent — clipped to rounded rect, just the header area
-      if (isActive) {
-        ctx.save();
-        roundedRectPath(ctx, x, y, w, drawH, 14);
-        ctx.clip();
-        const accentH = panelLayout?.headerH ?? 30;
-        ctx.fillStyle = "rgba(255, 215, 0, 0.5)";
-        ctx.fillRect(x, y, w, accentH);
         ctx.restore();
       }
 
@@ -379,6 +381,15 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, tier,
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
       ctx.fillText(name, x + pad + 12, headerCenterY);
+      if (isActive) {
+        const nameW = ctx.measureText(name).width;
+        ctx.beginPath();
+        ctx.moveTo(x + pad + 12, headerCenterY + 10);
+        ctx.lineTo(x + pad + 12 + nameW, headerCenterY + 10);
+        ctx.strokeStyle = accentColor;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
 
       // Stats drawn right-to-left: prestige, then tokens, then gems
       ctx.textAlign = "right";
