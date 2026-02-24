@@ -9,7 +9,7 @@
     - handle resize + redraw
 */
 
-import { render, drawGem } from "./ui/render.js";
+import { render, drawGem, loadSpriteSheet } from "./ui/render.js";
 import { createUIEvents } from "./ui/events.js";
 import { createUIState } from "./ui/state.js";
 import { createUIController } from "./ui/controller.js";
@@ -949,6 +949,9 @@ function resize() {
 
 window.addEventListener("load", resize);
 window.addEventListener("resize", resize);
+
+// Load card sprite sheet (non-blocking — cards use flat color fallback until loaded)
+loadSpriteSheet().then(() => draw());
 
 /* ---------------------------------------------------------
    Activity ping

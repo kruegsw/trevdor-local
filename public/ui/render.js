@@ -1,5 +1,6 @@
 import { computeLayout } from "./layout.js";
 import { clampCamera } from "./camera.js";
+import { drawCardSprite, loadSpriteSheet } from "./cardart.js";
 
 
 /* ---------------------------------------------------------
@@ -258,10 +259,10 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, tier,
       if (isHovered(uiID, uiState) || cardPending) { y -= 4 };
 
       stateObject ? drawDevelopmentCard(ctx, { x, y, w, h }, {
+        id: stateObject.id,
         points: stateObject.points,
         bonus: stateObject.bonus,
         cost: stateObject.cost,
-        //banner: stateObject.id
       }) : null;
 
       if (cardPending) {
@@ -573,7 +574,7 @@ function drawToken(ctx, color, { x, y, w, h }, { count }) {
   }
 }
 
-export { render, drawGem };
+export { render, drawGem, loadSpriteSheet };
 
 
 
@@ -836,6 +837,7 @@ function drawPip(ctx, x, y, s, color, text) {
 
 function drawDevelopmentCard(ctx, { x, y, w, h }, card = {}) {
   const {
+    id = "",
     points = 0,
     bonus = "white",
     cost = {},
@@ -889,19 +891,33 @@ function drawDevelopmentCard(ctx, { x, y, w, h }, card = {}) {
   const headerRgb = mixRgb(cardRgb, { r: 255, g: 255, b: 255 }, 0.55);
   const headerAlpha = 0.65;
 
-  // --- base card
+  // Try sprite sheet first, fall back to flat color
   roundedRectPath(ctx, x, y, w, h);
-  //ctx.fillStyle = rgbToCss(cardRgb, 1);
-  //ctx.fill();
-  ctx.fillStyle = CARD_BACKGROUND_COLORS[bonus];
+  ctx.fillStyle = "#222";
   ctx.fill();
 
-  // --- header strip (top quarter) clipped to the rounded card
   ctx.save();
   roundedRectPath(ctx, x, y, w, h);
   ctx.clip();
-  ctx.fillStyle = rgbToCss(headerRgb, headerAlpha);
-  ctx.fillRect(x, y, w, headerH);
+
+  const hasSprite = id && drawCardSprite(ctx, x, y, w, h, id);
+
+  if (hasSprite) {
+    // Semi-transparent header band tinted with bonus color
+    ctx.fillStyle = rgbToCss(mixRgb(baseRgb, { r: 0, g: 0, b: 0 }, 0.4), 0.65);
+    ctx.fillRect(x, y, w, headerH);
+
+    // Semi-transparent footer band for cost pips
+    ctx.fillStyle = "rgba(0,0,0,0.5)";
+    ctx.fillRect(x, y + h - Math.floor(h * 0.18), w, Math.floor(h * 0.18));
+  } else {
+    // Flat color fallback
+    ctx.fillStyle = CARD_BACKGROUND_COLORS[bonus];
+    ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = rgbToCss(headerRgb, headerAlpha);
+    ctx.fillRect(x, y, w, headerH);
+  }
+
   ctx.restore();
 
   // --- outer black border only
@@ -912,11 +928,13 @@ function drawDevelopmentCard(ctx, { x, y, w, h }, card = {}) {
 
   // --- points (top-left)
   if (points > 0) {
-    ctx.fillStyle = "rgba(0,0,0,.9)";
+    ctx.fillStyle = hasSprite ? "#fff" : "rgba(0,0,0,.9)";
     ctx.font = `700 ${Math.max(12, Math.floor(h * 0.20))}px system-ui, sans-serif`;
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
+    if (hasSprite) { ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = 3; }
     ctx.fillText(String(points), x + pad, y + pad * 0.8);
+    ctx.shadowBlur = 0;
   }
 
   // --- gem (top-right)
@@ -929,11 +947,13 @@ function drawDevelopmentCard(ctx, { x, y, w, h }, card = {}) {
 
   // --- optional banner in the middle (very subtle)
   if (banner) {
-    ctx.fillStyle = (bonus == "black") ? "#fff" : "rgba(0,0,0,1)";
+    ctx.fillStyle = hasSprite ? "#fff" : ((bonus == "black") ? "#fff" : "rgba(0,0,0,1)");
     ctx.font = `600 ${Math.max(10, Math.floor(h * 0.10))}px system-ui, sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
+    if (hasSprite) { ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = 3; }
     ctx.fillText(banner, x + w / 2, y + h * 0.52);
+    ctx.shadowBlur = 0;
   }
 
   // --- bottom cost pips
@@ -1254,6 +1274,7 @@ function drawReserved(ctx, { x, y, w, h }, stateObject) {
 
     // Draw card, offset by height so top left corner of rotated card at intended location
     drawDevelopmentCard(ctx, { x: 0, y: -w, w: h, h: w }, {  // note y, w and h have been adjusted to draw card correctly but line up with layout.js coords
+      id: stateObject.id,
       points: stateObject.points,
       bonus: stateObject.bonus,
       cost: stateObject.cost,
