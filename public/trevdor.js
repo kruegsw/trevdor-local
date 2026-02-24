@@ -9,7 +9,7 @@
     - handle resize + redraw
 */
 
-import { render } from "./ui/render.js";
+import { render, drawGem } from "./ui/render.js";
 import { createUIEvents } from "./ui/events.js";
 import { createUIState } from "./ui/state.js";
 import { createUIController } from "./ui/controller.js";
@@ -536,6 +536,20 @@ function updateConfirmOverlay() {
   const labels = { buyCard: "Buy Card?", reserveCard: "Reserve Card?", takeTokens: "Take Tokens?" };
   confirmLabel.textContent = labels[uiState.mode] ?? "Confirm?";
   confirmPreview.innerHTML = buildPreviewHTML(uiState);
+  renderConfirmGems(confirmPreview);
+}
+
+function makeGemCanvas(color, size) {
+  const dpr = window.devicePixelRatio || 1;
+  const c = document.createElement("canvas");
+  c.width = size * dpr;
+  c.height = size * dpr;
+  c.style.width = size + "px";
+  c.style.height = size + "px";
+  const ctx = c.getContext("2d");
+  ctx.scale(dpr, dpr);
+  drawGem(ctx, size / 2, size / 2, size * 0.4, color, "");
+  return c;
 }
 
 function buildPreviewHTML(uiState) {
@@ -547,7 +561,9 @@ function buildPreviewHTML(uiState) {
     for (const [color, count] of Object.entries(tokens)) {
       if (!count) continue;
       const c = CONFIRM_TOKEN_COLORS[color] ?? { bg: "#888", text: "#fff" };
-      html += `<span class="confirmToken" style="background:${c.bg};color:${c.text}"><span>+${count}</span></span>`;
+      for (let i = 0; i < count; i++) {
+        html += `<span class="confirmToken" style="background:${c.bg};color:${c.text}" data-gem-color="${color}"></span>`;
+      }
     }
     return html;
   }
@@ -568,33 +584,72 @@ function buildPreviewHTML(uiState) {
       const n = cost[c];
       if (!n) continue;
       const tc = CONFIRM_TOKEN_COLORS[c] ?? { bg: "#888", text: "#fff" };
-      costHTML += `<span class="confirmCostPip" style="background:${tc.bg};color:${tc.text}">${n}</span>`;
+      costHTML += `<span class="confirmCostPip" style="background:${tc.bg};color:${tc.text}" data-gem-color="${c}">${n}</span>`;
     }
-
-    const gemColors = {
-      white: "#fff", blue: "#0000FF", green: "#2E9B5F",
-      red: "#D94A4A", black: "#2B2B2B",
-    };
-    const gemBg = gemColors[bonus] ?? cc.bg;
 
     let html = `<div class="confirmCard" style="background:${cc.bg};color:${cc.text}">`;
     html += `<div class="confirmCardHeader">`;
     if (points > 0) html += `<span class="confirmCardPoints">${points}</span>`;
     else html += `<span></span>`;
-    html += `<span class="confirmCardGem" style="background:${gemBg}"></span>`;
+    html += `<span class="confirmCardGem" data-gem-color="${bonus}"></span>`;
     html += `</div>`;
     if (costHTML) html += `<div class="confirmCardBody">${costHTML}</div>`;
     html += `</div>`;
 
     if (mode === "reserveCard") {
       const gc = CONFIRM_TOKEN_COLORS.yellow;
-      html += `<span class="confirmToken" style="background:${gc.bg};color:${gc.text}"><span>+1</span></span>`;
+      html += `<span class="confirmToken" style="background:${gc.bg};color:${gc.text}" data-gem-color="yellow"></span>`;
     }
 
     return html;
   }
 
   return "";
+}
+
+function renderConfirmGems(container) {
+  // Replace CSS gem on tokens with canvas-drawn gem
+  container.querySelectorAll(".confirmToken[data-gem-color]").forEach(el => {
+    const color = el.dataset.gemColor;
+    const gem = makeGemCanvas(color, 18);
+    gem.style.position = "absolute";
+    gem.style.zIndex = "1";
+    gem.style.pointerEvents = "none";
+    el.appendChild(gem);
+  });
+  // Replace CSS gem on card header
+  container.querySelectorAll(".confirmCardGem[data-gem-color]").forEach(el => {
+    const color = el.dataset.gemColor;
+    const gem = makeGemCanvas(color, 16);
+    el.style.background = "none";
+    el.style.transform = "none";
+    el.style.border = "none";
+    el.style.boxShadow = "none";
+    el.style.width = "16px";
+    el.style.height = "16px";
+    el.appendChild(gem);
+  });
+  // Replace CSS gem on cost pips
+  container.querySelectorAll(".confirmCostPip[data-gem-color]").forEach(el => {
+    const color = el.dataset.gemColor;
+    const gem = makeGemCanvas(color, 20);
+    gem.style.position = "absolute";
+    gem.style.zIndex = "0";
+    gem.style.pointerEvents = "none";
+    el.style.position = "relative";
+    el.style.background = "none";
+    el.style.border = "1px solid rgba(0,0,0,0.1)";
+    el.insertBefore(gem, el.firstChild);
+    // Make text sit on top
+    const text = el.childNodes[el.childNodes.length - 1];
+    if (text?.nodeType === 3) {
+      const span = document.createElement("span");
+      span.style.position = "relative";
+      span.style.zIndex = "1";
+      span.textContent = text.textContent;
+      el.replaceChild(span, text);
+    }
+  });
 }
 
 // Track whether we have sized the canvas at least once

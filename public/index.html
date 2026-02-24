@@ -539,16 +539,10 @@
             background: #e0d3b2;
             z-index: 0;
         }
-        .confirmToken::after {
-            content: "";
+        .confirmToken canvas {
             position: absolute;
-            width: 14px;
-            height: 14px;
-            background: inherit;
-            transform: rotate(45deg);
-            border-radius: 2px;
-            opacity: 0.7;
             z-index: 1;
+            pointer-events: none;
         }
         .confirmToken span {
             position: relative;

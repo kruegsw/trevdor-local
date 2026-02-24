@@ -562,7 +562,7 @@ function drawToken(ctx, color, { x, y, w, h }, { count }) {
   }
 }
 
-export { render };
+export { render, drawGem };
 
 
 
@@ -617,132 +617,154 @@ const CARD_BACKGROUND_COLORS = {
 };
 
 function drawGem(ctx, cx, cy, r, color, label = "") {
-  // --- helpers ---
-  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  // Resolve color key to canonical key for shape selection
+  const key = GEM_COLORS[color] ? color : Object.entries(GEM_COLORS).find(([, v]) => v === color)?.[0] ?? null;
 
-  const hexToRgb = (hex) => {
-    const s0 = String(hex).trim().replace("#", "");
-    const s = (s0.length === 3)
-      ? s0.split("").map(c => c + c).join("")
-      : s0.slice(0, 6);
-
-    const n = parseInt(s, 16);
-    if (!Number.isFinite(n)) return null;
-
-    return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+  // Color palette from GEM_COLORS
+  const baseHex = GEM_COLORS[key] ?? color ?? "#888";
+  const GEM_PALETTE = {
+    white:  { color: "#e8e8e8", dark: "#b0b0b0", accent: "#d4e4f4" },
+    blue:   { color: "#2255cc", dark: "#1a3a88", accent: "#88bbff" },
+    green:  { color: "#1a8a4a", dark: "#0d5a2d", accent: "#66dd99" },
+    red:    { color: "#cc2233", dark: "#881122", accent: "#ff8899" },
+    black:  { color: "#333333", dark: "#111111", accent: "#777777" },
+    yellow: { color: "#d4a017", dark: "#8a6a0f", accent: "#ffe066" },
   };
+  const pal = GEM_PALETTE[key] ?? { color: baseHex, dark: baseHex, accent: baseHex };
 
-  const rgbToCss = (rgb, a = 1) => `rgba(${rgb.r},${rgb.g},${rgb.b},${a})`;
+  ctx.save();
 
-  const lighten = (rgb, amt) => ({
-    r: clamp(Math.round(rgb.r + (255 - rgb.r) * amt), 0, 255),
-    g: clamp(Math.round(rgb.g + (255 - rgb.g) * amt), 0, 255),
-    b: clamp(Math.round(rgb.b + (255 - rgb.b) * amt), 0, 255),
-  });
-
-  const darken = (rgb, amt) => ({
-    r: clamp(Math.round(rgb.r * (1 - amt)), 0, 255),
-    g: clamp(Math.round(rgb.g * (1 - amt)), 0, 255),
-    b: clamp(Math.round(rgb.b * (1 - amt)), 0, 255),
-  });
-
-  // --- resolve "color" to an RGB object ---
-  // If you pass "red" -> use GEM_COLORS.red
-  // If you pass "#D94A4A" -> use that
-  // If you pass {r,g,b} -> use that
-  let baseRgb = null;
-
-  if (color && typeof color === "object" && Number.isFinite(color.r)) {
-    baseRgb = { r: color.r, g: color.g, b: color.b };
+  // --- 1) Build shape path based on gem type ---
+  if (key === "white") {
+    // Octagonal brilliant-cut diamond
+    const pts = 8;
+    ctx.beginPath();
+    for (let i = 0; i < pts; i++) {
+      const a = (Math.PI * 2 * i / pts) - Math.PI / 2;
+      ctx.lineTo(cx + r * Math.cos(a), cy + r * Math.sin(a));
+    }
+    ctx.closePath();
+  } else if (key === "green") {
+    // Emerald step-cut rectangle
+    const w = r * 1.9, h = r * 1.5;
+    const corner = r * 0.4;
+    const x = cx - w / 2, y = cy - h / 2;
+    ctx.beginPath();
+    ctx.moveTo(x + corner, y);
+    ctx.lineTo(x + w - corner, y);
+    ctx.lineTo(x + w, y + corner);
+    ctx.lineTo(x + w, y + h - corner);
+    ctx.lineTo(x + w - corner, y + h);
+    ctx.lineTo(x + corner, y + h);
+    ctx.lineTo(x, y + h - corner);
+    ctx.lineTo(x, y + corner);
+    ctx.closePath();
+  } else if (key === "blue") {
+    // Oval-cut sapphire
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, r * 1.1, r * 0.85, 0, 0, Math.PI * 2);
+  } else if (key === "black") {
+    // Cushion-cut onyx
+    const cr = r * 0.3;
+    const s = r * 1.7;
+    const x = cx - s / 2, y = cy - s / 2;
+    ctx.beginPath();
+    ctx.moveTo(x + cr, y);
+    ctx.quadraticCurveTo(x + s, y, x + s, y + cr);
+    ctx.lineTo(x + s, y + s - cr);
+    ctx.quadraticCurveTo(x + s, y + s, x + s - cr, y + s);
+    ctx.lineTo(x + cr, y + s);
+    ctx.quadraticCurveTo(x, y + s, x, y + s - cr);
+    ctx.lineTo(x, y + cr);
+    ctx.quadraticCurveTo(x, y, x + cr, y);
+    ctx.closePath();
   } else {
-    const keyOrHex = GEM_COLORS[color] ?? color; // key -> hex, hex -> hex
-    baseRgb = hexToRgb(keyOrHex);
+    // Round cut (ruby, gold, fallback)
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
   }
 
-  // Fallback (avoid invalid fillStyle => black)
-  if (!baseRgb) baseRgb = { r: 80, g: 80, b: 80 };
-
-  const light = lighten(baseRgb, 0.35);
-  const midLight = lighten(baseRgb, 0.18);
-  const dark = darken(baseRgb, 0.35);
-  const dark2 = darken(baseRgb, 0.20);
-
-  // --- outer diamond ---
-  ctx.beginPath();
-  ctx.moveTo(cx, cy - r);
-  ctx.lineTo(cx + r, cy);
-  ctx.lineTo(cx, cy + r);
-  ctx.lineTo(cx - r, cy);
-  ctx.closePath();
-
-  ctx.fillStyle = rgbToCss(baseRgb);
+  // --- 2) Fill with radial gradient ---
+  const g = ctx.createRadialGradient(cx - r * 0.25, cy - r * 0.25, 0, cx, cy, r * 1.1);
+  g.addColorStop(0, pal.accent);
+  g.addColorStop(0.5, pal.color);
+  g.addColorStop(1, pal.dark);
+  ctx.fillStyle = g;
   ctx.fill();
-
-  // --- facet geometry (Option 2) ---
-  const innerTopY = cy - r * 0.25;
-  const innerBottomY = cy + r * 0.25;
-
-  // top-left facet
-  ctx.beginPath();
-  ctx.moveTo(cx, cy - r);
-  ctx.lineTo(cx - r * 0.55, cy);
-  ctx.lineTo(cx, innerTopY);
-  ctx.closePath();
-  ctx.fillStyle = rgbToCss(light);
-  ctx.fill();
-
-  // top-right facet
-  ctx.beginPath();
-  ctx.moveTo(cx, cy - r);
-  ctx.lineTo(cx + r * 0.55, cy);
-  ctx.lineTo(cx, innerTopY);
-  ctx.closePath();
-  ctx.fillStyle = rgbToCss(midLight);
-  ctx.fill();
-
-  // bottom-left facet
-  ctx.beginPath();
-  ctx.moveTo(cx, cy + r);
-  ctx.lineTo(cx - r * 0.55, cy);
-  ctx.lineTo(cx, innerBottomY);
-  ctx.closePath();
-  ctx.fillStyle = rgbToCss(dark);
-  ctx.fill();
-
-  // bottom-right facet
-  ctx.beginPath();
-  ctx.moveTo(cx, cy + r);
-  ctx.lineTo(cx + r * 0.55, cy);
-  ctx.lineTo(cx, innerBottomY);
-  ctx.closePath();
-  ctx.fillStyle = rgbToCss(dark2);
-  ctx.fill();
-
-  // subtle ridge highlight
-  ctx.beginPath();
-  ctx.moveTo(cx, cy - r);
-  ctx.lineTo(cx, cy + r);
-  ctx.strokeStyle = "rgba(255,255,255,0.15)";
-  ctx.lineWidth = Math.max(1, r * 0.08);
-  ctx.stroke();
-
-  // outline
-  ctx.beginPath();
-  ctx.moveTo(cx, cy - r);
-  ctx.lineTo(cx + r, cy);
-  ctx.lineTo(cx, cy + r);
-  ctx.lineTo(cx - r, cy);
-  ctx.closePath();
-  ctx.strokeStyle = "rgba(0,0,0,0.25)";
+  ctx.strokeStyle = "rgba(0,0,0,0.4)";
   ctx.lineWidth = 1;
   ctx.stroke();
 
-  // optional label
+  // --- 3) Clip to shape, draw radial brilliance facets ---
+  ctx.clip();
+
+  const facets = 16;
+  const ir = r * 0.35;
+  const mr = r * 0.7;
+  for (let i = 0; i < facets; i++) {
+    const a1 = Math.PI * 2 * i / facets;
+    const a2 = Math.PI * 2 * (i + 1) / facets;
+    const am = (a1 + a2) / 2;
+    // Outer facet triangles
+    ctx.beginPath();
+    ctx.moveTo(cx + r * 1.2 * Math.cos(a1), cy + r * 1.2 * Math.sin(a1));
+    ctx.lineTo(cx + mr * Math.cos(am), cy + mr * Math.sin(am));
+    ctx.lineTo(cx + r * 1.2 * Math.cos(a2), cy + r * 1.2 * Math.sin(a2));
+    ctx.closePath();
+    ctx.fillStyle = i % 2 === 0 ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,0.07)";
+    ctx.lineWidth = 0.4;
+    ctx.stroke();
+    // Inner facet triangles
+    ctx.beginPath();
+    ctx.moveTo(cx + mr * Math.cos(am), cy + mr * Math.sin(am));
+    ctx.lineTo(cx + ir * Math.cos(a1), cy + ir * Math.sin(a1));
+    ctx.lineTo(cx + ir * Math.cos(a2), cy + ir * Math.sin(a2));
+    ctx.closePath();
+    ctx.fillStyle = i % 2 === 0 ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,0.05)";
+    ctx.lineWidth = 0.3;
+    ctx.stroke();
+  }
+
+  // Center table
+  ctx.beginPath();
+  ctx.arc(cx, cy, ir, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(255,255,255,0.1)";
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255,255,255,0.1)";
+  ctx.stroke();
+
+  // Specular highlight
+  ctx.beginPath();
+  ctx.ellipse(cx - r * 0.15, cy - r * 0.3, r * 0.35, r * 0.13, -0.3, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(255,255,255,0.3)";
+  ctx.fill();
+
+  ctx.restore();
+
+  // --- 4) Gold coin extras (outside clip) ---
+  if (key === "yellow") {
+    ctx.beginPath();
+    ctx.arc(cx, cy, r * 0.78, 0, Math.PI * 2);
+    ctx.strokeStyle = "rgba(0,0,0,0.15)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.fillStyle = "rgba(255,230,100,0.3)";
+    ctx.font = `bold ${r * 0.9}px serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("\u2726", cx, cy + 1);
+  }
+
+  // --- 5) Optional label ---
   if (label) {
-    // IMPORTANT: compare against the key, not the hex
-    const isDark = (color === "blue" || color === "black");
-    ctx.fillStyle = isDark ? "#E9EEF3" : "rgba(0,0,0,0.9)";
-    ctx.font = `700 ${Math.max(10, Math.floor(r * 1.1))}px system-ui, sans-serif`;
+    const isRound = (key === "red" || key === "yellow");
+    const fontSize = isRound ? Math.max(10, Math.floor(r * 1.1)) : Math.max(10, Math.floor(r * 1.4));
+    ctx.fillStyle = key === "white" ? "rgba(0,0,0,0.9)" : "#fff";
+    ctx.font = `700 ${fontSize}px system-ui, sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(label, cx, cy);
@@ -910,14 +932,15 @@ function drawDevelopmentCard(ctx, { x, y, w, h }, card = {}) {
     .filter(([, n]) => n > 0);
 
   if (entries.length) {
-    const pipSize = Math.max(12, Math.floor(Math.min(w, h) * 0.16));
+    const pipSize = Math.max(12, Math.floor(Math.min(w, h) * 0.192));
     const gap = Math.max(3, Math.floor(pipSize * 0.18));
     const startX = x + pad;
     const yBottom = y + h - pad - pipSize;
 
     let cx = startX;
     for (const [c, n] of entries) {
-      drawPip(ctx, cx, yBottom, pipSize, GEM_COLORS[c] || "#ccc", n);
+      const gemR = pipSize / 2;
+      drawGem(ctx, cx + gemR, yBottom + gemR, gemR, c, String(n));
       cx += pipSize + gap;
       if (cx > x + w - pad - pipSize) break;
     }
@@ -1141,7 +1164,7 @@ function drawNoble(ctx, { x, y, w, h }, noble = {}) {
     .filter(([, n]) => n > 0);
 
   if (entries.length) {
-    const pipSize = Math.max(12, Math.floor(Math.min(w, h) * 0.16));
+    const pipSize = Math.max(12, Math.floor(Math.min(w, h) * 0.192));
     const gap = Math.max(3, Math.floor(pipSize * 0.18));
 
     let cy =
@@ -1151,7 +1174,8 @@ function drawNoble(ctx, { x, y, w, h }, noble = {}) {
       gap;
 
     for (const [c, n] of entries) {
-      drawPip(ctx, x + pad, cy, pipSize, GEM_COLORS[c] || "#ccc", n);
+      const gemR = pipSize / 2;
+      drawGem(ctx, x + pad + gemR, cy + gemR, gemR, c, String(n));
       cy += pipSize + gap;
 
       if (cy > y + h - pad - pipSize) break;
