@@ -20,8 +20,11 @@ function noiseBuf(duration) {
 }
 
 const sfx = {
+  enabled: true,
+
   // Player joins room — soft bubble pop (ascending)
   join() {
+    if (!sfx.enabled) return;
     const c = ac(), t = c.currentTime;
     const o = c.createOscillator(); o.type = 'sine';
     o.frequency.setValueAtTime(600, t);
@@ -34,6 +37,7 @@ const sfx = {
 
   // Player leaves room — reverse bubble pop (descending)
   leave() {
+    if (!sfx.enabled) return;
     const c = ac(), t = c.currentTime;
     const o = c.createOscillator(); o.type = 'sine';
     o.frequency.setValueAtTime(1200, t);
@@ -46,6 +50,7 @@ const sfx = {
 
   // Card shuffle — table wash noise
   shuffle() {
+    if (!sfx.enabled) return;
     const c = ac(), t = c.currentTime;
     const dur = 0.8;
     const noise = c.createBufferSource(); noise.buffer = noiseBuf(dur);
@@ -66,6 +71,7 @@ const sfx = {
 
   // Game starts — bold horn blast
   gameStart() {
+    if (!sfx.enabled) return;
     const c = ac(), t = c.currentTime;
     [261.63, 329.63, 392].forEach(freq => {
       const o = c.createOscillator(); o.type = 'sawtooth';
@@ -84,6 +90,7 @@ const sfx = {
 
   // Your turn — single soft chime
   yourTurn() {
+    if (!sfx.enabled) return;
     const c = ac(), t = c.currentTime;
     [1046.5, 2093, 3135.96].forEach((freq, i) => {
       const o = c.createOscillator(); o.type = 'sine';
@@ -97,6 +104,7 @@ const sfx = {
 
   // Token pickup — glass gem clink
   tokenPickup() {
+    if (!sfx.enabled) return;
     const c = ac(), t = c.currentTime;
     [3800, 4500, 6000].forEach((freq, i) => {
       const o = c.createOscillator(); o.type = 'sine';
@@ -110,6 +118,7 @@ const sfx = {
 
   // Card buy — swish + soft thud
   cardBuy() {
+    if (!sfx.enabled) return;
     const c = ac(), t = c.currentTime;
     const n = c.createBufferSource(); n.buffer = noiseBuf(0.15);
     const bp = c.createBiquadFilter(); bp.type = 'bandpass';
@@ -128,6 +137,7 @@ const sfx = {
 
   // Noble visit — royal trumpet herald
   nobleVisit() {
+    if (!sfx.enabled) return;
     const c = ac(), t = c.currentTime;
     const pattern = [
       { freq: 523.25, start: 0,    dur: 0.12 },
@@ -152,6 +162,7 @@ const sfx = {
 
   // Game over (win) — ascending wah ensemble + brass swell
   gameOverWin() {
+    if (!sfx.enabled) return;
     const c = ac(), t = c.currentTime;
     const notes = [
       { freq: 261.63, start: 0,    dur: 0.25 },
@@ -201,6 +212,7 @@ const sfx = {
 
   // Game over (lose) — sad trombone
   gameOverLose() {
+    if (!sfx.enabled) return;
     const c = ac(), t = c.currentTime;
     const notes = [
       { freq: 311.13, start: 0,    dur: 0.25 },

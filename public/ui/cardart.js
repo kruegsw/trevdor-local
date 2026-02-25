@@ -25,6 +25,9 @@ export { CARD_SPRITE_MAP };
 
 let spriteSheet = null;
 let spriteSheetReady = false;
+let cardArtEnabled = true;
+
+export function setCardArtEnabled(v) { cardArtEnabled = v; }
 
 export function loadSpriteSheet(basePath = "") {
   return new Promise((resolve) => {
@@ -44,6 +47,7 @@ export function loadSpriteSheet(basePath = "") {
 
 // Draw a card's sprite onto the canvas. Returns true if drawn, false if fallback needed.
 export function drawCardSprite(ctx, x, y, w, h, cardId) {
+  if (!cardArtEnabled) return false;
   if (!spriteSheetReady || !spriteSheet) return false;
   const pos = CARD_SPRITE_MAP[cardId];
   if (!pos) return false;

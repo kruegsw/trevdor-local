@@ -9,7 +9,7 @@
     - handle resize + redraw
 */
 
-import { render, drawGem, loadSpriteSheet, drawCardSprite } from "./ui/render.js";
+import { render, drawGem, loadSpriteSheet, drawCardSprite, setCardArtEnabled } from "./ui/render.js";
 import { createUIEvents } from "./ui/events.js";
 import { createUIState } from "./ui/state.js";
 import { createUIController } from "./ui/controller.js";
@@ -51,6 +51,12 @@ let snapMyIdx  = null;   // myPlayerIndex at time of departure
 // Current session ID (updated from WELCOME; used in CREATE_GAME)
 let mySessionId = localStorage.getItem("trevdor.sessionId") || null;
 
+// Options preferences (persisted in localStorage, default on)
+let soundEnabled   = localStorage.getItem("trevdor.sound")   !== "false";
+let cardArtPref    = localStorage.getItem("trevdor.cardArt") !== "false";
+sfx.enabled = soundEnabled;
+setCardArtEnabled(cardArtPref);
+
 const uiState = createUIState();
 
 /* ---------------------------------------------------------
@@ -68,6 +74,10 @@ const confirmLabel     = document.getElementById("confirmLabel");
 const confirmPreview   = document.getElementById("confirmPreview");
 const confirmBtn       = document.getElementById("confirmBtn");
 const cancelBtn        = document.getElementById("cancelBtn");
+const optionsBtn       = document.getElementById("optionsBtn");
+const optionsDropdown  = document.getElementById("optionsDropdown");
+const optSound         = document.getElementById("optSound");
+const optCardArt       = document.getElementById("optCardArt");
 
 /* ---------------------------------------------------------
    Scene management
@@ -998,6 +1008,38 @@ document.getElementById("lobbyFromRoomBtn").addEventListener("click", returnToGa
 
 document.getElementById("closeRoomBtn").addEventListener("click", () => {
   transport.sendRaw({ type: "CLOSE_ROOM", roomId: currentRoomId });
+});
+
+/* ---------------------------------------------------------
+   Options menu
+   --------------------------------------------------------- */
+
+// Set initial checkbox state from saved preferences
+optSound.checked   = soundEnabled;
+optCardArt.checked = cardArtPref;
+
+optionsBtn.addEventListener("click", () => {
+  optionsDropdown.classList.toggle("hidden");
+});
+
+document.addEventListener("pointerdown", (e) => {
+  if (!optionsDropdown.classList.contains("hidden")
+      && !document.getElementById("optionsMenu").contains(e.target)) {
+    optionsDropdown.classList.add("hidden");
+  }
+});
+
+optSound.addEventListener("change", () => {
+  soundEnabled = optSound.checked;
+  sfx.enabled = soundEnabled;
+  localStorage.setItem("trevdor.sound", soundEnabled);
+});
+
+optCardArt.addEventListener("change", () => {
+  cardArtPref = optCardArt.checked;
+  setCardArtEnabled(cardArtPref);
+  localStorage.setItem("trevdor.cardArt", cardArtPref);
+  draw();
 });
 
 

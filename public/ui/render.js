@@ -1,6 +1,6 @@
 import { computeLayout } from "./layout.js";
 import { clampCamera } from "./camera.js";
-import { drawCardSprite, loadSpriteSheet } from "./cardart.js";
+import { drawCardSprite, loadSpriteSheet, setCardArtEnabled } from "./cardart.js";
 import { rulesCheck } from "./rules.js";
 
 
@@ -652,7 +652,7 @@ function drawToken(ctx, color, { x, y, w, h }, { count }) {
   }
 }
 
-export { render, drawGem, loadSpriteSheet, drawCardSprite };
+export { render, drawGem, loadSpriteSheet, drawCardSprite, setCardArtEnabled };
 
 
 
