@@ -17,6 +17,7 @@ import { createTransport } from "./net/transport.js";
 import { Intent } from "./ui/intent.js";
 import { screenToWorld } from "./ui/camera.js";
 import { DEBUG } from "./debug.js";
+import sfx from "./ui/sounds.js";
 
 /* ---------------------------------------------------------
    Game + UI state
@@ -24,6 +25,8 @@ import { DEBUG } from "./debug.js";
 
 // Authoritative state arrives from server
 let state = null;
+let prevState = null;        // previous game state (for sound diffing)
+let prevClientIds = new Set(); // previous occupied client IDs (for join/leave sounds)
 
 // Active room (set from WELCOME, cleared on leave)
 let currentRoomId = null;
@@ -143,6 +146,8 @@ function returnToGameLobby() {
   }
   currentRoomId = null;
   state = null;
+  prevState = null;
+  prevClientIds = new Set();
   uiState.room = null;
   uiState.myPlayerIndex = null;
   uiState.myClientId = null;
@@ -192,6 +197,55 @@ function escapeHtml(str) {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
+}
+
+/* ---------------------------------------------------------
+   Sound triggers on state change
+   --------------------------------------------------------- */
+
+function tokenCount(tokens) {
+  return Object.values(tokens ?? {}).reduce((s, n) => s + n, 0);
+}
+
+function playSoundsForStateChange(prev, next) {
+  // Game starts (first STATE after null)
+  if (prev === null && next !== null) {
+    sfx.shuffle();
+    setTimeout(() => sfx.gameStart(), 850);
+    return;
+  }
+  if (!prev || !next) return;
+
+  // Game over
+  if (!prev.gameOver && next.gameOver) {
+    if (next.winner === uiState.myPlayerIndex) sfx.gameOverWin();
+    else if (!uiState.isSpectator) sfx.gameOverLose();
+    return;
+  }
+
+  // Your turn
+  if (prev.activePlayerIndex !== next.activePlayerIndex
+      && next.activePlayerIndex === uiState.myPlayerIndex
+      && !next.gameOver) {
+    sfx.yourTurn();
+  }
+
+  // Action sounds — compare the acting player's state
+  if (prev.activePlayerIndex !== next.activePlayerIndex) {
+    const actor = prev.activePlayerIndex;
+    const oldP = prev.players[actor];
+    const newP = next.players[actor];
+    if (oldP && newP) {
+      if (newP.cards.length > oldP.cards.length) {
+        sfx.cardBuy();
+        if (newP.nobles.length > oldP.nobles.length) {
+          setTimeout(() => sfx.nobleVisit(), 300);
+        }
+      } else if (tokenCount(newP.tokens) > tokenCount(oldP.tokens)) {
+        sfx.tokenPickup();
+      }
+    }
+  }
 }
 
 /* ---------------------------------------------------------
@@ -830,6 +884,21 @@ const transport = createTransport({
         name:        msg.name       ?? currentRoomId,
         host:        msg.host       ?? null,
       };
+
+      // Join/leave sounds — compare occupied client IDs
+      const newIds = new Set(
+        (msg.clients ?? []).filter(c => c.occupied).map(c => c.clientId)
+      );
+      if (prevClientIds.size > 0) { // skip initial load
+        for (const id of newIds) {
+          if (!prevClientIds.has(id)) sfx.join();
+        }
+        for (const id of prevClientIds) {
+          if (!newIds.has(id)) sfx.leave();
+        }
+      }
+      prevClientIds = newIds;
+
       if (!msg.started) {
         setScene("roomLobby");
       }
@@ -840,7 +909,9 @@ const transport = createTransport({
     }
 
     if (msg.type === "STATE" && msg.roomId === currentRoomId) {
+      prevState = state;
       state = msg.state;
+      playSoundsForStateChange(prevState, state);
       if (state !== null) setScene("game");
       updateStatusBar();
       if (!didInitialResize) resize();
