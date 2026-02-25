@@ -145,6 +145,8 @@ Mobile Safari kills WebSocket connections on page refresh (close code 1001 "Goin
 ## What's Next
 - Mobile UX — canvas layout and interaction for small screens
 - Post-game flow — "Play Again" or "New Game" button after game ends (currently players use "← Lobby")
+- Sound effects — player joins room, game starts, and potentially others (your turn, token pickup, card buy, noble visit, game over)
+- Fit-to-screen layout — make the entire board and all player panels visible without panning
 
 ## Engine Quick Reference
 ```javascript
