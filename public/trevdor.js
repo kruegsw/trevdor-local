@@ -553,6 +553,28 @@ function makeGemCanvas(color, size) {
   return c;
 }
 
+function computePayment(cardMeta, player) {
+  const COLORS = ["white", "blue", "green", "red", "black"];
+  const cost = cardMeta.cost ?? {};
+  const bonus = { white: 0, blue: 0, green: 0, red: 0, black: 0 };
+  for (const c of player.cards ?? []) {
+    const b = c?.bonus;
+    if (bonus[b] != null) bonus[b] += 1;
+  }
+  const tokens = player.tokens ?? {};
+  const pay = { white: 0, blue: 0, green: 0, red: 0, black: 0, yellow: 0 };
+  let wildNeeded = 0;
+  for (const color of COLORS) {
+    const need = Math.max(0, (cost[color] ?? 0) - (bonus[color] ?? 0));
+    const have = tokens[color] ?? 0;
+    const use = Math.min(have, need);
+    pay[color] = use;
+    wildNeeded += need - use;
+  }
+  pay.yellow = wildNeeded;
+  return pay;
+}
+
 function buildPreviewHTML(uiState) {
   const mode = uiState.mode;
 
@@ -597,6 +619,30 @@ function buildPreviewHTML(uiState) {
     html += `</div>`;
     if (costHTML) html += `<div class="confirmCardBody">${costHTML}</div>`;
     html += `</div>`;
+
+    if (mode === "buyCard" && state) {
+      const myIdx = uiState.myPlayerIndex;
+      const player = typeof myIdx === "number" ? state.players?.[myIdx] : null;
+      if (player) {
+        const pay = computePayment(meta, player);
+        const payOrder = ["white", "blue", "green", "red", "black", "yellow"];
+        const totalSpent = payOrder.reduce((s, c) => s + (pay[c] ?? 0), 0);
+        html += `<div class="confirmCostRow">`;
+        if (totalSpent === 0) {
+          html += `<span class="confirmCostLabel">Free</span>`;
+        } else {
+          html += `<span class="confirmCostLabel">Cost:</span>`;
+          for (const c of payOrder) {
+            if (!pay[c]) continue;
+            const tc = CONFIRM_TOKEN_COLORS[c] ?? { bg: "#888", text: "#fff" };
+            for (let i = 0; i < pay[c]; i++) {
+              html += `<span class="confirmToken" style="background:${tc.bg};color:${tc.text}" data-gem-color="${c}"></span>`;
+            }
+          }
+        }
+        html += `</div>`;
+      }
+    }
 
     if (mode === "reserveCard") {
       const gc = CONFIRM_TOKEN_COLORS.yellow;
