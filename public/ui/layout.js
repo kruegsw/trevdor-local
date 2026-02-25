@@ -24,7 +24,7 @@ export function computeLayout(viewport = { width, height }) {
   // ---- BOARD local geometry (0,0 is top-left of the board container)
   const BOARD = {
     x: MARGIN + PANEL_W + GAP_TO_BOARD,
-    y: MARGIN + PANEL_H + GAP_TO_BOARD,
+    y: MARGIN,
     w: (CARD_W * 5) + (GAP * 4),
     h: (NOBLE_WH.h + GAP * 4 + CARD_WH.h * 3 + TOKEN_WH.h),
   };
@@ -46,12 +46,12 @@ export function computeLayout(viewport = { width, height }) {
   const BANK_Y   = NOBLE_WH.h + GAP * 4 + CARD_WH.h * 3;
 
   // ---- 4 panel positions around the board
-  // 0=bottom (you), 1=right (+1), 2=top (+2), 3=left (+3)
+  // 0=right (you), 1=below-right (+1), 2=left (+2), 3=below-left (+3)
   const panelPositions = [
-    { x: BOARD.x,                              y: BOARD.y + BOARD.h + GAP_TO_BOARD }, // bottom
-    { x: BOARD.x + BOARD.w + GAP_TO_BOARD,     y: BOARD.y },                          // right
-    { x: BOARD.x,                              y: MARGIN },                            // top
-    { x: MARGIN,                               y: BOARD.y },                           // left
+    { x: BOARD.x + BOARD.w + GAP_TO_BOARD, y: BOARD.y },                          // right
+    { x: BOARD.x + BOARD.w + GAP_TO_BOARD, y: BOARD.y + BOARD.h + GAP_TO_BOARD }, // below-right
+    { x: MARGIN,                           y: BOARD.y },                           // left
+    { x: MARGIN,                           y: BOARD.y + BOARD.h + GAP_TO_BOARD },  // below-left
   ];
 
   // local helpers: convert (dx,dy) to absolute
@@ -107,7 +107,7 @@ export function computeLayout(viewport = { width, height }) {
 
   // ---- Generate 4 full player panels around the board
   // Each panel has the same internal layout as the old single player panel.
-  // positionIndex: 0=bottom(you), 1=right(+1), 2=top(+2), 3=left(+3)
+  // positionIndex: 0=right(you), 1=below-right(+1), 2=left(+2), 3=below-left(+3)
   function generatePanelSlots(posIdx, px, py) {
     const P  = (dx, dy) => ({ x: px + dx, y: py + dy });                           // panel origin (for bg)
     const Pc = (dx, dy) => ({ x: px + PANEL_PAD + dx, y: py + PANEL_PAD + dy });   // padded content

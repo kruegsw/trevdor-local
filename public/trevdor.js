@@ -996,7 +996,7 @@ function resize() {
     const numPlayers = state?.players?.length ?? 0;
 
     // Compute tight bounding box of board + visible panels only
-    // Panel positions: 0=bottom(you), 1=right(+1), 2=top(+2), 3=left(+3)
+    // Panel positions: 0=right(you), 1=below-right(+1), 2=left(+2), 3=below-left(+3)
     const rects = [bounds.boardRect];
     if (bounds.panelRects) {
       for (let i = 0; i < Math.min(numPlayers, 4); i++) {
