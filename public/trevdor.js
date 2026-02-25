@@ -178,6 +178,7 @@ nameInput.addEventListener("input", () => {
   let n = cleanName(nameInput.value);
   localStorage.setItem("trevdor.name", n);
   setNameHint();
+  if (n) transport.sendRaw({ type: "IDENTIFY", name: n });
 });
 
 /* ---------------------------------------------------------
