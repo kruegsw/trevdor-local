@@ -1,6 +1,7 @@
 import { computeLayout } from "./layout.js";
 import { clampCamera } from "./camera.js";
 import { drawCardSprite, loadSpriteSheet } from "./cardart.js";
+import { rulesCheck } from "./rules.js";
 
 
 /* ---------------------------------------------------------
@@ -258,12 +259,27 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, tier,
       const cardPending = uiState.pending?.card?.tier === tier && uiState.pending?.card?.index === index;
       if (isHovered(uiID, uiState) || cardPending) { y -= 4 };
 
+      // Dim unaffordable cards when it's the player's turn and idle
+      const myTurn = typeof uiState.myPlayerIndex === "number"
+        && uiState.myPlayerIndex === state.activePlayerIndex
+        && !state.gameOver;
+      const dimMarket = myTurn && (uiState.mode ?? "idle") === "idle" && stateObject
+        && !rulesCheck({
+          getState: () => state, uiState,
+          pending: { tokens: {}, card: "" },
+          action: "buyCard",
+          card: { meta: stateObject, tier, index }
+        });
+      if (dimMarket) ctx.globalAlpha = 0.4;
+
       stateObject ? drawDevelopmentCard(ctx, { x, y, w, h }, {
         id: stateObject.id,
         points: stateObject.points,
         bonus: stateObject.bonus,
         cost: stateObject.cost,
       }) : null;
+
+      if (dimMarket) ctx.globalAlpha = 1.0;
 
       if (cardPending) {
         roundedRectPath(ctx, x - 2, y - 2, w + 4, h + 4, 16);
@@ -458,7 +474,26 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, tier,
       drawReservedShadow(ctx, { x, y, w, h }, {});
       const resPending = uiState.pending?.card?.tier === tier && uiState.pending?.card?.index === index;
       if (isHovered(uiID, uiState) || resPending) { y -= 4 };
+
+      // Dim unaffordable reserved cards (own cards only, when idle on my turn)
+      const myTurnRes = typeof uiState.myPlayerIndex === "number"
+        && uiState.myPlayerIndex === state.activePlayerIndex
+        && !state.gameOver;
+      const isMyReserved = positionIndex === 0;
+      const dimReserved = myTurnRes && isMyReserved
+        && (uiState.mode ?? "idle") === "idle"
+        && !rulesCheck({
+          getState: () => state, uiState,
+          pending: { tokens: {}, card: "" },
+          action: "buyCard",
+          card: { meta: stateObject, tier, index }
+        });
+      if (dimReserved) ctx.globalAlpha = 0.4;
+
       drawReserved(ctx, { x, y, w, h }, stateObject);
+
+      if (dimReserved) ctx.globalAlpha = 1.0;
+
       if (resPending) {
         roundedRectPath(ctx, x - 2, y - 2, w + 4, h + 4, 16);
         ctx.strokeStyle = "#ffd700";
