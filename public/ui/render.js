@@ -139,7 +139,7 @@ function render(ctx) {
 
       // Remote cursors (world-space, drawn under camera transform)
       const cursors = uiState.remoteCursors;
-      if (cursors) {
+      if (cursors && uiState.showCursors) {
         const now = Date.now();
         const s = 1 / cam.scale; // keep cursor a fixed screen size
         for (const id in cursors) {

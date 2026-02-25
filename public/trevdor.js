@@ -54,10 +54,12 @@ let mySessionId = localStorage.getItem("trevdor.sessionId") || null;
 // Options preferences (persisted in localStorage, default on)
 let soundEnabled   = localStorage.getItem("trevdor.sound")   !== "false";
 let cardArtPref    = localStorage.getItem("trevdor.cardArt") !== "false";
+let cursorsPref    = localStorage.getItem("trevdor.cursors") !== "false";
 sfx.enabled = soundEnabled;
 setCardArtEnabled(cardArtPref);
 
 const uiState = createUIState();
+uiState.showCursors = cursorsPref;
 
 /* ---------------------------------------------------------
    DOM references
@@ -78,6 +80,7 @@ const optionsBtn       = document.getElementById("optionsBtn");
 const optionsDropdown  = document.getElementById("optionsDropdown");
 const optSound         = document.getElementById("optSound");
 const optCardArt       = document.getElementById("optCardArt");
+const optCursors       = document.getElementById("optCursors");
 
 /* ---------------------------------------------------------
    Scene management
@@ -1017,6 +1020,7 @@ document.getElementById("closeRoomBtn").addEventListener("click", () => {
 // Set initial checkbox state from saved preferences
 optSound.checked   = soundEnabled;
 optCardArt.checked = cardArtPref;
+optCursors.checked = cursorsPref;
 
 optionsBtn.addEventListener("click", () => {
   optionsDropdown.classList.toggle("hidden");
@@ -1039,6 +1043,13 @@ optCardArt.addEventListener("change", () => {
   cardArtPref = optCardArt.checked;
   setCardArtEnabled(cardArtPref);
   localStorage.setItem("trevdor.cardArt", cardArtPref);
+  draw();
+});
+
+optCursors.addEventListener("change", () => {
+  cursorsPref = optCursors.checked;
+  uiState.showCursors = cursorsPref;
+  localStorage.setItem("trevdor.cursors", cursorsPref);
   draw();
 });
 
