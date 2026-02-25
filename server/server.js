@@ -828,6 +828,20 @@ wss.on("connection", (ws, req) => {
       return;
     }
 
+    // -------------------------
+    // CURSOR (relay to other room clients — fire-and-forget)
+    // -------------------------
+    if (msg.type === "CURSOR") {
+      if (!info.roomId) return;
+      const room = rooms.get(info.roomId);
+      if (!room) return;
+      const out = { type: "CURSOR", clientId: info.clientId, x: msg.x, y: msg.y };
+      for (const client of room.clients) {
+        if (client !== ws) safeSend(client, out);
+      }
+      return;
+    }
+
     // Unknown message type
     safeSend(ws, { type: "ERROR", message: `Unknown type: ${msg.type}` });
   });

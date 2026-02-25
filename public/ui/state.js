@@ -46,6 +46,8 @@ export function createUIState() {
     // Optional
     roomClients: null,
 
+    remoteCursors: {},  // { [clientId]: { x, y, ts, color, name } }
+
     isHovered: null,
     roomList: [],
     connectedUsers: [],

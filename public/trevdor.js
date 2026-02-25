@@ -15,6 +15,7 @@ import { createUIState } from "./ui/state.js";
 import { createUIController } from "./ui/controller.js";
 import { createTransport } from "./net/transport.js";
 import { Intent } from "./ui/intent.js";
+import { screenToWorld } from "./ui/camera.js";
 import { DEBUG } from "./debug.js";
 
 /* ---------------------------------------------------------
@@ -146,6 +147,7 @@ function returnToGameLobby() {
   uiState.myPlayerIndex = null;
   uiState.myClientId = null;
   uiState.isSpectator = false;
+  uiState.remoteCursors = {};
   transport.setRoomId(null);
   localStorage.removeItem("trevdor.roomId");
   setScene("gameLobby");
@@ -801,6 +803,7 @@ const transport = createTransport({
       uiState.isSpectator    = !!msg.spectator;
       uiState.myClientId     = msg.clientId;
       uiState.playerPanelPlayerIndex = uiState.myPlayerIndex;
+      uiState.remoteCursors  = {};
 
       // Persist session token so we can reclaim our seat on reconnect
       if (msg.sessionId) {
@@ -848,6 +851,22 @@ const transport = createTransport({
     // If server rejects moves, log clearly
     if (msg.type === "REJECTED") {
       console.warn("[server rejected]", msg.reason, msg);
+    }
+
+    // Remote cursor relay
+    if (msg.type === "CURSOR") {
+      const clients = uiState.room?.clients ?? [];
+      const slot = clients.find(c => c.clientId === msg.clientId);
+      const seatColors = ["#e53935", "#2196f3", "#4caf50", "#ffd700"];
+      uiState.remoteCursors[msg.clientId] = {
+        x: msg.x,
+        y: msg.y,
+        ts: Date.now(),
+        color: slot ? seatColors[slot.seat % 4] : "#aaa",
+        name: slot?.name ?? "",
+      };
+      draw();
+      return;
     }
   },
 
@@ -1062,10 +1081,47 @@ document.addEventListener("mousemove",  reportActivity);
 document.addEventListener("click",      reportActivity);
 document.addEventListener("touchstart", reportActivity);
 
+/* ---------------------------------------------------------
+   Remote cursor broadcast
+   --------------------------------------------------------- */
+
+const CURSOR_THROTTLE = 100; // ms between sends
+const CURSOR_DEAD_ZONE = 2; // px screen-space movement threshold
+let lastCursorSent = 0;
+let lastCursorSx = 0;
+let lastCursorSy = 0;
+
+canvas.addEventListener("pointermove", (e) => {
+  if (!currentRoomId || !state) return;
+  const now = Date.now();
+  if (now - lastCursorSent < CURSOR_THROTTLE) return;
+  const rect = canvas.getBoundingClientRect();
+  const sx = e.clientX - rect.left;
+  const sy = e.clientY - rect.top;
+  const dx = sx - lastCursorSx;
+  const dy = sy - lastCursorSy;
+  if (dx * dx + dy * dy < CURSOR_DEAD_ZONE * CURSOR_DEAD_ZONE) return;
+  lastCursorSent = now;
+  lastCursorSx = sx;
+  lastCursorSy = sy;
+  const w = screenToWorld(uiState.camera, sx, sy);
+  transport.sendRaw({ type: "CURSOR", roomId: currentRoomId, x: w.x, y: w.y });
+});
+
 // Periodically re-render dots so the idle (>1 min) color transition
 // fires without needing a new server event.
+// Also prune stale remote cursors (>3s with no update).
 setInterval(() => {
   updateStatusBar();
   updateWaitingRoom();
   updateGameLobby();
+  const now = Date.now();
+  let pruned = false;
+  for (const id in uiState.remoteCursors) {
+    if (now - uiState.remoteCursors[id].ts > 3000) {
+      delete uiState.remoteCursors[id];
+      pruned = true;
+    }
+  }
+  if (pruned) draw();
 }, 15_000);

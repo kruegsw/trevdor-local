@@ -137,6 +137,49 @@ function render(ctx) {
         
       });
 
+      // Remote cursors (world-space, drawn under camera transform)
+      const cursors = uiState.remoteCursors;
+      if (cursors) {
+        const now = Date.now();
+        const s = 1 / cam.scale; // keep cursor a fixed screen size
+        for (const id in cursors) {
+          const c = cursors[id];
+          const age = now - c.ts;
+          if (age > 3000) continue;
+          // Fade out during last second (2s–3s)
+          const alpha = age > 2000 ? 1 - (age - 2000) / 1000 : 1;
+          ctx.save();
+          ctx.globalAlpha = alpha;
+          ctx.translate(c.x, c.y);
+          ctx.scale(s, s);
+          // Arrow cursor (12×18 screen px)
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(0, 18);
+          ctx.lineTo(5, 14);
+          ctx.lineTo(9, 21);
+          ctx.lineTo(12, 20);
+          ctx.lineTo(8, 13);
+          ctx.lineTo(13, 13);
+          ctx.closePath();
+          ctx.fillStyle = c.color;
+          ctx.fill();
+          ctx.strokeStyle = "#000";
+          ctx.lineWidth = 1.2;
+          ctx.stroke();
+          // Name label
+          if (c.name) {
+            ctx.font = "bold 11px sans-serif";
+            ctx.fillStyle = c.color;
+            ctx.strokeStyle = "rgba(0,0,0,0.7)";
+            ctx.lineWidth = 2.5;
+            ctx.strokeText(c.name, 14, 14);
+            ctx.fillText(c.name, 14, 14);
+          }
+          ctx.restore();
+        }
+      }
+
       // Game-over overlay
       if (state.gameOver && typeof state.winner === "number") {
         // Reset to screen space (undo camera transform)
