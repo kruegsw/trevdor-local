@@ -672,6 +672,143 @@
             box-shadow: 0 1px 2px rgba(0,0,0,0.1);
         }
 
+        /* Chat panel */
+        #chatPanel {
+            position: fixed;
+            bottom: 12px;
+            right: 12px;
+            z-index: 15;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        .chatToggleBtn {
+            pointer-events: auto;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(0,0,0,0.75);
+            color: #fff;
+            font-size: 20px;
+            cursor: pointer;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+        }
+
+        .chatToggleBtn:hover {
+            background: rgba(0,0,0,0.9);
+        }
+
+        .chatBadge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            min-width: 18px;
+            height: 18px;
+            border-radius: 9px;
+            background: #D94A4A;
+            color: #fff;
+            font-size: 11px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 4px;
+            font-family: system-ui, sans-serif;
+        }
+
+        .chatBadge.hidden { display: none; }
+
+        .chatToast {
+            pointer-events: auto;
+            max-width: 260px;
+            background: rgba(0,0,0,0.82);
+            color: #fff;
+            font-family: system-ui, sans-serif;
+            font-size: 13px;
+            padding: 8px 12px;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            word-break: break-word;
+        }
+
+        .chatToast.hidden { display: none; }
+
+        .chatBox {
+            pointer-events: auto;
+            width: 300px;
+            max-height: 40vh;
+            background: rgba(20,20,20,0.92);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 12px;
+            margin-bottom: 8px;
+            display: flex;
+            flex-direction: column;
+            font-family: system-ui, sans-serif;
+        }
+
+        .chatBox.hidden { display: none; }
+
+        .chatMessages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px 12px;
+            min-height: 120px;
+            font-size: 13px;
+            color: #ddd;
+            line-height: 1.45;
+        }
+
+        .chatMsg {
+            margin-bottom: 4px;
+        }
+
+        .chatSender {
+            font-weight: 600;
+        }
+
+        .chatInputRow {
+            display: flex;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .chatInput {
+            flex: 1;
+            padding: 10px 12px;
+            border: none;
+            background: transparent;
+            color: #fff;
+            font-size: 14px;
+            font-family: system-ui, sans-serif;
+            outline: none;
+        }
+
+        .chatInput::placeholder {
+            color: rgba(255,255,255,0.35);
+        }
+
+        .chatSendBtn {
+            padding: 10px 14px;
+            border: none;
+            background: transparent;
+            color: rgba(255,255,255,0.6);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: system-ui, sans-serif;
+        }
+
+        .chatSendBtn:hover {
+            color: #fff;
+        }
+
 	</style>
 </head>
 <body>
@@ -724,6 +861,22 @@
             </div>
         </div>
         <button id="lobbyBtn" class="statusLobbyBtn">← Lobby</button>
+    </div>
+
+    <div id="chatPanel" class="hidden">
+      <div id="chatToast" class="chatToast hidden"></div>
+      <div id="chatBox" class="chatBox hidden">
+        <div id="chatMessages" class="chatMessages"></div>
+        <div class="chatInputRow">
+          <input id="chatInput" class="chatInput" type="text"
+                 placeholder="Type a message…" maxlength="200" autocomplete="off" />
+          <button id="chatSendBtn" class="chatSendBtn">Send</button>
+        </div>
+      </div>
+      <button id="chatToggleBtn" class="chatToggleBtn">
+        💬
+        <span id="chatBadge" class="chatBadge hidden">0</span>
+      </button>
     </div>
 
     <div id="confirmOverlay" class="hidden">

@@ -58,6 +58,12 @@ let cursorsPref    = localStorage.getItem("trevdor.cursors") !== "false";
 sfx.enabled = soundEnabled;
 setCardArtEnabled(cardArtPref);
 
+// Chat state
+let chatMessages = [];
+let chatOpen = false;
+let chatUnreadCount = 0;
+let chatToastTimer = null;
+
 const uiState = createUIState();
 uiState.showCursors = cursorsPref;
 
@@ -81,6 +87,14 @@ const optionsDropdown  = document.getElementById("optionsDropdown");
 const optSound         = document.getElementById("optSound");
 const optCardArt       = document.getElementById("optCardArt");
 const optCursors       = document.getElementById("optCursors");
+const chatPanel        = document.getElementById("chatPanel");
+const chatToggleBtn    = document.getElementById("chatToggleBtn");
+const chatBadge        = document.getElementById("chatBadge");
+const chatToast        = document.getElementById("chatToast");
+const chatBox          = document.getElementById("chatBox");
+const chatMessagesEl   = document.getElementById("chatMessages");
+const chatInput        = document.getElementById("chatInput");
+const chatSendBtn      = document.getElementById("chatSendBtn");
 
 /* ---------------------------------------------------------
    Scene management
@@ -93,6 +107,7 @@ function setScene(scene) {
     waitingSection.classList.add("hidden");
     createGameBtn.textContent = "Create Game";
     createGameBtn.disabled = false;
+    chatPanel.classList.add("hidden");
     // Keep status bar visible as a snapshot of the last game if one exists
     if (snapRoomId) {
       statusBar.classList.remove("hidden");
@@ -108,6 +123,7 @@ function setScene(scene) {
     waitingSection.classList.add("hidden");
     lobbyScene.classList.remove("withStatusBar");
     statusBar.classList.add("hidden");
+    chatPanel.classList.add("hidden");
     createGameBtn.textContent = "Reconnecting…";
     createGameBtn.disabled = true;
   } else if (scene === "roomLobby") {
@@ -116,12 +132,14 @@ function setScene(scene) {
     waitingSection.classList.remove("hidden");
     lobbyScene.classList.remove("withStatusBar");
     statusBar.classList.add("hidden");
+    chatPanel.classList.remove("hidden");
     createGameBtn.textContent = "Create Game";
     createGameBtn.disabled = false;
   } else if (scene === "game") {
     lobbyScene.classList.add("hidden");
     lobbyScene.classList.remove("withStatusBar");
     statusBar.classList.remove("hidden");
+    chatPanel.classList.remove("hidden");
   }
 }
 
@@ -168,6 +186,17 @@ function returnToGameLobby() {
   uiState.remoteCursors = {};
   transport.setRoomId(null);
   localStorage.removeItem("trevdor.roomId");
+
+  // Clear chat state
+  chatMessages = [];
+  chatUnreadCount = 0;
+  chatOpen = false;
+  if (chatToastTimer) { clearTimeout(chatToastTimer); chatToastTimer = null; }
+  chatMessagesEl.innerHTML = "";
+  chatBox.classList.add("hidden");
+  chatToast.classList.add("hidden");
+  chatBadge.classList.add("hidden");
+
   setScene("gameLobby");
 }
 
@@ -210,6 +239,73 @@ function escapeHtml(str) {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
+}
+
+/* ---------------------------------------------------------
+   Chat helpers
+   --------------------------------------------------------- */
+
+const CHAT_SEAT_COLORS = ["#2D6CDF", "#D94A4A", "#2E9B5F", "#D6B04C"];
+
+function chatSenderColor(seat) {
+  return typeof seat === "number" && seat >= 0 && seat < 4
+    ? CHAT_SEAT_COLORS[seat]
+    : "#aaa";
+}
+
+function renderChatMessage(msg) {
+  const color = chatSenderColor(msg.seat);
+  return `<div class="chatMsg"><span class="chatSender" style="color:${color}">${escapeHtml(msg.name)}</span> ${escapeHtml(msg.text)}</div>`;
+}
+
+function renderChatMessages() {
+  chatMessagesEl.innerHTML = chatMessages.map(renderChatMessage).join("");
+  chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+}
+
+function updateChatBadge() {
+  if (chatUnreadCount > 0) {
+    chatBadge.textContent = chatUnreadCount > 99 ? "99+" : String(chatUnreadCount);
+    chatBadge.classList.remove("hidden");
+  } else {
+    chatBadge.classList.add("hidden");
+  }
+}
+
+function showChatToast(msg) {
+  if (chatOpen) return;
+  const color = chatSenderColor(msg.seat);
+  const truncated = msg.text.length > 80 ? msg.text.slice(0, 80) + "…" : msg.text;
+  chatToast.innerHTML = `<span class="chatSender" style="color:${color}">${escapeHtml(msg.name)}</span> ${escapeHtml(truncated)}`;
+  chatToast.classList.remove("hidden");
+  if (chatToastTimer) clearTimeout(chatToastTimer);
+  chatToastTimer = setTimeout(() => {
+    chatToast.classList.add("hidden");
+    chatToastTimer = null;
+  }, 4000);
+}
+
+function openChat() {
+  chatOpen = true;
+  chatBox.classList.remove("hidden");
+  chatToast.classList.add("hidden");
+  if (chatToastTimer) { clearTimeout(chatToastTimer); chatToastTimer = null; }
+  chatUnreadCount = 0;
+  updateChatBadge();
+  renderChatMessages();
+  chatInput.focus();
+}
+
+function closeChat() {
+  chatOpen = false;
+  chatBox.classList.add("hidden");
+}
+
+function sendChatMessage() {
+  const text = chatInput.value.trim().slice(0, 200);
+  if (!text) return;
+  transport.sendRaw({ type: "SAY", text });
+  chatInput.value = "";
 }
 
 /* ---------------------------------------------------------
@@ -954,6 +1050,27 @@ const transport = createTransport({
       draw();
       return;
     }
+
+    // Chat message from another player (or self echo)
+    if (msg.type === "MSG") {
+      chatMessages.push(msg);
+      if (chatMessages.length > 100) chatMessages.shift();
+      if (chatOpen) {
+        renderChatMessages();
+      } else {
+        chatUnreadCount++;
+        updateChatBadge();
+        showChatToast(msg);
+      }
+      return;
+    }
+
+    // Chat history on join/rejoin
+    if (msg.type === "CHAT_HISTORY") {
+      chatMessages = msg.messages ?? [];
+      if (chatOpen) renderChatMessages();
+      return;
+    }
   },
 
   onOpen:  () => {
@@ -1055,6 +1172,31 @@ optCursors.addEventListener("change", () => {
   draw();
 });
 
+/* ---------------------------------------------------------
+   Chat panel events
+   --------------------------------------------------------- */
+
+chatToggleBtn.addEventListener("click", () => {
+  if (chatOpen) closeChat();
+  else openChat();
+});
+
+chatSendBtn.addEventListener("click", sendChatMessage);
+
+chatInput.addEventListener("keydown", (e) => {
+  e.stopPropagation(); // prevent game hotkeys while typing
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    sendChatMessage();
+  }
+});
+
+chatToast.addEventListener("click", () => openChat());
+
+// Close chat when clicking outside chatPanel
+document.addEventListener("pointerdown", (e) => {
+  if (chatOpen && !chatPanel.contains(e.target)) closeChat();
+});
 
 /* ---------------------------------------------------------
    Auto-reconnect / initial connection

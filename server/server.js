@@ -38,6 +38,7 @@ import { applyAction } from "../engine/reducer.js";
 
 const PORT = Number(process.env.PORT || 8787);
 const DEBUG = process.env.DEBUG === "1";
+const MAX_CHAT_MESSAGES = 50;
 
 // -----------------------------------------------------------------------------
 // Static hosting config
@@ -132,6 +133,7 @@ function getRoom(roomId, metadata = {}) {
       name: metadata.name ?? roomId,
       createdBy: metadata.createdBy ?? null,
       createdAt: metadata.createdAt ?? Date.now(),
+      messages: [],
     };
     rooms.set(roomId, room);
   }
@@ -467,6 +469,11 @@ function joinRoom(ws, roomId, name) {
       version: room.version,
       state: room.state,
     });
+  }
+
+  // Send chat history so the joiner sees prior messages
+  if (room.messages.length > 0) {
+    safeSend(ws, { type: "CHAT_HISTORY", roomId, messages: room.messages });
   }
 
   // Update lobby browsers (player count changed)
@@ -811,20 +818,28 @@ wss.on("connection", (ws, req) => {
     }
 
     // -------------------------
-    // SAY (optional chat/debug broadcast)
+    // SAY (room chat)
     // -------------------------
     if (msg.type === "SAY") {
       if (!info.roomId) {
         safeSend(ws, { type: "ERROR", message: "You must JOIN a room first" });
         return;
       }
-      const text = String(msg.text || "");
-      broadcastToRoom(info.roomId, {
-        type: "MSG",
-        roomId: info.roomId,
+      const text = String(msg.text || "").trim().slice(0, 200);
+      if (!text) return;
+      const room = rooms.get(info.roomId);
+      if (!room) return;
+      const chatMsg = {
         from: info.clientId,
+        name: info.name,
+        seat: info.playerIndex,
         text,
-      });
+        ts: Date.now(),
+        channel: "room",
+      };
+      room.messages.push(chatMsg);
+      if (room.messages.length > MAX_CHAT_MESSAGES) room.messages.shift();
+      broadcastToRoom(info.roomId, { type: "MSG", roomId: info.roomId, ...chatMsg });
       return;
     }
 
