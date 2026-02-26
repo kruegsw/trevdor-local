@@ -46,7 +46,7 @@ export function computeLayout(viewport = { width, height }) {
   const BANK_Y   = NOBLE_WH.h + GAP * 4 + CARD_WH.h * 3;
 
   // ---- 4 panel positions around the board
-  // 0=right (you), 1=below-right (+1), 2=left (+2), 3=below-left (+3)
+  // 0=top-right (P2), 1=bottom-right (P4), 2=top-left (P1), 3=bottom-left (P3)
   const panelPositions = [
     { x: BOARD.x + BOARD.w + GAP_TO_BOARD, y: BOARD.y },                          // right
     { x: BOARD.x + BOARD.w + GAP_TO_BOARD, y: BOARD.y + BOARD.h + GAP_TO_BOARD }, // below-right

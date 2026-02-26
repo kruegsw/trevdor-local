@@ -103,9 +103,10 @@ function render(ctx) {
         // Resolve positionIndex → actual playerIndex for panel slots
         if (e.positionIndex != null) {
           const numPlayers = state.players?.length ?? 0;
-          if (e.positionIndex >= numPlayers) return; // skip panels for absent players
-          const my = typeof uiState.myPlayerIndex === "number" ? uiState.myPlayerIndex : 0;
-          const playerIndex = (my + e.positionIndex) % numPlayers;
+          // Fixed layout: posIdx 0=top-right→P2, 1=bottom-right→P4, 2=top-left→P1, 3=bottom-left→P3
+          const fixedMap = [1, 3, 0, 2];
+          const playerIndex = fixedMap[e.positionIndex];
+          if (playerIndex >= numPlayers) return; // skip panels for absent players
           e.statePath[1] = playerIndex;
         }
 
