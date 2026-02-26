@@ -49,7 +49,7 @@ The `/engine` directory is a pure, framework-agnostic game state machine shared 
 { type: "CLOSE_ROOM",  roomId }          // host only — evicts all clients, deletes room
 { type: "IDENTIFY",    name }            // set display name before joining any room
 { type: "PING",        roomId }          // throttled heartbeat for activity tracking
-{ type: "SAY",         text }            // debug chat broadcast
+{ type: "SAY",         text }            // room chat message (trimmed, max 200 chars)
 ```
 **Server → Client**
 ```
@@ -60,7 +60,8 @@ The `/engine` directory is a pure, framework-agnostic game state machine shared 
 { type: "ROOM_NOT_FOUND", roomId }
 { type: "REJECTED",       roomId, reason, ...details }
 { type: "ERROR",          message }
-{ type: "MSG",            from, text }
+{ type: "MSG",            roomId, from, name, seat, text, ts, channel }
+{ type: "CHAT_HISTORY",   roomId, messages: [...] }
 ```
 `playerIndex` === `seatIndex` (0–3). Seat 0 is player 0, seat 1 is player 1, etc. If all 4 seats are full, additional clients join as spectators (`playerIndex: -1`).
 
@@ -133,6 +134,12 @@ A fixed HTML overlay (`#statusBar` in `index.html`) shows all 4 seat slots with 
 - `pointer-events: none` so it never blocks canvas interaction (except the "← Lobby" button which has `pointer-events: auto`)
 - Intentionally HTML (not canvas) for simplicity
 
+### In-game chat
+Room-scoped chat visible during room lobby and game scenes. Server stores up to 50 messages per room (`room.messages[]`, `MAX_CHAT_MESSAGES`). SAY handler enriches messages with `name`, `seat`, `ts`, `channel: "room"` and broadcasts as MSG. Joiners receive `CHAT_HISTORY` after STATE. Client holds up to 100 messages. Collapsible panel (bottom-right, `#chatPanel`) with toggle button, unread badge, 4-second toast notifications, and seat-colored sender names (matching panel accent colors). `chatInput` keydown uses `stopPropagation()` to prevent game hotkeys. Click-outside closes chat. Chat is toggleable via the options menu (`trevdor.chat` localStorage key, default on). `#chatPanel.hidden` CSS rule needed due to ID specificity overriding `.hidden` class. The `channel: "room"` field is the extensibility point for future lobby-wide chat.
+
+### Fixed player panel positions
+Player panels use fixed board positions instead of rotating relative to the viewer. A `fixedMap` array in `render.js` maps `positionIndex` → `playerIndex`: P1 top-left, P2 top-right, P3 bottom-left, P4 bottom-right. All players see the same layout. For 2- or 3-player games, panels for absent players are skipped (`playerIndex >= numPlayers`).
+
 ### Mobile WebSocket reconnect strategy
 Mobile Safari kills WebSocket connections on page refresh (close code 1001 "Going Away") while still fetching the new page's JS modules. The new page's `transport.connect()` then fails repeatedly because the browser hasn't finished its page transition. Fixed with a multi-layered approach in `transport.js` and `trevdor.js`:
 - **Generation counter** in `transport.js` — each `connect()` call increments a counter; stale sockets' close handlers are ignored, preventing an infinite connect/disconnect loop.
@@ -142,11 +149,17 @@ Mobile Safari kills WebSocket connections on page refresh (close code 1001 "Goin
 - **Fast initial retries** — first 5 reconnect attempts use 100ms delay instead of the normal 500ms, for snappy recovery.
 - **"Connecting…" indicator** — the lobby subtitle (`#connStatus`) shows "Connecting…" while disconnected, switching to "Game Lobby" on open. Desktop and iPad are unaffected; the issue is specific to mobile phone browsers.
 
+## Performance
+- **requestAnimationFrame batching**: `draw()` in `trevdor.js` schedules via rAF; multiple events within one frame coalesce into a single render. `drawNow()` is the synchronous variant used by `resize()` to avoid a blank flash after canvas dimension change.
+- **Gem sprite caching**: `drawGemCached()` in `render.js` pre-renders each unique gem (color, radius, label, DPR) to an offscreen canvas on first use, then stamps with `drawImage()`. Eliminates ~100+ `createRadialGradient()` calls, clip operations, and 16-facet triangle loops per frame. Cache (`_gemCache` Map) cleared on `resize()`. The original `drawGem()` is still exported for one-off use (e.g. confirm overlay in `trevdor.js`).
+- **Options menu**: Sound, Card Art, Cursors, and Chat toggles all persist to localStorage.
+
 ## What's Next
 - Mobile UX — canvas layout and interaction for small screens
 - Post-game flow — "Play Again" or "New Game" button after game ends (currently players use "← Lobby")
-- Sound effects — player joins room, game starts, and potentially others (your turn, token pickup, card buy, noble visit, game over)
-- Fit-to-screen layout — make the entire board and all player panels visible without panning
+- AI computer opponent — option to fill empty seats with bot players that make reasonable moves
+- Lobby-wide chat — extend room chat to game lobby using `channel` field
+- Performance — dirty flags for hit regions, text measurement caching, `drawDevelopmentCard()` optimization
 
 ## Engine Quick Reference
 ```javascript

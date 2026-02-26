@@ -334,11 +334,11 @@ function render(ctx) {
         ctx.textBaseline = "middle";
 
         ctx.fillStyle = "#ffd700";
-        ctx.font = `bold ${Math.max(28, Math.floor(w * 0.06))}px system-ui, sans-serif`;
+        ctx.font = `bold ${Math.max(28, Math.floor(w * 0.06))}px 'Plus Jakarta Sans', system-ui, sans-serif`;
         ctx.fillText(`${winnerName} wins!`, w / 2, h / 2 - 20);
 
         ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
-        ctx.font = `${Math.max(16, Math.floor(w * 0.03))}px system-ui, sans-serif`;
+        ctx.font = `${Math.max(16, Math.floor(w * 0.03))}px 'Plus Jakarta Sans', system-ui, sans-serif`;
         ctx.fillText(`${prestige} prestige points`, w / 2, h / 2 + 20);
       }
 
@@ -433,7 +433,6 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, tier,
       drawCardShadow(ctx, { x, y, w, h }, {})
 
       const cardPending = uiState.pending?.card?.tier === tier && uiState.pending?.card?.index === index;
-      if (isHovered(uiID, uiState) || cardPending) { y -= 4 };
 
       // Dim unaffordable cards when it's the player's turn and idle
       const myTurn = typeof uiState.myPlayerIndex === "number"
@@ -441,7 +440,9 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, tier,
         && !state.gameOver;
       const dimMarket = myTurn && (uiState.mode ?? "idle") === "idle" && stateObject
         && !isAffordable(state, uiState, stateObject, tier, index);
-      if (dimMarket) ctx.globalAlpha = 0.4;
+
+      if (!dimMarket && (isHovered(uiID, uiState) || cardPending)) { y -= 4 };
+      if (dimMarket) ctx.globalAlpha = 0.7;
 
       stateObject ? drawDevelopmentCard(ctx, { x, y, w, h }, {
         id: stateObject.id,
@@ -466,7 +467,13 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, tier,
       drawTokenShadow(ctx, { x, y, w, h }, {});
 
       const tokenPending = uiID.startsWith("bank.") && (uiState.pending?.tokens?.[color] ?? 0) > 0;
-      if (isHovered(uiID, uiState) || tokenPending) { y -= 4 };
+      const isBank = uiID.startsWith("bank.");
+      const canTakeToken = isBank && (tokenPending || rulesCheck({
+        getState: () => state, uiState,
+        pending: uiState.pending ?? { tokens: {}, card: "" },
+        action: "takeToken", color
+      }));
+      if (canTakeToken && (isHovered(uiID, uiState) || tokenPending)) { y -= 4 };
 
       stateObject > 0 ? drawToken(ctx, color, { x, y, w, h }, {
         count: stateObject
@@ -546,8 +553,16 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, tier,
         ctx.save();
         roundedRectPath(ctx, x, y, w, drawH, 14);
         ctx.clip();
-        ctx.fillStyle = "rgba(0,0,0,0.04)";
+        ctx.fillStyle = "rgba(0,0,0,0.10)";
         ctx.fillRect(x, y + panelLayout.tokenRowY, w, panelLayout.tokenRowH + pad);
+        // Accent-colored top border
+        const acRgb = hexToRgb(accentColor);
+        ctx.strokeStyle = rgbToCss(acRgb, 0.25);
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x, y + panelLayout.tokenRowY + 0.5);
+        ctx.lineTo(x + w, y + panelLayout.tokenRowY + 0.5);
+        ctx.stroke();
         ctx.restore();
       }
 
@@ -563,7 +578,7 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, tier,
 
       // Name (left-aligned, inset by pad)
       ctx.fillStyle = accentColor;
-      const nameFont = `${isMe ? "bold " : ""}16px system-ui, sans-serif`;
+      const nameFont = `${isMe ? "bold " : ""}16px 'Plus Jakarta Sans', system-ui, sans-serif`;
       ctx.font = nameFont;
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
@@ -584,7 +599,7 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, tier,
 
       // Prestige
       ctx.fillStyle = prestige >= 15 ? "#d4a017" : "#555";
-      const prestigeFont = `bold 14px system-ui, sans-serif`;
+      const prestigeFont = `bold 14px 'Plus Jakarta Sans', system-ui, sans-serif`;
       ctx.font = prestigeFont;
       const prestigeText = `${prestige}pt`;
       ctx.fillText(prestigeText, rx, headerCenterY);
@@ -592,7 +607,7 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, tier,
 
       // Token count (circle icon + number)
       ctx.fillStyle = "#555";
-      const statFont = `13px system-ui, sans-serif`;
+      const statFont = `13px 'Plus Jakarta Sans', system-ui, sans-serif`;
       ctx.font = statFont;
       const tokensText = String(tokens);
       ctx.fillText(tokensText, rx, headerCenterY);
@@ -648,7 +663,6 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, tier,
       }
       drawReservedShadow(ctx, { x, y, w, h }, {});
       const resPending = uiState.pending?.card?.tier === tier && uiState.pending?.card?.index === index;
-      if (isHovered(uiID, uiState) || resPending) { y -= 4 };
 
       // Dim unaffordable reserved cards (own cards only, when idle on my turn)
       const myTurnRes = typeof uiState.myPlayerIndex === "number"
@@ -658,7 +672,9 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, tier,
       const dimReserved = myTurnRes && isMyReserved
         && (uiState.mode ?? "idle") === "idle"
         && !isAffordable(state, uiState, stateObject, tier, index);
-      if (dimReserved) ctx.globalAlpha = 0.4;
+
+      if (isMyReserved && !dimReserved && (isHovered(uiID, uiState) || resPending)) { y -= 4 };
+      if (dimReserved) ctx.globalAlpha = 0.7;
 
       drawReserved(ctx, { x, y, w, h }, stateObject);
 
@@ -776,7 +792,7 @@ function drawToken(ctx, color, { x, y, w, h }, { count }) {
     // If rim is dark (blue/black), use light text; otherwise dark text
     //const isDarkKey = (color === "blue" || color === "black");
     ctx.fillStyle = getTextColor(color);
-    ctx.font = `700 ${Math.max(12, Math.floor(r * 0.55))}px system-ui, sans-serif`;
+    ctx.font = `700 ${Math.max(12, Math.floor(r * 0.55))}px 'Plus Jakarta Sans', system-ui, sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(String(count), cx, cy);
@@ -985,7 +1001,7 @@ function drawGem(ctx, cx, cy, r, color, label = "") {
     const isRound = (key === "red" || key === "yellow");
     const fontSize = isRound ? Math.max(10, Math.floor(r * 1.1)) : Math.max(10, Math.floor(r * 1.4));
     ctx.fillStyle = key === "white" ? "rgba(0,0,0,0.9)" : "#fff";
-    ctx.font = `700 ${fontSize}px system-ui, sans-serif`;
+    ctx.font = `700 ${fontSize}px 'Plus Jakarta Sans', system-ui, sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(label, cx, cy);
@@ -1038,7 +1054,7 @@ function drawPip(ctx, x, y, s, color, text) {
   ctx.stroke();
 
   ctx.fillStyle = getTextColor(color);//( (color === GEM_COLORS.blue) || (color === GEM_COLORS.black) ) ? "#E9EEF3" : "rgba(0,0,0,1)";
-  ctx.font = `700 ${Math.max(10, Math.floor(s * 0.55))}px system-ui, sans-serif`;
+  ctx.font = `700 ${Math.max(10, Math.floor(s * 0.55))}px 'Plus Jakarta Sans', system-ui, sans-serif`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText(String(text), x + s / 2, y + s / 2);
@@ -1099,7 +1115,7 @@ function drawDevelopmentCard(ctx, { x, y, w, h }, card = {}) {
   // --- points (top-left)
   if (points > 0) {
     ctx.fillStyle = hasSprite ? "#fff" : "rgba(0,0,0,.9)";
-    ctx.font = `700 ${Math.max(12, Math.floor(h * 0.20))}px system-ui, sans-serif`;
+    ctx.font = `700 ${Math.max(12, Math.floor(h * 0.20))}px 'Plus Jakarta Sans', system-ui, sans-serif`;
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
     if (hasSprite) { ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = 3; }
@@ -1115,15 +1131,122 @@ function drawDevelopmentCard(ctx, { x, y, w, h }, card = {}) {
     drawGemCached(ctx, cx, cy, r, bonus, "");
   }
 
-  // --- optional banner in the middle (very subtle)
+  // --- optional banner
   if (banner) {
-    ctx.fillStyle = hasSprite ? "#fff" : ((bonus == "black") ? "#fff" : "rgba(0,0,0,1)");
-    ctx.font = `600 ${Math.max(10, Math.floor(h * 0.10))}px system-ui, sans-serif`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    if (hasSprite) { ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = 3; }
-    ctx.fillText(banner, x + w / 2, y + h * 0.52);
-    ctx.shadowBlur = 0;
+    if (banner === "RESERVED") {
+      // Elegant wrapped sash through the center of the card
+      const sashH = Math.max(14, Math.floor(h * 0.15));
+      const foldSize = Math.max(4, Math.floor(sashH * 0.35));
+      const ribbonColor = CARD_BACKGROUND_COLORS[bonus] || "#888";
+      const rc = hexToRgb(ribbonColor);
+      const angle = -Math.PI / 4;
+      const cos = Math.cos(angle), sin = Math.sin(angle);
+      const cx = x + w / 2, cy = y + h / 2;
+      const sashW = Math.ceil(Math.hypot(w, h));
+
+      // Clip to card bounds so the sash doesn't bleed outside rounded corners
+      ctx.save();
+      roundedRectPath(ctx, x, y, w, h);
+      ctx.clip();
+
+      // Shadow under the sash for depth
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(angle);
+      ctx.shadowColor = "rgba(0,0,0,0.35)";
+      ctx.shadowBlur = 6;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 2;
+      ctx.fillStyle = rgbToCss(rc, 0.92);
+      ctx.fillRect(-sashW / 2, -sashH / 2, sashW, sashH);
+      ctx.restore();
+
+      // Main sash band with subtle gradient for a fabric-like sheen
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(angle);
+      const grad = ctx.createLinearGradient(0, -sashH / 2, 0, sashH / 2);
+      grad.addColorStop(0, rgbToCss(rc, 0.75));
+      grad.addColorStop(0.35, rgbToCss(rc, 0.95));
+      grad.addColorStop(0.5, rgbToCss({ r: Math.min(255, rc.r + 40), g: Math.min(255, rc.g + 40), b: Math.min(255, rc.b + 40) }, 1));
+      grad.addColorStop(0.65, rgbToCss(rc, 0.95));
+      grad.addColorStop(1, rgbToCss(rc, 0.75));
+      ctx.fillStyle = grad;
+      ctx.fillRect(-sashW / 2, -sashH / 2, sashW, sashH);
+      // Subtle top/bottom stitch lines
+      ctx.strokeStyle = "rgba(255,255,255,0.25)";
+      ctx.lineWidth = 0.5;
+      ctx.setLineDash([3, 3]);
+      ctx.beginPath();
+      ctx.moveTo(-sashW / 2, -sashH / 2 + 1.5);
+      ctx.lineTo(sashW / 2, -sashH / 2 + 1.5);
+      ctx.moveTo(-sashW / 2, sashH / 2 - 1.5);
+      ctx.lineTo(sashW / 2, sashH / 2 - 1.5);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      // "RESERVED" text
+      ctx.fillStyle = "#fff";
+      ctx.font = `700 ${Math.max(8, Math.floor(sashH * 0.65))}px 'Plus Jakarta Sans', system-ui, sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.shadowColor = "rgba(0,0,0,0.5)";
+      ctx.shadowBlur = 2;
+      ctx.fillText("RESERVED", 0, 0.5);
+      ctx.shadowBlur = 0;
+      ctx.restore();
+
+      // Fold triangles at the card edges to simulate wrapping behind
+      // The sash crosses the left edge and bottom edge of the card.
+      // We find where the sash edges meet the card boundary and draw
+      // small darkened triangles to give the "wrapping around" illusion.
+      const halfH = sashH / 2;
+      // Points where the sash edges intersect card left side (x)
+      // In rotated coords, the left card edge is at dx = (x - cx), solve for sash edge
+      // Instead, compute the 4 corner points of the sash at the card boundary
+      const darkFold = rgbToCss({ r: Math.max(0, rc.r - 50), g: Math.max(0, rc.g - 50), b: Math.max(0, rc.b - 50) }, 0.9);
+
+      // Bottom-left fold: where sash exits bottom edge
+      {
+        // Sash bottom-edge at card bottom: find x where rotated sash bottom = y+h
+        // The sash bottom edge in world coords: P = (cx, cy) + R * (t, halfH)
+        // Py = cy + t*sin + halfH*cos = y+h  =>  t = (y+h - cy - halfH*cos) / sin
+        const tBot = (y + h - cy - halfH * cos) / sin;
+        const bx = cx + tBot * cos - halfH * sin;
+        const by = y + h;
+        ctx.fillStyle = darkFold;
+        ctx.beginPath();
+        ctx.moveTo(bx, by);
+        ctx.lineTo(bx + foldSize * cos, by);
+        ctx.lineTo(bx, by - foldSize * Math.abs(sin));
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      // Top-right fold: where sash exits top edge
+      {
+        const tTop = (y - cy + halfH * cos) / sin;
+        const tx = cx + tTop * cos + halfH * sin;
+        const ty = y;
+        ctx.fillStyle = darkFold;
+        ctx.beginPath();
+        ctx.moveTo(tx, ty);
+        ctx.lineTo(tx - foldSize * cos, ty);
+        ctx.lineTo(tx, ty + foldSize * Math.abs(sin));
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      ctx.restore(); // card clip
+    } else {
+      // Generic centered banner text (e.g. deck card "Trevdor")
+      ctx.fillStyle = hasSprite ? "#fff" : ((bonus == "black") ? "#fff" : "rgba(0,0,0,1)");
+      ctx.font = `600 ${Math.max(10, Math.floor(h * 0.10))}px 'Plus Jakarta Sans', system-ui, sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      if (hasSprite) { ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = 3; }
+      ctx.fillText(banner, x + w / 2, y + h * 0.52);
+      ctx.shadowBlur = 0;
+    }
   }
 
   // --- bottom cost pips
@@ -1205,7 +1328,7 @@ function drawDeckCard(ctx, { x, y, w, h }, card = {}) {
     // optional banner text
     if (banner) {
       ctx.fillStyle = "rgba(0,0,0,1)";
-      ctx.font = `700 ${Math.max(10, Math.floor(h * 0.15))}px system-ui, sans-serif`;
+      ctx.font = `700 ${Math.max(10, Math.floor(h * 0.15))}px 'Plus Jakarta Sans', system-ui, sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(banner, artX + artW / 2, artY + artH / 2);
@@ -1368,7 +1491,7 @@ function drawNoble(ctx, { x, y, w, h }, noble = {}) {
   // --- points (top of strip)
   if (points > 0) {
     ctx.fillStyle = "rgba(0,0,0,0.9)";
-    ctx.font = `700 ${Math.max(12, Math.floor(h * 0.22))}px system-ui, sans-serif`;
+    ctx.font = `700 ${Math.max(12, Math.floor(h * 0.22))}px 'Plus Jakarta Sans', system-ui, sans-serif`;
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
     ctx.fillText(String(points), x + pad, y + pad * 0.8);
@@ -1419,7 +1542,7 @@ function drawNoble(ctx, { x, y, w, h }, noble = {}) {
   // --- optional banner (center-right)
   if (banner) {
     ctx.fillStyle = "rgba(0,0,0,.35)";
-    ctx.font = `600 ${Math.max(10, Math.floor(h * 0.14))}px system-ui, sans-serif`;
+    ctx.font = `600 ${Math.max(10, Math.floor(h * 0.14))}px 'Plus Jakarta Sans', system-ui, sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(
@@ -1491,7 +1614,7 @@ function drawFannedCards(ctx, { color, x, y, w, h }, stateObject ) {
   // PURCHASED CARD STACKS (grouped by bonus)
   // ------------------------------------------------------------------
   //ctx.fillStyle = "rgba(0,0,0,.7)";
-  //ctx.font = `600 ${11 * SCALE}px system-ui, sans-serif`;
+  //ctx.font = `600 ${11 * SCALE}px 'Plus Jakarta Sans', system-ui, sans-serif`;
   //ctx.fillText("Cards", innerX, cy);
 
   //const stacksTop = cy + (12 * SCALE);
@@ -1513,7 +1636,7 @@ function drawFannedCards(ctx, { color, x, y, w, h }, stateObject ) {
     });
 
     //ctx.fillStyle = "rgba(0,0,0,.75)";
-    //ctx.font = `600 ${10 * SCALE}px system-ui, sans-serif`;
+    //ctx.font = `600 ${10 * SCALE}px 'Plus Jakarta Sans', system-ui, sans-serif`;
     //ctx.textAlign = "center";
     //ctx.textBaseline = "top";
     //ctx.fillText(`${pile.length}`, sx + CARD_WH.w / 2, stacksTop + CARD_WH.h + 2);
