@@ -941,12 +941,12 @@ const transport = createTransport({
     if (msg.type === "CURSOR") {
       const clients = uiState.room?.clients ?? [];
       const slot = clients.find(c => c.clientId === msg.clientId);
-      const seatColors = ["#e53935", "#2196f3", "#4caf50", "#ffd700"];
+      const seatColors = ["#2D6CDF", "#D94A4A", "#2E9B5F", "#D6B04C"];
       uiState.remoteCursors[msg.clientId] = {
         x: msg.x,
         y: msg.y,
         ts: Date.now(),
-        color: slot ? seatColors[slot.seat % 4] : "#aaa",
+        color: slot ? seatColors[slot.seat] : "#aaa",
         name: slot?.name ?? "",
       };
       draw();
