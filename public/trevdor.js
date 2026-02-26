@@ -255,7 +255,8 @@ function chatSenderColor(seat) {
 
 function renderChatMessage(msg) {
   const color = chatSenderColor(msg.seat);
-  return `<div class="chatMsg"><span class="chatSender" style="color:${color}">${escapeHtml(msg.name)}</span> ${escapeHtml(msg.text)}</div>`;
+  const name = msg.name || "Unknown";
+  return `<div class="chatMsg"><span class="chatSender" style="color:${color}">${escapeHtml(name)}</span> ${escapeHtml(msg.text)}</div>`;
 }
 
 function renderChatMessages() {
@@ -275,8 +276,9 @@ function updateChatBadge() {
 function showChatToast(msg) {
   if (chatOpen) return;
   const color = chatSenderColor(msg.seat);
+  const name = msg.name || "Unknown";
   const truncated = msg.text.length > 80 ? msg.text.slice(0, 80) + "…" : msg.text;
-  chatToast.innerHTML = `<span class="chatSender" style="color:${color}">${escapeHtml(msg.name)}</span> ${escapeHtml(truncated)}`;
+  chatToast.innerHTML = `<span class="chatSender" style="color:${color}">${escapeHtml(name)}</span> ${escapeHtml(truncated)}`;
   chatToast.classList.remove("hidden");
   if (chatToastTimer) clearTimeout(chatToastTimer);
   chatToastTimer = setTimeout(() => {
