@@ -706,11 +706,21 @@ const CONFIRM_CARD_COLORS = {
   black:  { bg: "#2B2B2B", text: "#E9EEF3" },
 };
 
+let _lastConfirmKey = null;
+
 function updateConfirmOverlay() {
   if (!state || !Intent.isCommitReady(state, uiState)) {
     confirmOverlay.classList.add("hidden");
+    _lastConfirmKey = null;
     return;
   }
+  // Build a key from the inputs that drive the overlay content.
+  // Only rebuild DOM when the pending intent actually changes.
+  const p = uiState.pending;
+  const key = `${uiState.mode}|${p?.card?.meta?.id ?? ""}|${JSON.stringify(p?.tokens ?? {})}`;
+  if (key === _lastConfirmKey) return;
+  _lastConfirmKey = key;
+
   confirmOverlay.classList.remove("hidden");
 
   const labels = { buyCard: "Buy Card?", reserveCard: "Reserve Card?", takeTokens: "Take Tokens?" };

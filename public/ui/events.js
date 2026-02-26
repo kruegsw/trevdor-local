@@ -46,9 +46,12 @@ export function createUIEvents({
      Coordinate conversion
      --------------------------------------------------------- */
 
+  let _canvasRect = canvas.getBoundingClientRect();
+  window.addEventListener("resize", () => { _canvasRect = canvas.getBoundingClientRect(); });
+  window.addEventListener("scroll", () => { _canvasRect = canvas.getBoundingClientRect(); }, true);
+
   function eventToCanvasXY(e) {
-    const rect = canvas.getBoundingClientRect();
-    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    return { x: e.clientX - _canvasRect.left, y: e.clientY - _canvasRect.top };
   }
 
   function eventToWorldXY(e) {

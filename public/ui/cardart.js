@@ -55,9 +55,6 @@ export function drawCardSprite(ctx, x, y, w, h, cardId) {
   const sx = pos.col * SPRITE_W;
   const sy = pos.row * SPRITE_H;
 
-  const prevSmoothing = ctx.imageSmoothingEnabled;
-  ctx.imageSmoothingEnabled = false;
   ctx.drawImage(spriteSheet, sx, sy, SPRITE_W, SPRITE_H, x, y, w, h);
-  ctx.imageSmoothingEnabled = prevSmoothing;
   return true;
 }

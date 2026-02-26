@@ -50,6 +50,16 @@ function clampRectToViewport(rect, viewport) {
    RENDERER FACTORY
    --------------------------------------------------------- */
 
+// positionIndex → playerIndex mapping (fixed layout, never changes)
+const FIXED_MAP = [1, 3, 0, 2];
+
+// Noble tile cache: key → offscreen canvas. Cleared on resize.
+const _nobleCache = new Map();
+
+// Per-frame groupCardsByBonus cache: cards array ref → grouped object.
+// WeakMap so we don't need explicit clearing — refs are per-state.
+const _groupedCache = new WeakMap();
+
 // Gem sprite cache: key → { canvas, size }
 // Cleared on resize since DPR or layout may change.
 const _gemCache = new Map();
@@ -174,6 +184,7 @@ function render(ctx) {
       _dpr = viewport.dpr || 1;
       layout = computeLayout({viewport});
       _gemCache.clear(); // DPR or layout may have changed
+      _nobleCache.clear();
       _textWidthCache.clear();
 
       ctx.textBaseline = "alphabetic";
@@ -214,6 +225,9 @@ function render(ctx) {
       ctx.translate(-cam.x * cam.scale, -cam.y * cam.scale);
       ctx.scale(cam.scale, cam.scale);
 
+      // Disable image smoothing for the whole frame (pixel-art sprites)
+      ctx.imageSmoothingEnabled = false;
+
       // Rebuild clickable regions every frame
       hitRegions.length = 0;
 
@@ -223,8 +237,7 @@ function render(ctx) {
         if (e.positionIndex != null) {
           const numPlayers = state.players?.length ?? 0;
           // Fixed layout: posIdx 0=top-right→P2, 1=bottom-right→P4, 2=top-left→P1, 3=bottom-left→P3
-          const fixedMap = [1, 3, 0, 2];
-          const playerIndex = fixedMap[e.positionIndex];
+          const playerIndex = FIXED_MAP[e.positionIndex];
           if (playerIndex >= numPlayers) return; // skip panels for absent players
           e.statePath[1] = playerIndex;
         }
@@ -471,11 +484,10 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, tier,
     }
     case "noble":
       //stateObject ? drawCard(ctx, { x, y, w, h } ) : null // update this later to draw a noble card
-      stateObject ? drawNoble(ctx, { color, x, y, w, h }, stateObject ) : null;
+      stateObject ? drawNobleCached(ctx, { color, x, y, w, h }, stateObject ) : null;
       return true;
     case "panel.bg": {
-      const fixedMapBg = [1, 3, 0, 2];
-      const playerIndex = fixedMapBg[positionIndex];
+      const playerIndex = FIXED_MAP[positionIndex];
       const isMe = uiState.myPlayerIndex === playerIndex;
       const isActive = state.activePlayerIndex === playerIndex;
       const player = stateObject;
@@ -642,8 +654,7 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, tier,
       const myTurnRes = typeof uiState.myPlayerIndex === "number"
         && uiState.myPlayerIndex === state.activePlayerIndex
         && !state.gameOver;
-      const fixedMapRes = [1, 3, 0, 2];
-      const isMyReserved = uiState.myPlayerIndex === fixedMapRes[positionIndex];
+      const isMyReserved = uiState.myPlayerIndex === FIXED_MAP[positionIndex];
       const dimReserved = myTurnRes && isMyReserved
         && (uiState.mode ?? "idle") === "idle"
         && !isAffordable(state, uiState, stateObject, tier, index);
@@ -662,7 +673,11 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, tier,
       return true;
     }
     case "fanned.cards": {
-      const grouped = groupCardsByBonus(stateObject, ["white","blue","green","red","black"]);
+      let grouped = stateObject && _groupedCache.get(stateObject);
+      if (!grouped) {
+        grouped = groupCardsByBonus(stateObject, ["white","blue","green","red","black"]);
+        if (stateObject) _groupedCache.set(stateObject, grouped);
+      }
       const pile = grouped[color] ?? [];
       stateObject ? drawFannedCards(ctx, { color, x, y, w, h }, pile ) : null;
       return true;
@@ -1200,6 +1215,22 @@ function drawDeckCard(ctx, { x, y, w, h }, card = {}) {
 
 
 
+function drawNobleCached(ctx, { x, y, w, h }, noble = {}) {
+  const req = noble.req ?? {};
+  const key = `${noble.points ?? 3}|${req.white ?? 0},${req.blue ?? 0},${req.green ?? 0},${req.red ?? 0},${req.black ?? 0}|${w}|${h}|${_dpr}`;
+  let oc = _nobleCache.get(key);
+  if (!oc) {
+    oc = document.createElement("canvas");
+    oc.width = Math.ceil(w * _dpr);
+    oc.height = Math.ceil(h * _dpr);
+    const octx = oc.getContext("2d");
+    octx.scale(_dpr, _dpr);
+    drawNoble(octx, { x: 0, y: 0, w, h }, noble);
+    _nobleCache.set(key, oc);
+  }
+  ctx.drawImage(oc, 0, 0, oc.width, oc.height, x, y, w, h);
+}
+
 function drawNoble(ctx, { x, y, w, h }, noble = {}) {
   const {
     points = 3,
@@ -1449,7 +1480,7 @@ function drawFannedNobles(ctx, { color, x, y, w, h }, stateObject ) {
   for (let i = 0; i < n; i++) {
     const noble = stateObject[i];
     const yy = y + (i * peek);
-    drawNoble(ctx, { x, y: yy, w, h }, noble);
+    drawNobleCached(ctx, { x, y: yy, w, h }, noble);
   }
 }
 
