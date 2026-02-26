@@ -360,9 +360,8 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, tier,
       stateObject ? drawNoble(ctx, { color, x, y, w, h }, stateObject ) : null;
       return true;
     case "panel.bg": {
-      const numPlayers = state.players?.length ?? 0;
-      const my = typeof uiState.myPlayerIndex === "number" ? uiState.myPlayerIndex : 0;
-      const playerIndex = (my + positionIndex) % numPlayers;
+      const fixedMapBg = [1, 3, 0, 2];
+      const playerIndex = fixedMapBg[positionIndex];
       const isMe = uiState.myPlayerIndex === playerIndex;
       const isActive = state.activePlayerIndex === playerIndex;
       const player = stateObject;
@@ -386,7 +385,7 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, tier,
       }
 
       // Panel background with player color tint
-      const accentColor = SEAT_ACCENT_COLORS[positionIndex] ?? "rgba(0,0,0,0.25)";
+      const accentColor = SEAT_ACCENT_COLORS[playerIndex] ?? "rgba(0,0,0,0.25)";
       ctx.save();
       roundedRectPath(ctx, x, y, w, drawH, 14);
       // Active panel: colored glow in accent color
@@ -523,7 +522,8 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, tier,
       const myTurnRes = typeof uiState.myPlayerIndex === "number"
         && uiState.myPlayerIndex === state.activePlayerIndex
         && !state.gameOver;
-      const isMyReserved = positionIndex === 0;
+      const fixedMapRes = [1, 3, 0, 2];
+      const isMyReserved = uiState.myPlayerIndex === fixedMapRes[positionIndex];
       const dimReserved = myTurnRes && isMyReserved
         && (uiState.mode ?? "idle") === "idle"
         && !rulesCheck({
