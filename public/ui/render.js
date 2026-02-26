@@ -50,6 +50,35 @@ function clampRectToViewport(rect, viewport) {
    RENDERER FACTORY
    --------------------------------------------------------- */
 
+// Gem sprite cache: key → { canvas, size }
+// Cleared on resize since DPR or layout may change.
+const _gemCache = new Map();
+let _dpr = 1; // updated by resize(), used by drawGemCached()
+
+function getCachedGem(color, r, label, dpr) {
+  const key = `${color}|${r}|${label}|${dpr}`;
+  let entry = _gemCache.get(key);
+  if (entry) return entry;
+
+  // Render gem to an offscreen canvas
+  const pad = 4; // extra pixels for stroke and glow bleed
+  const size = Math.ceil(r * 2.6) + pad * 2; // generous to contain all shapes
+  const oc = document.createElement("canvas");
+  oc.width = Math.ceil(size * dpr);
+  oc.height = Math.ceil(size * dpr);
+  const octx = oc.getContext("2d");
+  octx.scale(dpr, dpr);
+  drawGem(octx, size / 2, size / 2, r, color, label);
+  entry = { canvas: oc, size };
+  _gemCache.set(key, entry);
+  return entry;
+}
+
+function drawGemCached(ctx, cx, cy, r, color, label = "") {
+  const { canvas: oc, size } = getCachedGem(color, r, label, _dpr);
+  ctx.drawImage(oc, cx - size / 2, cy - size / 2, size, size);
+}
+
 function render(ctx) {
   let viewport = { width: 0, height: 0, dpr: 1 };
   let layout = null;
@@ -63,7 +92,9 @@ function render(ctx) {
   return {
     resize(nextViewport) {
       viewport = nextViewport;
+      _dpr = viewport.dpr || 1;
       layout = computeLayout({viewport});
+      _gemCache.clear(); // DPR or layout may have changed
 
       ctx.textBaseline = "alphabetic";
       ctx.textAlign = "left";
@@ -481,7 +512,7 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, tier,
       ctx.textAlign = "right";
       ctx.fillText(String(gems), rx, headerCenterY);
       rx -= ctx.measureText(String(gems)).width + 2;
-      drawGem(ctx, rx - 4, headerCenterY, 6, "#888", "");
+      drawGemCached(ctx, rx - 4, headerCenterY, 6, "#888", "");
       rx -= 18;
 
       // Noble crowns — one per noble, centered in header
@@ -632,7 +663,7 @@ function drawToken(ctx, color, { x, y, w, h }, { count }) {
   // --- 3) center gem (reuse your faceted diamond gem)
   // pass the KEY if possible so drawGem can pick GEM_COLORS
   const gemColorKeyOrHex = (GEM_COLORS[color] ? color : rimFill);
-  drawGem(ctx, cx, cy, gemR, gemColorKeyOrHex, "");
+  drawGemCached(ctx, cx, cy, gemR, gemColorKeyOrHex, "");
 
   // --- 4) outline (subtle black)
   ctx.beginPath();
@@ -1021,7 +1052,7 @@ function drawDevelopmentCard(ctx, { x, y, w, h }, card = {}) {
     const r = Math.max(6, Math.floor(Math.min(w, h) * 0.12));
     const cx = x + w - pad - r;
     const cy = y + pad + r;
-    drawGem(ctx, cx, cy, r, bonus, "");
+    drawGemCached(ctx, cx, cy, r, bonus, "");
   }
 
   // --- optional banner in the middle (very subtle)
@@ -1050,7 +1081,7 @@ function drawDevelopmentCard(ctx, { x, y, w, h }, card = {}) {
     let cx = startX;
     for (const [c, n] of entries) {
       const gemR = pipSize / 2;
-      drawGem(ctx, cx + gemR, yBottom + gemR, gemR, c, String(n));
+      drawGemCached(ctx, cx + gemR, yBottom + gemR, gemR, c, String(n));
       cx += pipSize + gap;
       if (cx > x + w - pad - pipSize) break;
     }
@@ -1285,7 +1316,7 @@ function drawNoble(ctx, { x, y, w, h }, noble = {}) {
 
     for (const [c, n] of entries) {
       const gemR = pipSize / 2;
-      drawGem(ctx, x + pad + gemR, cy + gemR, gemR, c, String(n));
+      drawGemCached(ctx, x + pad + gemR, cy + gemR, gemR, c, String(n));
       cy += pipSize + gap;
 
       if (cy > y + h - pad - pipSize) break;
