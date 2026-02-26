@@ -55,6 +55,85 @@ function clampRectToViewport(rect, viewport) {
 const _gemCache = new Map();
 let _dpr = 1; // updated by resize(), used by drawGemCached()
 
+// --- Pure color helpers (hoisted from drawDevelopmentCard for allocation reuse) ---
+const clamp01 = (t) => Math.max(0, Math.min(1, t));
+
+const hexToRgb = (hex) => {
+  const s = String(hex).replace("#", "").trim();
+  const v = s.length === 3
+    ? s.split("").map((c) => c + c).join("")
+    : s.padEnd(6, "0").slice(0, 6);
+  const n = parseInt(v, 16);
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+};
+
+const mixRgb = (a, b, t) => {
+  t = clamp01(t);
+  return {
+    r: Math.round(a.r * (1 - t) + b.r * t),
+    g: Math.round(a.g * (1 - t) + b.g * t),
+    b: Math.round(a.b * (1 - t) + b.b * t),
+  };
+};
+
+const desaturate = (rgb, amt) => {
+  amt = clamp01(amt);
+  const gray = Math.round((rgb.r + rgb.g + rgb.b) / 3);
+  return mixRgb(rgb, { r: gray, g: gray, b: gray }, amt);
+};
+
+const rgbToCss = (rgb, a = 1) => `rgba(${rgb.r},${rgb.g},${rgb.b},${a})`;
+
+// Text width cache: font|text → width. Cleared on resize alongside _gemCache.
+const _textWidthCache = new Map();
+
+function measureTextCached(ctx, font, text) {
+  const key = `${font}|${text}`;
+  let w = _textWidthCache.get(key);
+  if (w !== undefined) return w;
+  ctx.font = font; // ensure correct font is set for measurement
+  w = ctx.measureText(text).width;
+  _textWidthCache.set(key, w);
+  return w;
+}
+
+// Affordability cache: avoids 24 rulesCheck() calls on hover-only frames.
+// Invalidated by state reference change.
+let _affordState = null;
+let _affordMyIdx = null;
+const _affordCache = new Map(); // card.id → boolean
+
+function isAffordable(state, uiState, card, tier, index) {
+  const id = card.id;
+  let result = _affordCache.get(id);
+  if (result !== undefined) return result;
+  result = rulesCheck({
+    getState: () => state, uiState,
+    pending: { tokens: {}, card: "" },
+    action: "buyCard",
+    card: { meta: card, tier, index }
+  });
+  _affordCache.set(id, result);
+  return result;
+}
+
+// Card color cache: hex → { headerCss, spriteHeaderCss }
+// Only ~6 unique bonus colors, geometry-independent — never needs clearing.
+const _cardColorCache = new Map();
+function getCardColors(hex) {
+  let entry = _cardColorCache.get(hex);
+  if (entry) return entry;
+  const baseRgb = hexToRgb(hex);
+  const cardRgb = desaturate(baseRgb, 0.35);
+  const headerRgb = mixRgb(cardRgb, { r: 255, g: 255, b: 255 }, 0.55);
+  entry = {
+    headerCss: rgbToCss(headerRgb, 0.65),
+    spriteHeaderCss: rgbToCss(mixRgb(baseRgb, { r: 0, g: 0, b: 0 }, 0.4), 0.65),
+  };
+  _cardColorCache.set(hex, entry);
+  return entry;
+}
+
 function getCachedGem(color, r, label, dpr) {
   const key = `${color}|${r}|${label}|${dpr}`;
   let entry = _gemCache.get(key);
@@ -95,6 +174,7 @@ function render(ctx) {
       _dpr = viewport.dpr || 1;
       layout = computeLayout({viewport});
       _gemCache.clear(); // DPR or layout may have changed
+      _textWidthCache.clear();
 
       ctx.textBaseline = "alphabetic";
       ctx.textAlign = "left";
@@ -106,6 +186,14 @@ function render(ctx) {
 
     draw(state, uiState) {
       if (!layout) return;
+
+      // Invalidate affordability cache when state changes
+      const myIdx = uiState.myPlayerIndex;
+      if (state !== _affordState || myIdx !== _affordMyIdx) {
+        _affordState = state;
+        _affordMyIdx = myIdx;
+        _affordCache.clear();
+      }
 
       const cam = uiState.camera;
       if (!cam) throw new Error("uiState.camera missing (add to createUIState)");
@@ -339,12 +427,7 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, tier,
         && uiState.myPlayerIndex === state.activePlayerIndex
         && !state.gameOver;
       const dimMarket = myTurn && (uiState.mode ?? "idle") === "idle" && stateObject
-        && !rulesCheck({
-          getState: () => state, uiState,
-          pending: { tokens: {}, card: "" },
-          action: "buyCard",
-          card: { meta: stateObject, tier, index }
-        });
+        && !isAffordable(state, uiState, stateObject, tier, index);
       if (dimMarket) ctx.globalAlpha = 0.4;
 
       stateObject ? drawDevelopmentCard(ctx, { x, y, w, h }, {
@@ -468,12 +551,13 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, tier,
 
       // Name (left-aligned, inset by pad)
       ctx.fillStyle = accentColor;
-      ctx.font = `${isMe ? "bold " : ""}16px system-ui, sans-serif`;
+      const nameFont = `${isMe ? "bold " : ""}16px system-ui, sans-serif`;
+      ctx.font = nameFont;
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
       ctx.fillText(name, x + pad + 12, headerCenterY);
       if (isActive) {
-        const nameW = ctx.measureText(name).width;
+        const nameW = measureTextCached(ctx, nameFont, name);
         ctx.beginPath();
         ctx.moveTo(x + pad + 12, headerCenterY + 10);
         ctx.lineTo(x + pad + 12 + nameW, headerCenterY + 10);
@@ -488,15 +572,19 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, tier,
 
       // Prestige
       ctx.fillStyle = prestige >= 15 ? "#d4a017" : "#555";
-      ctx.font = `bold 14px system-ui, sans-serif`;
-      ctx.fillText(`${prestige}pt`, rx, headerCenterY);
-      rx -= ctx.measureText(`${prestige}pt`).width + 10;
+      const prestigeFont = `bold 14px system-ui, sans-serif`;
+      ctx.font = prestigeFont;
+      const prestigeText = `${prestige}pt`;
+      ctx.fillText(prestigeText, rx, headerCenterY);
+      rx -= measureTextCached(ctx, prestigeFont, prestigeText) + 10;
 
       // Token count (circle icon + number)
       ctx.fillStyle = "#555";
-      ctx.font = `13px system-ui, sans-serif`;
-      ctx.fillText(String(tokens), rx, headerCenterY);
-      rx -= ctx.measureText(String(tokens)).width + 2;
+      const statFont = `13px system-ui, sans-serif`;
+      ctx.font = statFont;
+      const tokensText = String(tokens);
+      ctx.fillText(tokensText, rx, headerCenterY);
+      rx -= measureTextCached(ctx, statFont, tokensText) + 2;
       ctx.beginPath();
       ctx.arc(rx - 4, headerCenterY, 5, 0, Math.PI * 2);
       ctx.fillStyle = "#aaa";
@@ -508,10 +596,11 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, tier,
 
       // Gem count (diamond icon + number)
       ctx.fillStyle = "#555";
-      ctx.font = `13px system-ui, sans-serif`;
+      ctx.font = statFont;
       ctx.textAlign = "right";
-      ctx.fillText(String(gems), rx, headerCenterY);
-      rx -= ctx.measureText(String(gems)).width + 2;
+      const gemsText = String(gems);
+      ctx.fillText(gemsText, rx, headerCenterY);
+      rx -= measureTextCached(ctx, statFont, gemsText) + 2;
       drawGemCached(ctx, rx - 4, headerCenterY, 6, "#888", "");
       rx -= 18;
 
@@ -557,12 +646,7 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, tier,
       const isMyReserved = uiState.myPlayerIndex === fixedMapRes[positionIndex];
       const dimReserved = myTurnRes && isMyReserved
         && (uiState.mode ?? "idle") === "idle"
-        && !rulesCheck({
-          getState: () => state, uiState,
-          pending: { tokens: {}, card: "" },
-          action: "buyCard",
-          card: { meta: stateObject, tier, index }
-        });
+        && !isAffordable(state, uiState, stateObject, tier, index);
       if (dimReserved) ctx.globalAlpha = 0.4;
 
       drawReserved(ctx, { x, y, w, h }, stateObject);
@@ -955,51 +1039,12 @@ function drawDevelopmentCard(ctx, { x, y, w, h }, card = {}) {
     bg = null, // optional override
   } = card;
 
-  // helpers local to this function (no extra deps)
-  const clamp01 = (t) => Math.max(0, Math.min(1, t));
-
-  // hex (#RRGGBB) -> {r,g,b}
-  const hexToRgb = (hex) => {
-    const s = String(hex).replace("#", "").trim();
-    const v = s.length === 3
-      ? s.split("").map((c) => c + c).join("")
-      : s.padEnd(6, "0").slice(0, 6);
-    const n = parseInt(v, 16);
-    return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
-  };
-
-  // mix two rgb colors: a*(1-t) + b*t
-  const mixRgb = (a, b, t) => {
-    t = clamp01(t);
-    return {
-      r: Math.round(a.r * (1 - t) + b.r * t),
-      g: Math.round(a.g * (1 - t) + b.g * t),
-      b: Math.round(a.b * (1 - t) + b.b * t),
-    };
-  };
-
-  // "less saturated" look without full HSL: mix toward gray
-  const desaturate = (rgb, amt) => {
-    amt = clamp01(amt);
-    const gray = Math.round((rgb.r + rgb.g + rgb.b) / 3);
-    return mixRgb(rgb, { r: gray, g: gray, b: gray }, amt);
-  };
-
-  const rgbToCss = (rgb, a = 1) => `rgba(${rgb.r},${rgb.g},${rgb.b},${a})`;
-
   const pad = Math.max(4, Math.floor(Math.min(w, h) * 0.06));
   const headerH = Math.floor(h * 0.25);
 
   // base color derived from bonus (or overridden via bg)
   const baseHex = bg || CARD_BACKGROUND_COLORS[bonus] || "#cccccc";
-  const baseRgb = hexToRgb(baseHex);
-
-  // make the whole card slightly less saturated so it reads "pastel"
-  const cardRgb = desaturate(baseRgb, 0.35);
-
-  // header is a mix of card color and white, plus alpha to feel translucent
-  const headerRgb = mixRgb(cardRgb, { r: 255, g: 255, b: 255 }, 0.55);
-  const headerAlpha = 0.65;
+  const colors = getCardColors(baseHex);
 
   // Try sprite sheet first, fall back to flat color
   roundedRectPath(ctx, x, y, w, h);
@@ -1014,7 +1059,7 @@ function drawDevelopmentCard(ctx, { x, y, w, h }, card = {}) {
 
   if (hasSprite) {
     // Semi-transparent header band tinted with bonus color
-    ctx.fillStyle = rgbToCss(mixRgb(baseRgb, { r: 0, g: 0, b: 0 }, 0.4), 0.65);
+    ctx.fillStyle = colors.spriteHeaderCss;
     ctx.fillRect(x, y, w, headerH);
 
     // Semi-transparent footer band for cost pips
@@ -1024,7 +1069,7 @@ function drawDevelopmentCard(ctx, { x, y, w, h }, card = {}) {
     // Flat color fallback
     ctx.fillStyle = CARD_BACKGROUND_COLORS[bonus];
     ctx.fillRect(x, y, w, h);
-    ctx.fillStyle = rgbToCss(headerRgb, headerAlpha);
+    ctx.fillStyle = colors.headerCss;
     ctx.fillRect(x, y, w, headerH);
   }
 
@@ -1463,10 +1508,21 @@ function drawStackWithPeek(ctx, cards, { color, x, y, w, h, peek }) {
   }
 
   // Draw from top -> bottom so the bottom-most (largest y) is drawn last and ends up on top.
+  // Non-topmost cards are clipped to their visible peek region so the canvas
+  // rasterizer skips the occluded ~75% (cost pips, gem, banner, card art).
   for (let i = 0; i < n; i++) {
     const card = cards[i];
     const yy = y + (i * peek);
-    drawDevelopmentCard(ctx, { x, y: yy, w, h }, card);
+    if (i < n - 1) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(x, yy, w, peek);
+      ctx.clip();
+      drawDevelopmentCard(ctx, { x, y: yy, w, h }, card);
+      ctx.restore();
+    } else {
+      drawDevelopmentCard(ctx, { x, y: yy, w, h }, card);
+    }
   }
 
 
