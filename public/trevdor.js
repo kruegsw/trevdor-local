@@ -805,7 +805,7 @@ function renderConfirmGems(container) {
   });
 }
 
-// Track whether we have sized the canvas at least once
+// Track whether we have sized the canvas at least once with game state
 let didInitialResize = false;
 
 /* ---------------------------------------------------------
@@ -1123,7 +1123,7 @@ cancelBtn.addEventListener("click", () => {
    --------------------------------------------------------- */
 
 function resize() {
-  didInitialResize = true;
+  if (state) didInitialResize = true;
 
   const dpr = window.devicePixelRatio || 1;
   const rect = canvas.getBoundingClientRect();
