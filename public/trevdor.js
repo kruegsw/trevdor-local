@@ -1139,11 +1139,14 @@ function resize() {
     const numPlayers = state?.players?.length ?? 0;
 
     // Compute tight bounding box of board + visible panels only
-    // Panel positions: 0=right(you), 1=below-right(+1), 2=left(+2), 3=below-left(+3)
+    // Fixed layout: posIdx 0=top-right(P2), 1=bottom-right(P4), 2=top-left(P1), 3=bottom-left(P3)
+    const fixedMap = [1, 3, 0, 2];
     const rects = [bounds.boardRect];
     if (bounds.panelRects) {
-      for (let i = 0; i < Math.min(numPlayers, 4); i++) {
-        rects.push(bounds.panelRects[i]);
+      for (let posIdx = 0; posIdx < 4; posIdx++) {
+        if (fixedMap[posIdx] < numPlayers) {
+          rects.push(bounds.panelRects[posIdx]);
+        }
       }
     }
 
