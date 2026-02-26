@@ -940,14 +940,16 @@ const transport = createTransport({
     // Remote cursor relay
     if (msg.type === "CURSOR") {
       const clients = uiState.room?.clients ?? [];
+      const spectators = uiState.room?.spectators ?? [];
       const slot = clients.find(c => c.clientId === msg.clientId);
+      const spec = !slot && spectators.find(s => s.clientId === msg.clientId);
       const seatColors = ["#2D6CDF", "#D94A4A", "#2E9B5F", "#D6B04C"];
       uiState.remoteCursors[msg.clientId] = {
         x: msg.x,
         y: msg.y,
         ts: Date.now(),
         color: slot ? seatColors[slot.seat] : "#aaa",
-        name: slot?.name ?? "",
+        name: slot?.name ?? spec?.name ?? "",
       };
       draw();
       return;
