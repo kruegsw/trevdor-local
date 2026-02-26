@@ -55,6 +55,7 @@ let mySessionId = localStorage.getItem("trevdor.sessionId") || null;
 let soundEnabled   = localStorage.getItem("trevdor.sound")   !== "false";
 let cardArtPref    = localStorage.getItem("trevdor.cardArt") !== "false";
 let cursorsPref    = localStorage.getItem("trevdor.cursors") !== "false";
+let chatPref       = localStorage.getItem("trevdor.chat")    !== "false";
 sfx.enabled = soundEnabled;
 setCardArtEnabled(cardArtPref);
 
@@ -87,6 +88,7 @@ const optionsDropdown  = document.getElementById("optionsDropdown");
 const optSound         = document.getElementById("optSound");
 const optCardArt       = document.getElementById("optCardArt");
 const optCursors       = document.getElementById("optCursors");
+const optChat          = document.getElementById("optChat");
 const chatPanel        = document.getElementById("chatPanel");
 const chatToggleBtn    = document.getElementById("chatToggleBtn");
 const chatBadge        = document.getElementById("chatBadge");
@@ -132,14 +134,14 @@ function setScene(scene) {
     waitingSection.classList.remove("hidden");
     lobbyScene.classList.remove("withStatusBar");
     statusBar.classList.add("hidden");
-    chatPanel.classList.remove("hidden");
+    chatPanel.classList.toggle("hidden", !chatPref);
     createGameBtn.textContent = "Create Game";
     createGameBtn.disabled = false;
   } else if (scene === "game") {
     lobbyScene.classList.add("hidden");
     lobbyScene.classList.remove("withStatusBar");
     statusBar.classList.remove("hidden");
-    chatPanel.classList.remove("hidden");
+    chatPanel.classList.toggle("hidden", !chatPref);
   }
 }
 
@@ -1142,6 +1144,7 @@ document.getElementById("closeRoomBtn").addEventListener("click", () => {
 optSound.checked   = soundEnabled;
 optCardArt.checked = cardArtPref;
 optCursors.checked = cursorsPref;
+optChat.checked    = chatPref;
 
 optionsBtn.addEventListener("click", () => {
   optionsDropdown.classList.toggle("hidden");
@@ -1172,6 +1175,16 @@ optCursors.addEventListener("change", () => {
   uiState.showCursors = cursorsPref;
   localStorage.setItem("trevdor.cursors", cursorsPref);
   draw();
+});
+
+optChat.addEventListener("change", () => {
+  chatPref = optChat.checked;
+  localStorage.setItem("trevdor.chat", chatPref);
+  // Show/hide only when in a scene that allows chat
+  if (currentRoomId) {
+    chatPanel.classList.toggle("hidden", !chatPref);
+  }
+  if (!chatPref && chatOpen) closeChat();
 });
 
 /* ---------------------------------------------------------
