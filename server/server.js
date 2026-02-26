@@ -595,7 +595,7 @@ wss.on("connection", (ws, req) => {
       // Reject joins to non-existent rooms — only CREATE_GAME creates rooms
       if (!rooms.has(roomId)) {
         safeSend(ws, { type: "ROOM_NOT_FOUND", roomId });
-        safeSend(ws, { type: "ROOM_LIST", rooms: roomListSnapshot() });
+        safeSend(ws, { type: "ROOM_LIST", rooms: roomListSnapshot(), users: connectedUsersSnapshot() });
         return;
       }
 
@@ -650,8 +650,7 @@ wss.on("connection", (ws, req) => {
       // Players: session preserved — they can reclaim their seat on return
 
       leaveRoom(ws);
-      // leaveRoom() calls broadcastRoomList(); also send directly to this client
-      safeSend(ws, { type: "ROOM_LIST", rooms: roomListSnapshot() });
+      // leaveRoom() already calls broadcastRoomList() which includes this client
       return;
     }
 
