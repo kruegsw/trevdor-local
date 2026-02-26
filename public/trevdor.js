@@ -666,13 +666,23 @@ const renderer = render(ctx);
    Draw helper (single source of truth)
    --------------------------------------------------------- */
 
-function draw() {
+let drawRafId = 0;
+
+function drawNow() {
   if (!state) {
     confirmOverlay.classList.add("hidden");
     return; // don't render until we have state
   }
   renderer.draw(state, uiState);
   updateConfirmOverlay();
+}
+
+function draw() {
+  if (drawRafId) return; // already scheduled
+  drawRafId = requestAnimationFrame(() => {
+    drawRafId = 0;
+    drawNow();
+  });
 }
 
 /* ---------------------------------------------------------
@@ -1333,7 +1343,7 @@ function resize() {
     uiState.camera.y = minY - (rect.height / fitScale - contentH) / 2;
   }
 
-  draw();
+  drawNow(); // synchronous — canvas was just cleared by dimension change
 }
 
 window.addEventListener("load", resize);
