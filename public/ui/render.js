@@ -1661,22 +1661,12 @@ function drawStackWithPeek(ctx, cards, { color, x, y, w, h, peek }) {
     return;
   }
 
-  // Draw from top -> bottom so the bottom-most (largest y) is drawn last and ends up on top.
-  // Non-topmost cards are clipped to their visible peek region so the canvas
-  // rasterizer skips the occluded ~75% (cost pips, gem, banner, card art).
+  // Draw from top -> bottom so the bottom-most (largest y) is drawn last
+  // and naturally covers the lower portion of the card above it (painter's algorithm).
   for (let i = 0; i < n; i++) {
     const card = cards[i];
     const yy = y + (i * peek);
-    if (i < n - 1) {
-      ctx.save();
-      ctx.beginPath();
-      ctx.rect(x, yy, w, peek);
-      ctx.clip();
-      drawDevelopmentCard(ctx, { x, y: yy, w, h }, card);
-      ctx.restore();
-    } else {
-      drawDevelopmentCard(ctx, { x, y: yy, w, h }, card);
-    }
+    drawDevelopmentCard(ctx, { x, y: yy, w, h }, card);
   }
 
 
