@@ -582,12 +582,43 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, tier,
       ctx.font = nameFont;
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
-      ctx.fillText(name, x + pad + 12, headerCenterY);
+
+      // Play triangle for active player
+      let nameLeftX = x + pad + 12;
+      if (isActive) {
+        const triH = 12;                     // triangle height
+        const triW = triH * 0.85;            // slightly narrower than equilateral
+        const triX = nameLeftX;              // left edge of triangle
+        const triCY = headerCenterY;         // vertically centered
+
+        ctx.save();
+        // Brilliant glow in player's accent color
+        const acRgbTri = hexToRgb(accentColor);
+        ctx.shadowColor = rgbToCss(acRgbTri, 0.9);
+        ctx.shadowBlur = 14;
+        ctx.fillStyle = accentColor;
+        // Draw the play triangle (pointing right)
+        ctx.beginPath();
+        ctx.moveTo(triX, triCY - triH / 2);
+        ctx.lineTo(triX + triW, triCY);
+        ctx.lineTo(triX, triCY + triH / 2);
+        ctx.closePath();
+        ctx.fill();
+        // Second fill pass to intensify the glow
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = rgbToCss({ r: Math.min(255, acRgbTri.r + 80), g: Math.min(255, acRgbTri.g + 80), b: Math.min(255, acRgbTri.b + 80) }, 0.7);
+        ctx.fill();
+        ctx.restore();
+
+        nameLeftX += triW + 6;               // shift name right to make room
+      }
+
+      ctx.fillText(name, nameLeftX, headerCenterY);
       if (isActive) {
         const nameW = measureTextCached(ctx, nameFont, name);
         ctx.beginPath();
-        ctx.moveTo(x + pad + 12, headerCenterY + 10);
-        ctx.lineTo(x + pad + 12 + nameW, headerCenterY + 10);
+        ctx.moveTo(nameLeftX, headerCenterY + 10);
+        ctx.lineTo(nameLeftX + nameW, headerCenterY + 10);
         ctx.strokeStyle = accentColor;
         ctx.lineWidth = 1.5;
         ctx.stroke();
