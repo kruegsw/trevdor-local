@@ -1283,8 +1283,8 @@ optResources.addEventListener("change", () => {
   uiState.simplifiedView = simplifiedPref;
   localStorage.setItem("trevdor.simplified", simplifiedPref);
   uiState.cameraUserAdjusted = false;
+  updateResourceBanner();   // update banner visibility before resize measures it
   resize();
-  updateResourceBanner();
 });
 
 /* ---------------------------------------------------------
