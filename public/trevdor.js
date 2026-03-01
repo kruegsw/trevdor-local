@@ -708,23 +708,14 @@ function buildPlayerRow(player, pIdx) {
 }
 
 function updateResourceBanner() {
-  if (!state?.players?.length) {
+  if (!state?.players?.length || !uiState.simplifiedView) {
     resourceBanner.classList.add("hidden");
     return;
   }
   resourceBanner.classList.remove("hidden");
   let html = "";
-  if (uiState.simplifiedView) {
-    // Mobile simplified: show all players stacked
-    for (let i = 0; i < state.players.length; i++) {
-      html += buildPlayerRow(state.players[i], i);
-    }
-  } else {
-    // Desktop or mobile non-simplified: show local player only
-    const myIdx = uiState.myPlayerIndex;
-    if (typeof myIdx === "number" && myIdx >= 0 && state.players[myIdx]) {
-      html = buildPlayerRow(state.players[myIdx], myIdx);
-    }
+  for (let i = 0; i < state.players.length; i++) {
+    html += buildPlayerRow(state.players[i], i);
   }
   resourceContent.innerHTML = html;
 }
