@@ -814,6 +814,78 @@
             color: #fff;
         }
 
+        /* Mobile resource banner */
+        #resourceBanner {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            height: 40px;
+            background: red;
+            color: #fff;
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+            font-size: 11px;
+            user-select: none;
+            pointer-events: none;
+        }
+
+        #resourceContent {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            height: 100%;
+        }
+
+        @media (max-width: 768px) {
+            #resourceBanner:not(.hidden) {
+                display: flex;
+            }
+        }
+
+        .resBannerSlot {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .resBannerPip {
+            width: 10px;
+            height: 10px;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+
+        .resBannerGem {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 13px;
+            height: 13px;
+            flex-shrink: 0;
+            clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+            font-size: 8px;
+            font-weight: bold;
+            color: rgba(0,0,0,0.65);
+        }
+
+        .resBannerToken {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 13px;
+            height: 13px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            font-size: 8px;
+            font-weight: bold;
+            color: rgba(0,0,0,0.65);
+        }
+
 	</style>
 </head>
 <body>
@@ -870,6 +942,10 @@
             </div>
         </div>
         <button id="lobbyBtn" class="statusLobbyBtn">← Lobby</button>
+    </div>
+
+    <div id="resourceBanner" class="hidden">
+      <div id="resourceContent">BANNER TEST</div>
     </div>
 
     <div id="chatPanel" class="hidden">

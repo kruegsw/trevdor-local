@@ -89,6 +89,8 @@ const optSound         = document.getElementById("optSound");
 const optCardArt       = document.getElementById("optCardArt");
 const optCursors       = document.getElementById("optCursors");
 const optChat          = document.getElementById("optChat");
+const resourceBanner   = document.getElementById("resourceBanner");
+const resourceContent  = document.getElementById("resourceContent");
 const chatPanel        = document.getElementById("chatPanel");
 const chatToggleBtn    = document.getElementById("chatToggleBtn");
 const chatBadge        = document.getElementById("chatBadge");
@@ -110,6 +112,7 @@ function setScene(scene) {
     createGameBtn.textContent = "Create Game";
     createGameBtn.disabled = false;
     chatPanel.classList.add("hidden");
+    resourceBanner.classList.add("hidden");
     // Keep status bar visible as a snapshot of the last game if one exists
     if (snapRoomId) {
       statusBar.classList.remove("hidden");
@@ -126,6 +129,7 @@ function setScene(scene) {
     lobbyScene.classList.remove("withStatusBar");
     statusBar.classList.add("hidden");
     chatPanel.classList.add("hidden");
+    resourceBanner.classList.add("hidden");
     createGameBtn.textContent = "Reconnecting…";
     createGameBtn.disabled = true;
   } else if (scene === "roomLobby") {
@@ -135,6 +139,7 @@ function setScene(scene) {
     lobbyScene.classList.remove("withStatusBar");
     statusBar.classList.add("hidden");
     chatPanel.classList.toggle("hidden", !chatPref);
+    resourceBanner.classList.add("hidden");
     createGameBtn.textContent = "Create Game";
     createGameBtn.disabled = false;
   } else if (scene === "game") {
@@ -142,6 +147,7 @@ function setScene(scene) {
     lobbyScene.classList.remove("withStatusBar");
     statusBar.classList.remove("hidden");
     chatPanel.classList.toggle("hidden", !chatPref);
+    resourceBanner.classList.remove("hidden");
   }
 }
 
@@ -653,6 +659,45 @@ function updateStatusBar() {
   }
 }
 
+function updateResourceBanner() {
+  const myIdx = uiState.myPlayerIndex;
+  if (typeof myIdx !== "number" || myIdx < 0 || !state?.players?.[myIdx]) {
+    resourceBanner.classList.add("hidden");
+    return;
+  }
+  // setScene("game") removes .hidden, but if the guard above re-added it
+  // on a previous call (e.g. before state arrived), restore visibility.
+  resourceBanner.classList.remove("hidden");
+  const player = state.players[myIdx];
+  const gemCounts = {};
+  for (const card of player.cards ?? []) {
+    if (card.bonus) gemCounts[card.bonus] = (gemCounts[card.bonus] || 0) + 1;
+  }
+  const tokens = player.tokens ?? {};
+  const colors = ["white", "blue", "green", "red", "black"];
+  let html = "";
+  for (const color of colors) {
+    const g = gemCounts[color] || 0;
+    const t = tokens[color] || 0;
+    const c = CONFIRM_TOKEN_COLORS[color] ?? { bg: "#888", text: "#fff" };
+    const dim = (g === 0 && t === 0) ? " opacity:0.3;" : "";
+    html += `<span class="resBannerSlot" style="${dim}">`;
+    html += `<span class="resBannerPip" style="background:${c.bg}"></span>`;
+    html += `<span class="resBannerGem" style="background:${c.bg}">${g}</span>`;
+    html += `<span class="resBannerToken" style="background:${c.bg}">${t}</span>`;
+    html += `</span>`;
+  }
+  const yt = tokens.yellow || 0;
+  if (yt > 0) {
+    const yc = CONFIRM_TOKEN_COLORS.yellow;
+    html += `<span class="resBannerSlot">`;
+    html += `<span class="resBannerPip" style="background:${yc.bg}"></span>`;
+    html += `<span class="resBannerToken" style="background:${yc.bg}">${yt}</span>`;
+    html += `</span>`;
+  }
+  resourceContent.innerHTML = html;
+}
+
 /* ---------------------------------------------------------
    Canvas + renderer
    --------------------------------------------------------- */
@@ -1003,6 +1048,7 @@ const transport = createTransport({
 
       if (DEBUG) console.log("WELCOME parsed:", uiState.mySeatIndex, uiState.myPlayerIndex);
       updateStatusBar();
+      updateResourceBanner();
       draw();
       return;
     }
@@ -1036,6 +1082,7 @@ const transport = createTransport({
         setScene("roomLobby");
       }
       updateStatusBar();
+      updateResourceBanner();
       updateWaitingRoom();
       draw();
       return;
@@ -1047,6 +1094,7 @@ const transport = createTransport({
       playSoundsForStateChange(prevState, state);
       if (state !== null) setScene("game");
       updateStatusBar();
+      updateResourceBanner();
       if (!didInitialResize) resize();
       else draw();
       return;
@@ -1419,6 +1467,7 @@ canvas.addEventListener("pointermove", (e) => {
 // Also prune stale remote cursors (>3s with no update).
 setInterval(() => {
   updateStatusBar();
+  updateResourceBanner();
   updateWaitingRoom();
   updateGameLobby();
   const now = Date.now();
