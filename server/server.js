@@ -666,16 +666,26 @@ wss.on("connection", (ws, req) => {
     // -------------------------
     if (msg.type === "LEAVE_ROOM") {
       const info = clientInfo.get(ws);
+      const roomId = info?.roomId;
+      const room = roomId ? rooms.get(roomId) : null;
 
       // Spectators: clear session roomId so they don't auto-rejoin
       if (info.playerIndex === null && info.sessionId) {
         const session = sessions.get(info.sessionId);
         if (session) { session.roomId = null; session.seatIndex = null; }
       }
-      // Players: session preserved — they can reclaim their seat on return
 
-      leaveRoom(ws);
-      // leaveRoom() already calls broadcastRoomList() which includes this client
+      // Started game with a seated player: preserve seat for reconnect
+      // (same logic as the ws close handler)
+      if (room && room.started && typeof info?.playerIndex === "number") {
+        room.clients.delete(ws);
+        broadcastRoom(roomId);
+        info.roomId = null;
+        info.playerIndex = null;
+        broadcastRoomList();
+      } else {
+        leaveRoom(ws);
+      }
       return;
     }
 
