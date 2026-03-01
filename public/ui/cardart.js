@@ -539,87 +539,368 @@ export function drawNobleProcedural(ctx, x, y, w, h, noble) {
   return true;
 }
 
-// --- Mode 2: Royal Portrait (25×25 pixel art) ---
+// --- Mode 2: Unique pixel art per noble (25×25) ---
+
+const NOBLE_PX = 25;
+const SKIN = "#e8c8a0";
+const SKIN_DARK = "#c8a078";
+const SKIN_SHADOW = "#a08060";
+const N_GOLD = "#d4a017";
+const N_GOLD_DARK = "#8a6a0f";
+const N_GOLD_LIGHT = "#ffe066";
+
+const GEM_DARK_HEX = {
+  white: "#b0b0b0", blue: "#1a3a88", green: "#0d5a2d",
+  red: "#881122", black: "#222222",
+};
+const GEM_LIGHT_HEX = {
+  white: "#ffffff", blue: "#88bbff", green: "#66dd99",
+  red: "#ff8899", black: "#777777",
+};
+
+// n_01: The Diplomat — hand raised in greeting, doublet with sash
+function _drawDiplomat(px, pxRect, noble) {
+  const cols = nobleReqColors(noble);
+  const c1 = GEM_HEX[cols[0]], c2 = GEM_HEX[cols[1] || cols[0]];
+  const d1 = GEM_DARK_HEX[cols[0]], d2 = GEM_DARK_HEX[cols[1] || cols[0]];
+
+  pxRect(0, 0, NOBLE_PX, NOBLE_PX, d1);
+  pxRect(0, 0, 12, NOBLE_PX, d2);
+  // Body / doublet
+  pxRect(8, 13, 8, 5, c1); pxRect(7, 15, 10, 4, c1);
+  px(12, 14, N_GOLD); px(12, 16, N_GOLD); // buttons
+  pxRect(10, 12, 5, 1, "#fff"); // collar
+  // Raised arm
+  pxRect(16, 8, 2, 5, c1); px(17, 7, SKIN); px(18, 7, SKIN); px(18, 6, SKIN);
+  // Other arm
+  pxRect(7, 14, 2, 4, c1); px(7, 18, SKIN);
+  // Head
+  pxRect(10, 6, 6, 6, SKIN);
+  pxRect(10, 5, 6, 2, "#2a2a2a"); px(10, 7, "#2a2a2a");
+  px(12, 8, "#222"); px(14, 8, "#222"); // eyes
+  px(13, 9, SKIN_DARK); // nose
+  px(12, 10, SKIN_DARK); px(13, 10, SKIN_DARK); // mouth
+  // Sash
+  px(9, 13, c2); px(10, 14, c2); px(11, 15, c2); px(12, 16, c2); px(13, 17, c2);
+  px(9, 14, N_GOLD); // medal
+}
+
+// n_02: The Admiral — bicorn hat, epaulettes, stern face
+function _drawAdmiral(px, pxRect, noble) {
+  const cols = nobleReqColors(noble);
+  const c1 = GEM_HEX[cols[0]], c2 = GEM_HEX[cols[1] || cols[0]];
+  const d1 = GEM_DARK_HEX[cols[0]];
+
+  pxRect(0, 0, NOBLE_PX, NOBLE_PX, "#0a1020");
+  pxRect(0, 18, NOBLE_PX, 7, "#0a0a18");
+  // Naval coat
+  pxRect(8, 14, 9, 5, c1); pxRect(7, 16, 11, 4, c1);
+  pxRect(11, 14, 2, 5, d1); // front
+  px(10, 15, N_GOLD); px(10, 17, N_GOLD); px(13, 15, N_GOLD); px(13, 17, N_GOLD);
+  // Epaulettes
+  pxRect(7, 13, 3, 2, N_GOLD); pxRect(15, 13, 3, 2, N_GOLD);
+  px(7, 15, N_GOLD_DARK); px(17, 15, N_GOLD_DARK);
+  // High collar
+  pxRect(9, 12, 7, 2, c2); pxRect(10, 12, 5, 1, N_GOLD);
+  // Head
+  pxRect(10, 6, 6, 6, SKIN);
+  px(11, 8, "#222"); px(14, 8, "#222");
+  pxRect(11, 7, 2, 1, SKIN_SHADOW); pxRect(13, 7, 2, 1, SKIN_SHADOW);
+  px(12, 9, SKIN_DARK);
+  pxRect(11, 10, 3, 1, SKIN_DARK);
+  // Bicorn hat
+  pxRect(9, 4, 8, 3, c1); pxRect(10, 3, 6, 1, c1);
+  pxRect(9, 6, 8, 1, N_GOLD);
+  px(13, 4, c2); px(12, 3, c2);
+}
+
+// n_03: The Duchess — updo, fan, pearls
+function _drawDuchess(px, pxRect, noble) {
+  const cols = nobleReqColors(noble);
+  const c1 = GEM_HEX[cols[0]], c2 = GEM_HEX[cols[1] || cols[0]];
+  const d1 = GEM_DARK_HEX[cols[0]], d2 = GEM_DARK_HEX[cols[1] || cols[0]];
+
+  pxRect(0, 0, NOBLE_PX, NOBLE_PX, d2); pxRect(0, 0, NOBLE_PX, 12, d1);
+  // Gown
+  pxRect(6, 14, 13, 6, c1); pxRect(5, 17, 15, 4, c1);
+  pxRect(10, 13, 5, 1, c1); pxRect(6, 14, 13, 1, c2);
+  px(11, 12, "#ddd"); px(12, 12, "#ddd"); px(13, 12, "#ddd"); // lace
+  px(10, 13, "#eee"); px(12, 13, "#eee"); px(14, 13, "#eee"); // pearls
+  // Fan
+  pxRect(17, 14, 3, 1, c2); pxRect(18, 13, 3, 1, c2); pxRect(19, 12, 2, 1, c2);
+  px(17, 15, N_GOLD_DARK); px(16, 15, SKIN); px(17, 15, SKIN);
+  // Left arm
+  pxRect(6, 15, 2, 3, c1); px(6, 18, SKIN);
+  // Head
+  pxRect(10, 5, 6, 7, SKIN);
+  pxRect(10, 3, 6, 3, "#5a3a1a"); pxRect(11, 2, 4, 2, "#5a3a1a");
+  px(12, 1, "#5a3a1a"); px(13, 1, "#5a3a1a");
+  px(10, 6, "#5a3a1a"); px(15, 6, "#5a3a1a");
+  px(14, 2, N_GOLD); px(13, 2, c2); // hair ornament
+  px(11, 8, "#222"); px(14, 8, "#222"); // eyes
+  px(11, 7, "#333"); px(14, 7, "#333"); // lashes
+  px(12, 10, "#c07070"); px(13, 10, "#c07070"); // lips
+}
+
+// n_04: The Cardinal — mitre, vestments, hands clasped
+function _drawCardinal(px, pxRect, noble) {
+  const cols = nobleReqColors(noble);
+  const c1 = GEM_HEX[cols[0]], c2 = GEM_HEX[cols[1] || cols[0]];
+
+  pxRect(0, 0, NOBLE_PX, NOBLE_PX, "#1a1018");
+  // Arch
+  px(4, 2, "#2a2028"); px(5, 1, "#2a2028"); pxRect(6, 0, 13, 1, "#2a2028");
+  px(19, 1, "#2a2028"); px(20, 2, "#2a2028");
+  pxRect(4, 3, 1, 21, "#2a2028"); pxRect(20, 3, 1, 21, "#2a2028");
+  // Robes
+  pxRect(8, 14, 9, 4, c1); pxRect(7, 17, 11, 4, c1); pxRect(6, 19, 13, 3, c1);
+  pxRect(12, 14, 1, 8, N_GOLD); // center stripe
+  pxRect(9, 13, 2, 6, c2); pxRect(14, 13, 2, 6, c2); // stole
+  px(9, 19, N_GOLD); px(15, 19, N_GOLD); // cross ends
+  pxRect(11, 16, 3, 2, SKIN); // clasped hands
+  // Head
+  pxRect(10, 7, 5, 6, SKIN);
+  px(11, 9, "#222"); px(13, 9, "#222");
+  px(12, 10, SKIN_DARK);
+  px(11, 11, SKIN_DARK); px(12, 11, SKIN_DARK);
+  // Mitre
+  pxRect(10, 4, 5, 4, c2); pxRect(11, 2, 3, 3, c2); px(12, 1, c2);
+  pxRect(10, 6, 5, 1, N_GOLD);
+  px(12, 3, N_GOLD); px(11, 4, N_GOLD); px(12, 4, N_GOLD); px(13, 4, N_GOLD); // cross
+}
+
+// n_05: The Knight — armor, sword, plumed helm
+function _drawKnight(px, pxRect, noble) {
+  const cols = nobleReqColors(noble);
+  const c1 = GEM_HEX[cols[0]], c2 = GEM_HEX[cols[1] || cols[0]];
+  const d1 = GEM_DARK_HEX[cols[0]];
+
+  pxRect(0, 0, NOBLE_PX, NOBLE_PX, "#2a2a2a");
+  pxRect(0, 0, 6, 4, "#2e2e2e"); pxRect(8, 0, 5, 4, "#262626");
+  pxRect(0, 5, 5, 4, "#282828"); pxRect(7, 5, 6, 4, "#2c2c2c");
+  // Banner on wall
+  pxRect(19, 1, 4, 8, c1); pxRect(19, 8, 4, 1, c2);
+  px(20, 9, c1); px(21, 9, c1);
+  // Armor
+  pxRect(9, 12, 7, 6, "#888"); pxRect(8, 14, 9, 5, "#888");
+  pxRect(12, 12, 1, 6, "#999");
+  px(11, 13, "#777"); px(13, 13, "#777");
+  // Tabard
+  pxRect(10, 15, 5, 4, c1);
+  px(12, 16, c2); px(11, 17, c2); px(12, 17, c2); px(13, 17, c2);
+  // Sword
+  pxRect(7, 3, 1, 14, "#aaa"); px(7, 2, "#ccc");
+  pxRect(5, 10, 5, 1, N_GOLD); px(7, 17, N_GOLD_DARK);
+  // Gauntlets
+  px(6, 13, "#777"); px(8, 13, "#777"); px(6, 14, "#777"); px(8, 14, "#777");
+  // Helmet
+  pxRect(10, 5, 6, 7, "#999"); pxRect(11, 4, 4, 1, "#999");
+  pxRect(11, 8, 4, 1, "#222"); pxRect(10, 9, 6, 1, "#777");
+  pxRect(13, 2, 2, 3, c2); px(14, 1, c2); // plume
+  // Pauldrons
+  pxRect(8, 11, 2, 2, "#aaa"); pxRect(16, 11, 2, 2, "#aaa");
+}
+
+// n_06: The Scholar — spectacles, book, academic cap
+function _drawScholar(px, pxRect, noble) {
+  const cols = nobleReqColors(noble);
+  const c1 = GEM_HEX[cols[0]], c2 = GEM_HEX[cols[1] || cols[0]];
+  const c3 = cols[2] ? GEM_HEX[cols[2]] : c1;
+
+  pxRect(0, 0, NOBLE_PX, NOBLE_PX, "#1a1510");
+  // Bookshelf
+  pxRect(1, 1, 5, 3, "#6a3a1a"); pxRect(1, 5, 5, 3, "#6a3a1a");
+  px(2, 1, c1); px(3, 1, c2); px(4, 1, c3);
+  px(2, 2, c1); px(3, 2, c2); px(4, 2, c3);
+  px(2, 5, c2); px(3, 5, c1); px(4, 5, c3);
+  px(2, 6, c2); px(3, 6, c1); px(4, 6, c3);
+  pxRect(1, 4, 5, 1, "#5a2a0a"); pxRect(1, 8, 5, 1, "#5a2a0a");
+  // Robe
+  pxRect(9, 13, 8, 5, c1); pxRect(8, 16, 10, 5, c1);
+  pxRect(9, 13, 8, 1, c2); pxRect(11, 12, 4, 1, "#ddd");
+  // Arms / book
+  pxRect(8, 14, 2, 4, c1); pxRect(16, 14, 2, 4, c1);
+  px(9, 17, SKIN); px(16, 17, SKIN);
+  pxRect(9, 17, 8, 4, "#eee"); pxRect(9, 17, 4, 4, "#f5f5e8");
+  pxRect(13, 17, 1, 4, "#ccc");
+  px(10, 18, "#888"); px(11, 18, "#888"); px(10, 19, "#888"); px(11, 19, "#888");
+  px(14, 18, "#888"); px(15, 18, "#888"); px(14, 19, "#888"); px(15, 19, "#888");
+  // Head
+  pxRect(11, 5, 5, 7, SKIN);
+  pxRect(11, 4, 5, 2, "#888888"); px(11, 6, "#888888"); px(15, 6, "#888888");
+  px(12, 8, "#334"); px(14, 8, "#334"); px(13, 8, "#888"); // spectacles
+  px(13, 9, SKIN_DARK); px(12, 10, SKIN_DARK); px(13, 10, SKIN_DARK);
+  // Cap
+  pxRect(11, 3, 5, 2, c2); pxRect(12, 2, 3, 1, c2);
+  px(16, 3, N_GOLD); px(17, 4, N_GOLD); // tassel
+}
+
+// n_07: The Merchant — fur collar, scales
+function _drawMerchant(px, pxRect, noble) {
+  const cols = nobleReqColors(noble);
+  const c1 = GEM_HEX[cols[0]], c2 = GEM_HEX[cols[1] || cols[0]];
+  const c3 = cols[2] ? GEM_HEX[cols[2]] : c1;
+  const d1 = GEM_DARK_HEX[cols[0]];
+
+  pxRect(0, 0, NOBLE_PX, NOBLE_PX, "#1a1510");
+  pxRect(0, 19, NOBLE_PX, 6, "#2a1a0a");
+  // Rich coat
+  pxRect(7, 13, 10, 6, c1); pxRect(6, 16, 12, 5, c1);
+  pxRect(7, 12, 3, 2, "#ddd"); pxRect(14, 12, 3, 2, "#ddd"); // fur
+  px(8, 14, "#ccc"); px(15, 14, "#ccc");
+  pxRect(10, 14, 4, 4, c2); // vest
+  px(10, 13, N_GOLD); px(11, 14, N_GOLD); px(13, 14, N_GOLD); px(14, 13, N_GOLD); // chain
+  // Arm holding scales
+  pxRect(17, 9, 2, 5, c1); px(18, 8, SKIN);
+  pxRect(15, 8, 7, 1, N_GOLD); px(18, 7, N_GOLD);
+  px(15, 9, c3); px(16, 9, N_GOLD_DARK); px(20, 9, N_GOLD_DARK); px(21, 9, c2);
+  // Left arm
+  pxRect(6, 14, 2, 4, c1); px(6, 18, SKIN);
+  // Head
+  pxRect(10, 5, 6, 7, SKIN);
+  pxRect(10, 10, 6, 2, "#5a3a1a"); px(10, 9, "#5a3a1a"); px(15, 9, "#5a3a1a"); // beard
+  pxRect(10, 4, 6, 2, "#5a3a1a"); px(10, 6, "#5a3a1a"); px(15, 6, "#5a3a1a"); // hair
+  pxRect(10, 2, 6, 3, c1); pxRect(11, 1, 4, 1, c1); pxRect(10, 4, 6, 1, d1); // hat
+  px(13, 3, N_GOLD); // badge
+  px(11, 7, "#222"); px(14, 7, "#222");
+  px(12, 8, SKIN_DARK); px(13, 8, SKIN_DARK);
+}
+
+// n_08: The Countess — tiara, pendant, hand at chin
+function _drawCountess(px, pxRect, noble) {
+  const cols = nobleReqColors(noble);
+  const c1 = GEM_HEX[cols[0]], c2 = GEM_HEX[cols[1] || cols[0]];
+  const c3 = cols[2] ? GEM_HEX[cols[2]] : c1;
+
+  pxRect(0, 0, NOBLE_PX, NOBLE_PX, "#0a1a10");
+  px(3, 2, "#aabbcc"); px(8, 1, "#aabbcc"); px(18, 3, "#aabbcc"); px(22, 1, "#aabbcc");
+  // Gown
+  pxRect(8, 14, 9, 3, c1); pxRect(6, 17, 13, 4, c1); pxRect(5, 20, 15, 3, c1);
+  pxRect(10, 12, 5, 3, c2); // bodice
+  pxRect(9, 14, 7, 1, N_GOLD); // sash
+  pxRect(12, 17, 1, 5, c2);
+  // Arms
+  pxRect(8, 13, 2, 3, c1); pxRect(15, 13, 2, 3, c1);
+  px(17, 14, c2); px(18, 15, c2); px(19, 16, c2); // shawl
+  // Head
+  pxRect(10, 5, 6, 7, SKIN);
+  pxRect(10, 3, 6, 3, "#2a2a2a"); pxRect(11, 2, 4, 1, "#2a2a2a");
+  px(10, 6, "#2a2a2a"); px(15, 6, "#2a2a2a");
+  // Tiara
+  px(11, 3, N_GOLD); px(12, 2, N_GOLD); px(13, 2, c1); px(14, 2, N_GOLD); px(13, 1, N_GOLD);
+  // Necklace + pendant
+  px(10, 12, "#eee"); px(11, 12, "#eee"); px(13, 12, "#eee"); px(14, 12, "#eee");
+  px(12, 13, c3);
+  // Eyes
+  px(11, 7, "#222"); px(14, 7, "#222"); px(11, 8, "#556"); px(14, 8, "#556");
+  px(12, 10, "#c07070"); px(13, 10, "#c07070"); // lips
+  // Hand at chin
+  px(9, 10, SKIN); px(9, 11, SKIN);
+}
+
+// n_09: The General — decorated uniform, sword at hip
+function _drawGeneral(px, pxRect, noble) {
+  const cols = nobleReqColors(noble);
+  const c1 = GEM_HEX[cols[0]], c2 = GEM_HEX[cols[1] || cols[0]];
+  const c3 = cols[2] ? GEM_HEX[cols[2]] : c1;
+  const d1 = GEM_DARK_HEX[cols[0]];
+
+  pxRect(0, 0, NOBLE_PX, NOBLE_PX, "#1a1a20");
+  pxRect(0, 18, NOBLE_PX, 7, "#151518");
+  // Uniform
+  pxRect(8, 12, 9, 6, c1); pxRect(7, 15, 11, 6, c1);
+  pxRect(12, 12, 1, 6, N_GOLD); // placket
+  px(10, 13, N_GOLD); px(14, 13, N_GOLD); px(10, 15, N_GOLD); px(14, 15, N_GOLD);
+  px(10, 17, N_GOLD); px(14, 17, N_GOLD);
+  px(9, 13, c2); px(9, 14, c3); // medals
+  px(15, 12, c2); px(14, 13, c2); px(13, 14, c2); // sash
+  pxRect(10, 11, 5, 1, d1); // collar
+  // Arms
+  pxRect(7, 13, 2, 4, c1); pxRect(16, 13, 2, 4, c1);
+  // Sword at hip
+  pxRect(5, 16, 1, 6, "#aaa");
+  px(5, 15, N_GOLD); px(4, 16, N_GOLD); px(6, 16, N_GOLD);
+  // Head
+  pxRect(10, 4, 6, 7, SKIN);
+  px(11, 7, "#222"); px(14, 7, "#222");
+  pxRect(11, 6, 2, 1, SKIN_SHADOW); pxRect(13, 6, 2, 1, SKIN_SHADOW);
+  px(12, 8, SKIN_DARK);
+  pxRect(10, 9, 6, 1, SKIN_DARK); pxRect(11, 9, 3, 1, SKIN_SHADOW);
+  // Shako hat
+  pxRect(10, 1, 6, 4, c1); pxRect(11, 0, 4, 1, c1);
+  pxRect(11, 2, 4, 1, N_GOLD);
+  px(16, 1, c2); px(16, 0, c2); px(17, 0, c2); // plume
+}
+
+// n_10: The Sage — long beard, staff with crystal
+function _drawSage(px, pxRect, noble) {
+  const cols = nobleReqColors(noble);
+  const c1 = GEM_HEX[cols[0]], c2 = GEM_HEX[cols[1] || cols[0]];
+  const c3 = cols[2] ? GEM_HEX[cols[2]] : c1;
+
+  pxRect(0, 0, NOBLE_PX, NOBLE_PX, "#10101a");
+  pxRect(19, 2, 3, 3, "#dde"); px(21, 2, "#10101a"); px(21, 3, "#10101a"); // moon
+  // Robes
+  pxRect(8, 13, 9, 4, c1); pxRect(7, 16, 11, 5, c1); pxRect(6, 19, 13, 4, c1);
+  pxRect(7, 16, 11, 1, c2); // trim
+  pxRect(8, 10, 3, 4, c1); pxRect(15, 10, 3, 4, c1); // hood
+  px(12, 12, N_GOLD); // clasp
+  // Staff
+  pxRect(19, 4, 1, 18, "#8a6a3a");
+  px(18, 3, c3); px(19, 2, c3); px(20, 3, c3); px(19, 4, c3); // crystal
+  px(18, 2, GEM_LIGHT_HEX[cols[2] || cols[0]]); px(20, 2, GEM_LIGHT_HEX[cols[2] || cols[0]]);
+  // Arms
+  pxRect(16, 13, 3, 3, c1); px(18, 14, SKIN);
+  pxRect(7, 13, 2, 4, c1); px(7, 17, SKIN);
+  // Head
+  pxRect(10, 4, 6, 7, SKIN);
+  // Beard
+  pxRect(11, 10, 4, 1, "#ccc"); pxRect(10, 11, 6, 2, "#ccc");
+  pxRect(11, 13, 4, 2, "#ccc"); px(12, 15, "#ccc"); px(13, 15, "#ccc");
+  px(11, 7, "#222"); px(14, 7, "#222"); // eyes
+  px(11, 6, "#ccc"); px(14, 6, "#ccc"); // brows
+  px(12, 8, SKIN_DARK); // nose
+  // Pointed hat
+  pxRect(10, 2, 6, 3, c2); pxRect(11, 1, 4, 1, c2); pxRect(12, 0, 2, 1, c2);
+  pxRect(10, 4, 6, 1, N_GOLD);
+  px(13, 2, N_GOLD); // star
+}
+
+const NOBLE_DRAW_FNS = {
+  n_01: _drawDiplomat,
+  n_02: _drawAdmiral,
+  n_03: _drawDuchess,
+  n_04: _drawCardinal,
+  n_05: _drawKnight,
+  n_06: _drawScholar,
+  n_07: _drawMerchant,
+  n_08: _drawCountess,
+  n_09: _drawGeneral,
+  n_10: _drawSage,
+};
+
 export function drawNoblePixel(ctx, x, y, w, h, noble) {
   if (cardArtMode !== 2) return false;
 
-  const PX = 25;
-  const cols = nobleReqColors(noble);
-  const c1 = GEM_HEX[cols[0]] || "#888888";
-  const c2 = GEM_HEX[cols[1] || cols[0]] || "#888888";
-  const d1 = (GEM_PALETTE[cols[0]] || GEM_PALETTE.white).dark;
-  const d2 = (GEM_PALETTE[cols[1] || cols[0]] || GEM_PALETTE.white).dark;
-  const rng = mulberry32(nobleSeed(noble) * 311);
+  const drawFn = NOBLE_DRAW_FNS[noble.id];
+  if (!drawFn) return false;
 
-  // Create offscreen canvas at native pixel resolution
   const oc = document.createElement("canvas");
-  oc.width = PX;
-  oc.height = PX;
+  oc.width = NOBLE_PX;
+  oc.height = NOBLE_PX;
   const pc = oc.getContext("2d");
 
-  function px(px_x, px_y, color) {
+  function setPx(px_x, px_y, color) {
     pc.fillStyle = color;
     pc.fillRect(px_x, px_y, 1, 1);
   }
-  function pxRect(px_x, px_y, pw, ph, color) {
+  function setPxRect(px_x, px_y, pw, ph, color) {
     pc.fillStyle = color;
     pc.fillRect(px_x, px_y, pw, ph);
   }
 
-  const GOLD = "#d4a017";
-  const GOLD_DARK = "#8a6a0f";
+  drawFn(setPx, setPxRect, noble);
 
-  // Background — split field
-  pxRect(0, 0, PX, PX, d1);
-  pxRect(0, 0, Math.floor(PX / 2), PX, d2);
-
-  // Crown (top center)
-  const crownY = 3;
-  const crownX = 8;
-  pxRect(crownX, crownY, 9, 3, GOLD);
-  // Crown points
-  px(crownX + 1, crownY - 1, GOLD);
-  px(crownX + 4, crownY - 2, GOLD);
-  px(crownX + 4, crownY - 1, GOLD);
-  px(crownX + 7, crownY - 1, GOLD);
-  // Jewels on crown
-  px(crownX + 1, crownY, c1);
-  px(crownX + 4, crownY, c2);
-  px(crownX + 7, crownY, cols[2] ? GEM_HEX[cols[2]] : c1);
-  // Crown band highlight
-  pxRect(crownX, crownY + 2, 9, 1, GOLD_DARK);
-
-  // Face
-  const faceX = 9, faceY = 7;
-  const skin = "#e8c8a0";
-  const skinDark = "#c8a078";
-  pxRect(faceX, faceY, 7, 7, skin);
-  // Hair
-  const hairCol = rng() > 0.5 ? "#5a3a1a" : "#2a2a2a";
-  pxRect(faceX, faceY, 7, 2, hairCol);
-  px(faceX, faceY + 2, hairCol);
-  px(faceX + 6, faceY + 2, hairCol);
-  // Eyes
-  px(faceX + 2, faceY + 3, "#222");
-  px(faceX + 4, faceY + 3, "#222");
-  // Mouth
-  px(faceX + 2, faceY + 5, skinDark);
-  px(faceX + 3, faceY + 5, skinDark);
-  px(faceX + 4, faceY + 5, skinDark);
-
-  // Collar / robe
-  pxRect(8, 14, 9, 3, c1);
-  pxRect(7, 16, 11, 2, c1);
-  // Collar trim
-  pxRect(10, 14, 5, 1, GOLD);
-
-  // Border frame
-  pxRect(0, 0, PX, 1, "#111");
-  pxRect(0, PX - 1, PX, 1, "#111");
-  pxRect(0, 0, 1, PX, "#111");
-  pxRect(PX - 1, 0, 1, PX, "#111");
-
-  // Stamp onto target context with crisp upscaling
   const prevSmoothing = ctx.imageSmoothingEnabled;
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(oc, x, y, w, h);
