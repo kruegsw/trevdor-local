@@ -1315,8 +1315,11 @@ function drawDevelopmentCard(ctx, { x, y, w, h }, card = {}) {
       grad.addColorStop(1, rgbToCss(rc, 0.75));
       ctx.fillStyle = grad;
       ctx.fillRect(-sashW / 2, -sashH / 2, sashW, sashH);
+      // Determine if sash is light (e.g. white cards) for stitch and text contrast
+      const sashLum = rc.r * 0.299 + rc.g * 0.587 + rc.b * 0.114;
+      const sashTextLight = sashLum < 160;
       // Subtle top/bottom stitch lines
-      ctx.strokeStyle = "rgba(255,255,255,0.25)";
+      ctx.strokeStyle = sashTextLight ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.15)";
       ctx.lineWidth = 0.5;
       ctx.setLineDash([3, 3]);
       ctx.beginPath();
@@ -1327,11 +1330,11 @@ function drawDevelopmentCard(ctx, { x, y, w, h }, card = {}) {
       ctx.stroke();
       ctx.setLineDash([]);
       // "RESERVED" text
-      ctx.fillStyle = "#fff";
+      ctx.fillStyle = sashTextLight ? "#fff" : "#333";
       ctx.font = `700 ${Math.max(8, Math.floor(sashH * 0.65))}px 'Plus Jakarta Sans', system-ui, sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.shadowColor = "rgba(0,0,0,0.5)";
+      ctx.shadowColor = sashTextLight ? "rgba(0,0,0,0.5)" : "rgba(255,255,255,0.4)";
       ctx.shadowBlur = 2;
       ctx.fillText("RESERVED", 0, 0.5);
       ctx.shadowBlur = 0;
