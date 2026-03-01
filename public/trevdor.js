@@ -1400,19 +1400,24 @@ function resize() {
 
   renderer.resize({ width: rect.width, height: rect.height, dpr }, uiState);
 
-  // Auto-zoom: fit relevant content (board + visible panels) into viewport
+  // Auto-zoom: fit relevant content into viewport
   const bounds = renderer.getBounds();
   if (bounds && !uiState.cameraUserAdjusted) {
-    const numPlayers = state?.players?.length ?? 0;
-
-    // Compute tight bounding box of board + visible panels only
-    // Fixed layout: posIdx 0=top-right(P2), 1=bottom-right(P4), 2=top-left(P1), 3=bottom-left(P3)
-    const fixedMap = [1, 3, 0, 2];
-    const rects = [bounds.boardRect];
-    if (bounds.panelRects) {
-      for (let posIdx = 0; posIdx < 4; posIdx++) {
-        if (fixedMap[posIdx] < numPlayers) {
-          rects.push(bounds.panelRects[posIdx]);
+    let rects;
+    if (uiState.simplifiedView) {
+      // Simplified view: center on the board only (nobles → tokens)
+      rects = [bounds.boardRect];
+    } else {
+      const numPlayers = state?.players?.length ?? 0;
+      // Compute tight bounding box of board + visible panels only
+      // Fixed layout: posIdx 0=top-right(P2), 1=bottom-right(P4), 2=top-left(P1), 3=bottom-left(P3)
+      const fixedMap = [1, 3, 0, 2];
+      rects = [bounds.boardRect];
+      if (bounds.panelRects) {
+        for (let posIdx = 0; posIdx < 4; posIdx++) {
+          if (fixedMap[posIdx] < numPlayers) {
+            rects.push(bounds.panelRects[posIdx]);
+          }
         }
       }
     }
