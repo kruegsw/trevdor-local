@@ -825,7 +825,35 @@ function updateResourceBanner() {
       const pIdx = parseInt(row.dataset.playerIndex, 10);
       if (pIdx < state.players.length) togglePanelView(pIdx);
     });
+    packBannerRow(row);
   });
+}
+
+// Increase negative margin overlap on gems/tokens until the row fits
+function packBannerRow(row) {
+  if (row.scrollWidth <= row.clientWidth) return;
+  const items = row.querySelectorAll(".resBannerGem, .resBannerToken, .resBannerCrown");
+  if (!items.length) return;
+  // Read the current (CSS default) margins as the starting point
+  const originals = Array.from(items).map(el => parseFloat(getComputedStyle(el).marginLeft));
+  // Binary search for the smallest multiplier (1 = no change, up to 3 = 3x overlap)
+  // that makes the row fit. Items with margin-left: 0 (first in group) stay at 0.
+  let lo = 1, hi = 3;
+  for (let iter = 0; iter < 10; iter++) {
+    const mid = (lo + hi) / 2;
+    for (let i = 0; i < items.length; i++) {
+      items[i].style.marginLeft = (originals[i] < 0 ? originals[i] * mid : originals[i]) + "px";
+    }
+    if (row.scrollWidth > row.clientWidth) {
+      lo = mid;
+    } else {
+      hi = mid;
+    }
+  }
+  // Apply the last known fitting value (hi is the smallest that fits)
+  for (let i = 0; i < items.length; i++) {
+    items[i].style.marginLeft = (originals[i] < 0 ? originals[i] * hi : originals[i]) + "px";
+  }
 }
 
 /* ---------------------------------------------------------
