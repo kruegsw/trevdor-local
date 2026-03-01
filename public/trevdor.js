@@ -837,8 +837,8 @@ function packBannerRow(row) {
   row.style.gap = "0px";
   if (row.scrollWidth <= row.clientWidth) return;
 
-  // Step 2: increase negative margin overlap on gems/tokens/crowns
-  const items = row.querySelectorAll(".resBannerGem, .resBannerToken, .resBannerCrown");
+  // Step 2: increase negative margin overlap on gems/tokens/crowns/slots
+  const items = row.querySelectorAll(".resBannerSlot + .resBannerSlot, .resBannerGem, .resBannerToken, .resBannerCrown");
   if (!items.length) return;
   const originals = Array.from(items).map(el => parseFloat(getComputedStyle(el).marginLeft));
   // Binary search for the smallest multiplier (1 = no change, up to 6 = near full overlap)
