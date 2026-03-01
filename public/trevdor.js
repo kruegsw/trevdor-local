@@ -69,7 +69,6 @@ let chatToastTimer = null;
 const uiState = createUIState();
 uiState.showCursors = cursorsPref;
 uiState.simplifiedView = simplifiedPref;
-if (simplifiedPref) resourceBanner.classList.add("simplified");
 
 /* ---------------------------------------------------------
    DOM references
@@ -95,6 +94,7 @@ const optChat          = document.getElementById("optChat");
 const optResources     = document.getElementById("optResources");
 const resourceBanner   = document.getElementById("resourceBanner");
 const resourceContent  = document.getElementById("resourceContent");
+if (simplifiedPref) resourceBanner.classList.add("simplified");
 const chatPanel        = document.getElementById("chatPanel");
 const chatToggleBtn    = document.getElementById("chatToggleBtn");
 const chatBadge        = document.getElementById("chatBadge");
