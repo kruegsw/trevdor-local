@@ -411,9 +411,36 @@
             margin: 18px 0 0;
         }
 
-        .lobbyTopRow #createGameBtn {
-            margin-bottom: 22px;
-            white-space: nowrap;
+        /* Create game tile (+ card) */
+        .createGameTile {
+            border-radius: 12px;
+            border: 2px dashed rgba(255,255,255,0.2);
+            background: transparent;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: border-color 0.15s, background 0.15s;
+            min-height: 100px;
+            gap: 8px;
+            color: rgba(255,255,255,0.4);
+        }
+        .createGameTile:hover {
+            border-color: rgba(255,255,255,0.4);
+            background: rgba(255,255,255,0.04);
+            color: rgba(255,255,255,0.7);
+        }
+        .createGameTile .createPlus {
+            font-size: 36px;
+            font-weight: 300;
+            line-height: 1;
+        }
+        .createGameTile .createLabel {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .lobbyPanelHeader {
@@ -606,9 +633,6 @@
             .lobbyTopRow {
                 flex-direction: column;
                 align-items: stretch;
-            }
-            .lobbyTopRow #createGameBtn {
-                margin-bottom: 0;
             }
             #roomList {
                 grid-template-columns: 1fr;
@@ -1301,7 +1325,6 @@
                     <input id="nameInput" class="nameInput" type="text" placeholder="Type your name…" maxlength="20" />
                     <div id="nameHint" class="nameHint"></div>
                 </div>
-                <button id="createGameBtn">Create Game</button>
             </div>
             <div id="onlineStrip"></div>
             <div class="lobbyPanelHeader">Active Games</div>

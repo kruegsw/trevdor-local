@@ -85,7 +85,7 @@ uiState.grannyMode = grannyModePref;
 const lobbyScene       = document.getElementById("lobbyScene");
 const gameLobbySection = document.getElementById("gameLobbySection");
 const waitingSection   = document.getElementById("waitingSection");
-const createGameBtn    = document.getElementById("createGameBtn");
+// "Create Game" is now a tile in the room grid, wired in updateGameLobby()
 const statusBar        = document.getElementById("statusBar");
 const statusContent    = document.getElementById("statusContent");
 const confirmOverlay   = document.getElementById("confirmOverlay");
@@ -122,8 +122,6 @@ function setScene(scene) {
     lobbyScene.classList.remove("hidden");
     gameLobbySection.classList.remove("hidden");
     waitingSection.classList.add("hidden");
-    createGameBtn.textContent = "Create Game";
-    createGameBtn.disabled = false;
     chatPanel.classList.add("hidden");
     resourceBanner.classList.add("hidden");
     // Keep status bar visible as a snapshot of the last game if one exists
@@ -143,8 +141,7 @@ function setScene(scene) {
     statusBar.classList.add("hidden");
     chatPanel.classList.add("hidden");
     resourceBanner.classList.add("hidden");
-    createGameBtn.textContent = "Reconnecting…";
-    createGameBtn.disabled = true;
+    // Create-game tile is disabled implicitly (updateGameLobby re-renders it)
   } else if (scene === "roomLobby") {
     lobbyScene.classList.remove("hidden");
     gameLobbySection.classList.add("hidden");
@@ -153,8 +150,6 @@ function setScene(scene) {
     statusBar.classList.add("hidden");
     chatPanel.classList.toggle("hidden", !chatPref);
     resourceBanner.classList.add("hidden");
-    createGameBtn.textContent = "Create Game";
-    createGameBtn.disabled = false;
   } else if (scene === "game") {
     lobbyScene.classList.add("hidden");
     lobbyScene.classList.remove("withStatusBar");
@@ -390,10 +385,17 @@ function updateGameLobby() {
   const roomListEl = document.getElementById("roomList");
   if (!roomListEl) return;
   const rooms = uiState.roomList ?? [];
+
+  // Always start with the "+" create-game tile
+  const createTile = `<div class="createGameTile" id="createGameTile">` +
+    `<span class="createPlus">+</span>` +
+    `<span class="createLabel">New Game</span>` +
+    `</div>`;
+
   if (rooms.length === 0) {
-    roomListEl.innerHTML = '<div class="roomListEmpty">No active games — create one!</div>';
+    roomListEl.innerHTML = createTile;
   } else {
-  roomListEl.innerHTML = rooms.map(r => {
+  roomListEl.innerHTML = createTile + rooms.map(r => {
     const players = r.players ?? [];
     // Left border color based on status
     const borderColor = r.gameOver ? '#ffd700' : r.started ? '#5c8dd6' : '#4caf50';
@@ -455,6 +457,10 @@ function updateGameLobby() {
     });
   });
   } // end else (rooms.length > 0)
+
+  // Wire up the create-game tile
+  const createEl = document.getElementById("createGameTile");
+  if (createEl) createEl.addEventListener("click", handleCreateGame);
 
   // Online strip
   const stripEl = document.getElementById("onlineStrip");
@@ -1235,7 +1241,7 @@ function dispatchGameAction(gameAction) {
    Button handlers
    --------------------------------------------------------- */
 
-createGameBtn.addEventListener("click", () => {
+function handleCreateGame() {
   const currentName = cleanName(nameInput.value);
   if (!currentName) {
     nameHint.textContent = "Please enter your name first.";
@@ -1244,7 +1250,7 @@ createGameBtn.addEventListener("click", () => {
   uiState.myName = currentName;
   transport.setName(currentName);
   transport.sendRaw({ type: "CREATE_GAME", name: currentName, sessionId: mySessionId });
-});
+}
 
 document.getElementById("readyBtn").addEventListener("click", () => {
   transport.sendRaw({ type: "READY", roomId: currentRoomId });
