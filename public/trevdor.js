@@ -659,6 +659,17 @@ function updateStatusBar() {
   }
 }
 
+const SEAT_ACCENT_COLORS = ["#2D6CDF", "#D94A4A", "#2E9B5F", "#D6B04C"];
+
+const BANNER_TOKEN_COLORS = {
+  white:  { rim: "#bbb",    fill: "#f5f5f5" },
+  blue:   { rim: "#0000FF", fill: "#99b3ff" },
+  green:  { rim: "#2E9B5F", fill: "#8fd4ab" },
+  red:    { rim: "#D94A4A", fill: "#f0a8a8" },
+  black:  { rim: "#2B2B2B", fill: "#888"    },
+  yellow: { rim: "#D6B04C", fill: "#f0e0a0" },
+};
+
 function updateResourceBanner() {
   const myIdx = uiState.myPlayerIndex;
   if (typeof myIdx !== "number" || myIdx < 0 || !state?.players?.[myIdx]) {
@@ -668,6 +679,7 @@ function updateResourceBanner() {
   // setScene("game") removes .hidden, but if the guard above re-added it
   // on a previous call (e.g. before state arrived), restore visibility.
   resourceBanner.classList.remove("hidden");
+  resourceBanner.style.setProperty("--banner-accent", SEAT_ACCENT_COLORS[myIdx] ?? "#888");
   const player = state.players[myIdx];
   const gemCounts = {};
   for (const card of player.cards ?? []) {
@@ -680,17 +692,17 @@ function updateResourceBanner() {
     const g = gemCounts[color] || 0;
     const t = tokens[color] || 0;
     if (g === 0 && t === 0) continue;
-    const c = CONFIRM_TOKEN_COLORS[color] ?? { bg: "#888", text: "#fff" };
+    const bc = BANNER_TOKEN_COLORS[color] ?? { rim: "#888", fill: "#ccc" };
     html += `<span class="resBannerSlot">`;
-    for (let i = 0; i < g; i++) html += `<span class="resBannerGem" style="background:${c.bg}"></span>`;
-    for (let i = 0; i < t; i++) html += `<span class="resBannerToken" style="background:${c.bg}"></span>`;
+    for (let i = 0; i < g; i++) html += `<span class="resBannerGem" style="background:${bc.fill};border:2px solid ${bc.rim}"></span>`;
+    for (let i = 0; i < t; i++) html += `<span class="resBannerToken" style="background:${bc.fill};border:3px solid ${bc.rim}"></span>`;
     html += `</span>`;
   }
   const yt = tokens.yellow || 0;
   if (yt > 0) {
-    const yc = CONFIRM_TOKEN_COLORS.yellow;
+    const bc = BANNER_TOKEN_COLORS.yellow;
     html += `<span class="resBannerSlot">`;
-    for (let i = 0; i < yt; i++) html += `<span class="resBannerToken" style="background:${yc.bg}"></span>`;
+    for (let i = 0; i < yt; i++) html += `<span class="resBannerToken" style="background:${bc.fill};border:3px solid ${bc.rim}"></span>`;
     html += `</span>`;
   }
   resourceContent.innerHTML = html;

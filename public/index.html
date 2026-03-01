@@ -825,12 +825,13 @@
             align-items: center;
             justify-content: center;
             height: 40px;
-            background: rgba(0, 0, 0, 0.55);
+            background: rgba(243, 243, 243, 0.92);
             color: #fff;
             font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
             font-size: 11px;
             user-select: none;
             pointer-events: none;
+            border-top: 2px solid var(--banner-accent, #888);
         }
 
         #resourceContent {
@@ -853,11 +854,13 @@
         }
 
         .resBannerGem {
-            width: 18px;
-            height: 18px;
+            width: 14px;
+            height: 14px;
             flex-shrink: 0;
-            clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
-            margin-left: -6px;
+            transform: rotate(45deg);
+            border-radius: 2px;
+            margin-left: -4px;
+            box-sizing: border-box;
         }
 
         .resBannerGem:first-child,
@@ -871,7 +874,7 @@
             border-radius: 50%;
             flex-shrink: 0;
             margin-left: -5px;
-            border: 1px solid rgba(255,255,255,0.3);
+            box-sizing: border-box;
         }
 
         .resBannerGem + .resBannerToken {
