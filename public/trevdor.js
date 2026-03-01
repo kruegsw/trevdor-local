@@ -1610,13 +1610,26 @@ function resize() {
 
 window.addEventListener("load", resize);
 window.addEventListener("resize", resize);
-// Safari delays safe-area-inset recalculation on orientation change
-// (especially landscape → portrait). Multiple deferred resizes ensure
-// the status bar clears the phone's system status bar.
+// Safari's CSS env(safe-area-inset-top) can go stale after rotation
+// (especially landscape → portrait). Work around it by reading the inset
+// via a probe element and applying it as an explicit inline style.
+const _safeAreaProbe = document.createElement("div");
+_safeAreaProbe.style.cssText =
+  "position:fixed;top:0;left:0;width:0;padding-top:env(safe-area-inset-top,0px);visibility:hidden;pointer-events:none";
+document.body.appendChild(_safeAreaProbe);
+
+function applySafeAreaInset() {
+  const inset = _safeAreaProbe.offsetHeight;
+  if (statusBar) {
+    statusBar.style.paddingTop = inset + "px";
+    statusBar.style.height = (30 + inset) + "px";
+  }
+  resize();
+}
+
 window.addEventListener("orientationchange", () => {
-  setTimeout(resize, 100);
-  setTimeout(resize, 350);
-  setTimeout(resize, 800);
+  setTimeout(applySafeAreaInset, 100);
+  setTimeout(applySafeAreaInset, 400);
 });
 
 // Load card sprite sheet (non-blocking — cards use flat color fallback until loaded)
