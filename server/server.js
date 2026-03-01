@@ -161,9 +161,20 @@ function roomListSnapshot() {
       ? (room.state.players[room.state.winner]?.name ?? `Player ${room.state.winner + 1}`)
       : null;
     const players = room.seats
-      .map((s, seat) => s ? { name: s.name, seat } : null)
+      .map((s, seat) => s ? {
+        name: s.name, seat,
+        wsOpen: s.ws?.readyState === 1,
+        lastActivity: clientInfo.get(s.ws)?.lastActivity ?? null,
+      } : null)
       .filter(Boolean);
-    list.push({ roomId, name: room.name, playerCount, spectatorCount, started: room.started, gameOver, winnerName, players });
+    const spectators = [];
+    for (const ws of room.clients) {
+      const info = clientInfo.get(ws);
+      if (info && info.playerIndex === null) {
+        spectators.push({ name: info.name, wsOpen: ws.readyState === 1 });
+      }
+    }
+    list.push({ roomId, name: room.name, playerCount, spectatorCount, started: room.started, gameOver, winnerName, players, spectators });
   }
   return list;
 }

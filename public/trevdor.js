@@ -436,14 +436,34 @@ function updateGameLobby() {
                      :                                   "Join";
     const btnStyle = r.gameOver ? ' style="background:#c0c0c0;color:#111"' : '';
     const showCloseBtn = myPreviousRoomIsHost && r.roomId === myPreviousRoomId;
-    // Seat dots (4 total)
+    // Seat dots with WS status colors
     let seatDots = '';
     for (let i = 0; i < 4; i++) {
-      const occupied = players.some(p => p.seat === i);
-      seatDots += `<span class="tileSeatDot ${occupied ? 'filled' : 'empty'}"></span>`;
+      const p = players.find(p => p.seat === i);
+      if (p) {
+        const fill = !p.wsOpen ? '#e53935'
+          : (p.lastActivity && (Date.now() - p.lastActivity) > 60000) ? '#ffd700'
+          : '#4caf50';
+        seatDots += `<span class="tileSeatDot" style="background:${fill}"></span>`;
+      } else {
+        seatDots += `<span class="tileSeatDot empty"></span>`;
+      }
     }
     // Player names
     const namesList = players.map(p => escapeHtml(p.name)).join(', ');
+    // Spectators
+    const spectators = r.spectators ?? [];
+    const specHtml = spectators.length === 0 ? '' :
+      `<div class="tileSpectators">` +
+        `<span class="tileSpecLabel">Spectators:</span>` +
+        spectators.map(s => {
+          const fill = s.wsOpen ? '#4caf50' : '#e53935';
+          return `<span class="tileSpecEntry">` +
+            `<span class="playerDot" style="--dot-fill:${fill}"></span>` +
+            `${escapeHtml(s.name)}` +
+            `</span>`;
+        }).join("") +
+      `</div>`;
 
     return `<div class="roomTile" style="border-left-color:${borderColor}">` +
       `<div class="tileTopRow">` +
@@ -454,8 +474,8 @@ function updateGameLobby() {
         `<span class="tileSeatDots">${seatDots}</span>` +
         `<span class="tilePlayerNames">${namesList}</span>` +
       `</div>` +
+      specHtml +
       `<div class="tileBottomRow">` +
-        `<span class="tileSpectators">${r.spectatorCount ? r.spectatorCount + ' watching' : ''}</span>` +
         `<button class="joinRoomBtn"${btnStyle} data-room-id="${escapeHtml(r.roomId)}">${watchLabel}</button>` +
         (showCloseBtn ? `<button class="closeGameLobbyBtn" data-close-room-id="${escapeHtml(r.roomId)}">Close</button>` : ``) +
       `</div>` +
