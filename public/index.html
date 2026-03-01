@@ -48,6 +48,13 @@
             color: white;
             font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
             text-align: center;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            align-items: flex-start;
+        }
+
+        #lobbyScene .lobbyContent {
+            padding: 40px 0 60px;
         }
 
         #lobbyScene.withStatusBar {
@@ -525,8 +532,6 @@
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 12px;
-            max-height: 400px;
-            overflow-y: auto;
             text-align: left;
         }
 
@@ -651,19 +656,19 @@
             margin-left: auto;
         }
 
-        /* Thin subtle scrollbar for room list */
-        #roomList {
+        /* Thin subtle scrollbar for lobby scene */
+        #lobbyScene {
             scrollbar-width: thin;
             scrollbar-color: rgba(255,255,255,0.15) transparent;
         }
-        #roomList::-webkit-scrollbar {
+        #lobbyScene::-webkit-scrollbar {
             width: 6px;
         }
-        #roomList::-webkit-scrollbar-thumb {
+        #lobbyScene::-webkit-scrollbar-thumb {
             background: rgba(255,255,255,0.15);
             border-radius: 3px;
         }
-        #roomList::-webkit-scrollbar-track {
+        #lobbyScene::-webkit-scrollbar-track {
             background: transparent;
         }
 
