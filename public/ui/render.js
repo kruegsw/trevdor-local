@@ -1238,31 +1238,14 @@ function drawDevelopmentCard(ctx, { x, y, w, h }, card = {}) {
     }
   }
 
-  // --- points (top-left) — frosted circle badge
+  // --- points (top-left)
   if (points > 0) {
-    const fontSize = Math.max(12, Math.floor(h * 0.20));
-    const badgeR = Math.max(8, Math.floor(fontSize * 0.72));
-    const bcx = x + pad + badgeR;
-    const bcy = y + pad + badgeR;
-    // Frosted background circle
-    ctx.save();
-    roundedRectPath(ctx, x, y, w, h);
-    ctx.clip();
-    ctx.beginPath();
-    ctx.arc(bcx, bcy, badgeR, 0, Math.PI * 2);
-    ctx.fillStyle = hasArt ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.6)";
-    ctx.fill();
-    ctx.strokeStyle = hasArt ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.2)";
-    ctx.lineWidth = 1;
-    ctx.stroke();
-    ctx.restore();
-    // Number
-    ctx.font = `700 ${fontSize}px 'Plus Jakarta Sans', system-ui, sans-serif`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillStyle = hasArt ? "#fff" : "rgba(0,0,0,.85)";
+    ctx.fillStyle = hasArt ? "#fff" : "rgba(0,0,0,.9)";
+    ctx.font = `700 ${Math.max(12, Math.floor(h * 0.20))}px 'Plus Jakarta Sans', system-ui, sans-serif`;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
     if (hasArt) { ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = 3; }
-    ctx.fillText(String(points), bcx, bcy);
+    ctx.fillText(String(points), x + pad, y + pad * 0.8);
     ctx.shadowBlur = 0;
   }
 
