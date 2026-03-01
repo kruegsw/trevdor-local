@@ -829,15 +829,19 @@ function updateResourceBanner() {
   });
 }
 
-// Increase negative margin overlap on gems/tokens until the row fits
+// Progressively pack a banner row: collapse gap, then increase gem/token overlap
 function packBannerRow(row) {
   if (row.scrollWidth <= row.clientWidth) return;
+
+  // Step 1: collapse the row gap (3px → 0px)
+  row.style.gap = "0px";
+  if (row.scrollWidth <= row.clientWidth) return;
+
+  // Step 2: increase negative margin overlap on gems/tokens/crowns
   const items = row.querySelectorAll(".resBannerGem, .resBannerToken, .resBannerCrown");
   if (!items.length) return;
-  // Read the current (CSS default) margins as the starting point
   const originals = Array.from(items).map(el => parseFloat(getComputedStyle(el).marginLeft));
   // Binary search for the smallest multiplier (1 = no change, up to 6 = near full overlap)
-  // that makes the row fit. Items with margin-left: 0 (first in group) stay at 0.
   let lo = 1, hi = 6;
   for (let iter = 0; iter < 10; iter++) {
     const mid = (lo + hi) / 2;
@@ -850,7 +854,6 @@ function packBannerRow(row) {
       hi = mid;
     }
   }
-  // Apply the last known fitting value (hi is the smallest that fits)
   for (let i = 0; i < items.length; i++) {
     items[i].style.marginLeft = (originals[i] < 0 ? originals[i] * hi : originals[i]) + "px";
   }
