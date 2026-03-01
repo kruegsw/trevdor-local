@@ -88,6 +88,7 @@ export function createUIEvents({
 
       // PAN
       if (g.pointers.size === 1 && g.mode === "pan" && ui.pointer.isDown) {
+        if (ui.simplifiedView) { g.last = { x: sx, y: sy }; return; }
         const dx = sx - g.last.x;
         const dy = sy - g.last.y;
         if (Math.abs(dx) + Math.abs(dy) > 2) {
@@ -104,7 +105,7 @@ export function createUIEvents({
       }
 
       // PINCH
-      if (g.pointers.size === 2 && g.mode === "pinch") {
+      if (g.pointers.size === 2 && g.mode === "pinch" && !ui.simplifiedView) {
         const [p1, p2] = [...g.pointers.values()];
         const m = mid(p1, p2);
         const d = dist(p1, p2);

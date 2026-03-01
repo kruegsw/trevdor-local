@@ -56,5 +56,8 @@ export function createUIState() {
     // Set to true when the user manually pans/pinches, so resize
     // auto-zoom doesn't override their preference.
     cameraUserAdjusted: false,
+
+    // Simplified view: locks camera and disables drag scrolling
+    simplifiedView: false,
   };
 }

@@ -68,6 +68,8 @@ let chatToastTimer = null;
 
 const uiState = createUIState();
 uiState.showCursors = cursorsPref;
+uiState.simplifiedView = simplifiedPref;
+if (simplifiedPref) resourceBanner.classList.add("simplified");
 
 /* ---------------------------------------------------------
    DOM references
@@ -1283,7 +1285,13 @@ optChat.addEventListener("change", () => {
 
 optResources.addEventListener("change", () => {
   simplifiedPref = optResources.checked;
+  uiState.simplifiedView = simplifiedPref;
   localStorage.setItem("trevdor.simplified", simplifiedPref);
+  resourceBanner.classList.toggle("simplified", simplifiedPref);
+  if (simplifiedPref) {
+    uiState.cameraUserAdjusted = false;
+    resize();
+  }
   updateResourceBanner();
 });
 
