@@ -1417,26 +1417,20 @@ function drawNoble(ctx, { x, y, w, h }, noble = {}) {
   const pipSize = Math.max(12, Math.floor(Math.min(w, h) * 0.192 * _pipScale));
   const gap = Math.max(3, Math.floor(pipSize * 0.18));
 
-  // Strip width: sized to fit pip columns
-  const nEntries = Object.values(req).filter(n => n > 0).length;
-  const pointsFontSize = Math.max(12, Math.floor(h * 0.20));
-  const pointsH = pointsFontSize + gap;
-  const availH = h - 2 * pad - pointsH;
-  const maxPerCol = Math.max(1, Math.floor((availH + gap) / (pipSize + gap)));
-  const cols = Math.ceil(nEntries / maxPerCol);
-  const stripW = Math.floor(Math.max(w * 0.25, cols * pipSize + (cols - 1) * gap + 2 * pad));
+  // Points font: in granny mode, match market card size (h * 0.20 * _pipScale)
+  const pointsFontSize = Math.max(12, Math.floor(h * 0.20 * _pipScale));
 
   // --- base card (light grey)
   roundedRectPath(ctx, x, y, w, h);
   ctx.fillStyle = "#E9EEF3";
   ctx.fill();
 
-  // --- left solid white strip
+  // --- left solid white strip (25% default)
   ctx.save();
   roundedRectPath(ctx, x, y, w, h);
   ctx.clip();
   ctx.fillStyle = "#FFFFFF";
-  ctx.fillRect(x, y, stripW, h);
+  ctx.fillRect(x, y, Math.floor(w * 0.25), h);
   ctx.restore();
 
   // --- outer black border
@@ -1445,7 +1439,7 @@ function drawNoble(ctx, { x, y, w, h }, noble = {}) {
   ctx.lineWidth = 1;
   ctx.stroke();
 
-  // --- points (top of strip)
+  // --- points (top-left)
   if (points > 0) {
     ctx.fillStyle = "rgba(0,0,0,0.9)";
     ctx.font = `700 ${pointsFontSize}px 'Plus Jakarta Sans', system-ui, sans-serif`;
@@ -1454,40 +1448,43 @@ function drawNoble(ctx, { x, y, w, h }, noble = {}) {
     ctx.fillText(String(points), x + pad, y + pad * 0.8);
   }
 
-  // --- requirements stacked vertically, wrapping to columns in granny mode
+  // --- requirements: laid out in rows (left-to-right, wrapping to next row)
   const order = ["white", "blue", "green", "red", "black"];
   const entries = order
     .map(c => [c, req[c] ?? 0])
     .filter(([, n]) => n > 0);
 
   if (entries.length) {
-    const startY = y + pad + pointsFontSize + gap;
+    const startX = x + pad;
+    const maxX = x + w - pad;
+    const perRow = Math.max(1, Math.floor((maxX - startX + gap) / (pipSize + gap)));
+    const rows = Math.ceil(entries.length / perRow);
+    const yBottom = y + h - pad - rows * pipSize - (rows - 1) * gap;
 
-    let cx = x + pad;
-    let cy = startY;
+    let cx = startX;
+    let cy = yBottom;
     for (let i = 0; i < entries.length; i++) {
       const [c, n] = entries[i];
       const gemR = pipSize / 2;
       drawGemCached(ctx, cx + gemR, cy + gemR, gemR, c, String(n));
-      cy += pipSize + gap;
-
-      // Wrap to next column if we'd overflow
-      if (cy > y + h - pad - pipSize && i + 1 < entries.length) {
-        cx += pipSize + gap;
-        cy = startY;
+      cx += pipSize + gap;
+      if ((i + 1) % perRow === 0 && i + 1 < entries.length) {
+        cx = startX;
+        cy += pipSize + gap;
       }
     }
   }
 
   // --- optional banner (center-right)
   if (banner) {
+    const sW = Math.floor(w * 0.25);
     ctx.fillStyle = "rgba(0,0,0,.35)";
     ctx.font = `600 ${Math.max(10, Math.floor(h * 0.14))}px 'Plus Jakarta Sans', system-ui, sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(
       banner,
-      x + stripW + (w - stripW) / 2,
+      x + sW + (w - sW) / 2,
       y + h / 2
     );
   }
