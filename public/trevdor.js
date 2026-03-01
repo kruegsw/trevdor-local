@@ -384,6 +384,8 @@ function playSoundsForStateChange(prev, next) {
    Game lobby (room list)
    --------------------------------------------------------- */
 
+let onlineStripExpanded = false;
+
 function updateGameLobby() {
   const roomListEl = document.getElementById("roomList");
   if (!roomListEl) return;
@@ -392,23 +394,44 @@ function updateGameLobby() {
     roomListEl.innerHTML = '<div class="roomListEmpty">No active games — create one!</div>';
   } else {
   roomListEl.innerHTML = rooms.map(r => {
+    const players = r.players ?? [];
+    // Left border color based on status
+    const borderColor = r.gameOver ? '#ffd700' : r.started ? '#5c8dd6' : '#4caf50';
+    // Status badge
+    const statusClass = r.gameOver ? 'gameOver' : r.started ? 'inProgress' : 'waiting';
     const statusText = r.gameOver ? `${escapeHtml(r.winnerName)} Won`
                      : r.started ? "In Progress"
-                     : `${r.playerCount}/4`;
-    const statusStyle = r.gameOver ? ' style="color:#ffd700;font-weight:bold"' : '';
+                     : `${r.playerCount}/4 Players`;
+    // Action button
     const watchLabel = (r.roomId === myPreviousRoomId) ? "Resume"
                      : r.gameOver                      ? "Results"
                      : r.started                       ? "Watch"
                      :                                   "Join";
     const btnStyle = r.gameOver ? ' style="background:#c0c0c0;color:#111"' : '';
     const showCloseBtn = myPreviousRoomIsHost && r.roomId === myPreviousRoomId;
-    return `<div class="roomEntry">` +
-      `<div class="roomEntryName">${escapeHtml(r.name)}</div>` +
-      `<div class="roomEntryMeta"${statusStyle}>${statusText}` +
-      (r.spectatorCount ? ` · ${r.spectatorCount} watching` : ``) +
+    // Seat dots (4 total)
+    let seatDots = '';
+    for (let i = 0; i < 4; i++) {
+      const occupied = players.some(p => p.seat === i);
+      seatDots += `<span class="tileSeatDot ${occupied ? 'filled' : 'empty'}"></span>`;
+    }
+    // Player names
+    const namesList = players.map(p => escapeHtml(p.name)).join(', ');
+
+    return `<div class="roomTile" style="border-left-color:${borderColor}">` +
+      `<div class="tileTopRow">` +
+        `<span class="tileName">${escapeHtml(r.name)}</span>` +
+        `<span class="tileStatus ${statusClass}">${statusText}</span>` +
       `</div>` +
-      `<button class="joinRoomBtn"${btnStyle} data-room-id="${escapeHtml(r.roomId)}">${watchLabel}</button>` +
-      (showCloseBtn ? `<button class="closeGameLobbyBtn" data-close-room-id="${escapeHtml(r.roomId)}">Close Game</button>` : ``) +
+      `<div class="tileSeatRow">` +
+        `<span class="tileSeatDots">${seatDots}</span>` +
+        `<span class="tilePlayerNames">${namesList}</span>` +
+      `</div>` +
+      `<div class="tileBottomRow">` +
+        `<span class="tileSpectators">${r.spectatorCount ? r.spectatorCount + ' watching' : ''}</span>` +
+        `<button class="joinRoomBtn"${btnStyle} data-room-id="${escapeHtml(r.roomId)}">${watchLabel}</button>` +
+        (showCloseBtn ? `<button class="closeGameLobbyBtn" data-close-room-id="${escapeHtml(r.roomId)}">Close</button>` : ``) +
+      `</div>` +
       `</div>`;
   }).join("");
 
@@ -433,24 +456,37 @@ function updateGameLobby() {
   });
   } // end else (rooms.length > 0)
 
-  // Connected users section
-  const usersEl = document.getElementById("connectedUsers");
-  if (usersEl) {
+  // Online strip
+  const stripEl = document.getElementById("onlineStrip");
+  if (stripEl) {
     const users = uiState.connectedUsers ?? [];
     if (users.length === 0) {
-      usersEl.innerHTML = "";
+      stripEl.innerHTML = `<span class="onlineStripLabel">Online (0)</span>`;
     } else {
-      usersEl.innerHTML =
-        `<div class="connectedUsersHeader">Online (${users.length})</div>` +
-        users.map(u => {
+      const VISIBLE_LIMIT = 6;
+      const visibleUsers = onlineStripExpanded ? users : users.slice(0, VISIBLE_LIMIT);
+      const overflow = users.length - VISIBLE_LIMIT;
+      stripEl.innerHTML =
+        `<span class="onlineStripLabel">Online (${users.length})</span>` +
+        visibleUsers.map(u => {
           const isMe = u.clientId === uiState.myClientId;
-          return `<div class="connectedUserEntry">` +
+          return `<span class="onlineStripUser">` +
             `<span class="playerDot" style="--dot-fill:${userDotFill(u)}"></span>` +
-            `<span class="connectedUserName">${escapeHtml(u.name)}</span>` +
-            (isMe ? `<span class="youLabel">(you)</span>` : ``) +
-            `<span class="connectedUserLocation">${escapeHtml(u.location)}</span>` +
-            `</div>`;
-        }).join("");
+            `${escapeHtml(u.name)}${isMe ? ' <span class="youLabel">(you)</span>' : ''}` +
+            `</span>`;
+        }).join("") +
+        (overflow > 0 && !onlineStripExpanded
+          ? `<span class="onlineStripMore" id="onlineStripToggle">+${overflow} more</span>`
+          : overflow > 0 && onlineStripExpanded
+          ? `<span class="onlineStripMore" id="onlineStripToggle">show less</span>`
+          : '');
+      const toggle = document.getElementById("onlineStripToggle");
+      if (toggle) {
+        toggle.addEventListener("click", () => {
+          onlineStripExpanded = !onlineStripExpanded;
+          updateGameLobby();
+        });
+      }
     }
   }
 }

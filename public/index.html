@@ -396,7 +396,7 @@
 
         /* Game lobby (room browser) */
         #gameLobbySection {
-            width: min(700px, 92vw);
+            width: min(820px, 94vw);
         }
 
         .lobbyTopRow {
@@ -416,127 +416,192 @@
             white-space: nowrap;
         }
 
-        .lobbyColumns {
-            display: flex;
-            gap: 12px;
-            margin-top: 14px;
-            align-items: flex-start;
-        }
-
-        .lobbyPanel {
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 12px;
-            background: rgba(255,255,255,0.04);
-            padding: 12px;
-            flex: 1;
-            min-width: 0;
-        }
-
-        .lobbyPanelNarrow {
-            flex: 0 0 200px;
-        }
-
         .lobbyPanelHeader {
             font-size: 12px;
             opacity: 0.45;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             margin-bottom: 8px;
+            margin-top: 14px;
             text-align: left;
         }
 
+        /* Online strip */
+        #onlineStrip {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 4px 12px;
+            margin-top: 14px;
+            padding: 8px 12px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.07);
+            font-size: 13px;
+            min-height: 20px;
+        }
+
+        .onlineStripLabel {
+            font-size: 11px;
+            opacity: 0.45;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-right: 4px;
+        }
+
+        .onlineStripUser {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            opacity: 0.8;
+        }
+
+        .onlineStripUser .playerDot {
+            width: 7px;
+            height: 7px;
+            min-width: 7px;
+        }
+
+        .onlineStripMore {
+            font-size: 12px;
+            opacity: 0.5;
+            cursor: pointer;
+            padding: 2px 6px;
+            border-radius: 6px;
+            background: rgba(255,255,255,0.06);
+        }
+        .onlineStripMore:hover {
+            opacity: 0.8;
+            background: rgba(255,255,255,0.1);
+        }
+
+        /* Room grid */
         #roomList {
-            width: 100%;
-            margin: 0;
-            max-height: 260px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            max-height: 400px;
             overflow-y: auto;
             text-align: left;
         }
 
-        .roomEntry {
+        /* Room tile */
+        .roomTile {
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-left: 3px solid #4caf50;
+            background: rgba(255,255,255,0.04);
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .tileTopRow {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tileName {
+            flex: 1;
+            font-size: 15px;
+            font-weight: 600;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .tileStatus {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 6px;
+            white-space: nowrap;
+            font-weight: 500;
+        }
+        .tileStatus.waiting {
+            background: rgba(76,175,80,0.15);
+            color: #4caf50;
+        }
+        .tileStatus.inProgress {
+            background: rgba(92,141,214,0.15);
+            color: #5c8dd6;
+        }
+        .tileStatus.gameOver {
+            background: rgba(255,215,0,0.15);
+            color: #ffd700;
+        }
+
+        .tileSeatRow {
             display: flex;
             align-items: center;
             gap: 10px;
-            padding: 10px 12px;
-            border-radius: 10px;
-            border: 1px solid rgba(255,255,255,0.1);
-            margin-bottom: 8px;
-            background: rgba(255,255,255,0.04);
         }
 
-        .roomEntryName {
-            flex: 1;
-            font-size: 15px;
-            font-weight: 500;
+        .tileSeatDots {
+            display: flex;
+            gap: 4px;
         }
 
-        .roomEntryMeta {
+        .tileSeatDot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        .tileSeatDot.filled {
+            background: rgba(255,255,255,0.7);
+        }
+        .tileSeatDot.empty {
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .tilePlayerNames {
             font-size: 12px;
-            opacity: 0.55;
+            opacity: 0.5;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
             white-space: nowrap;
+        }
+
+        .tileBottomRow {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 2px;
+        }
+
+        .tileSpectators {
+            font-size: 11px;
+            opacity: 0.4;
+            flex: 1;
         }
 
         .joinRoomBtn {
             padding: 6px 14px !important;
-            font-size: 14px !important;
+            font-size: 13px !important;
             border-radius: 8px !important;
-        }
-
-        #connectedUsers {
-            width: 100%;
-            margin: 0;
-            max-height: 300px;
-            overflow-y: auto;
-            text-align: left;
-        }
-
-        .connectedUsersHeader {
-            font-size: 12px;
-            opacity: 0.45;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 6px;
-        }
-
-        .connectedUserEntry {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 4px 0;
-            font-size: 14px;
-        }
-
-        .connectedUserName {
-            opacity: 0.85;
-        }
-
-        .connectedUserLocation {
             margin-left: auto;
-            font-size: 12px;
-            opacity: 0.4;
         }
 
-        /* Thin subtle scrollbars for lobby lists */
-        #roomList,
-        #connectedUsers {
+        /* Thin subtle scrollbar for room list */
+        #roomList {
             scrollbar-width: thin;
             scrollbar-color: rgba(255,255,255,0.15) transparent;
         }
-        #roomList::-webkit-scrollbar,
-        #connectedUsers::-webkit-scrollbar {
+        #roomList::-webkit-scrollbar {
             width: 6px;
         }
-        #roomList::-webkit-scrollbar-thumb,
-        #connectedUsers::-webkit-scrollbar-thumb {
+        #roomList::-webkit-scrollbar-thumb {
             background: rgba(255,255,255,0.15);
             border-radius: 3px;
         }
-        #roomList::-webkit-scrollbar-track,
-        #connectedUsers::-webkit-scrollbar-track {
+        #roomList::-webkit-scrollbar-track {
             background: transparent;
         }
 
-        /* Mobile: stack lobby columns vertically */
+        /* Mobile: single column tiles */
         @media (max-width: 520px) {
             .lobbyTopRow {
                 flex-direction: column;
@@ -545,15 +610,13 @@
             .lobbyTopRow #createGameBtn {
                 margin-bottom: 0;
             }
-            .lobbyColumns {
-                flex-direction: column;
-            }
-            .lobbyPanelNarrow {
-                flex: auto;
+            #roomList {
+                grid-template-columns: 1fr;
             }
         }
 
         .roomListEmpty {
+            grid-column: 1 / -1;
             text-align: center;
             opacity: 0.4;
             font-size: 14px;
@@ -1240,15 +1303,9 @@
                 </div>
                 <button id="createGameBtn">Create Game</button>
             </div>
-            <div class="lobbyColumns">
-                <div class="lobbyPanel">
-                    <div class="lobbyPanelHeader">Active Games</div>
-                    <div id="roomList"></div>
-                </div>
-                <div class="lobbyPanel lobbyPanelNarrow">
-                    <div id="connectedUsers"></div>
-                </div>
-            </div>
+            <div id="onlineStrip"></div>
+            <div class="lobbyPanelHeader">Active Games</div>
+            <div id="roomList"></div>
         </div>
 
         <!-- Room lobby: shown after joining or creating a room -->

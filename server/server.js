@@ -160,7 +160,14 @@ function roomListSnapshot() {
     const winnerName = gameOver && typeof room.state.winner === "number"
       ? (room.state.players[room.state.winner]?.name ?? `Player ${room.state.winner + 1}`)
       : null;
-    list.push({ roomId, name: room.name, playerCount, spectatorCount, started: room.started, gameOver, winnerName });
+    const players = room.seats
+      .map((ws, seat) => {
+        if (!ws) return null;
+        const info = clientInfo.get(ws);
+        return info ? { name: info.name, seat } : null;
+      })
+      .filter(Boolean);
+    list.push({ roomId, name: room.name, playerCount, spectatorCount, started: room.started, gameOver, winnerName, players });
   }
   return list;
 }
