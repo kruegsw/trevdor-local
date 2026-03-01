@@ -357,3 +357,273 @@ function drawTier3ArtDeco(ctx, w, h, bonus, rng, variant) {
     ctx.fill();
   }
 }
+
+/* ---------------------------------------------------------
+   Noble tile art (modes 0/1/2)
+   Mode 0 (plain) = Damask Wallpaper
+   Mode 1 (procedural) = Constellation
+   Mode 2 (pixel) = Royal Portrait
+   --------------------------------------------------------- */
+
+const GEM_HEX = {
+  white: "#e8e8e8", blue: "#2255cc", green: "#1a8a4a",
+  red: "#cc2233", black: "#444444",
+};
+
+function nobleSeed(noble) {
+  const m = (noble.id || "").match(/\d+$/);
+  return m ? parseInt(m[0], 10) : 1;
+}
+
+function nobleReqColors(noble) {
+  const req = noble.req || {};
+  return Object.keys(req).filter(c => req[c] > 0);
+}
+
+// --- Mode 0: Damask Wallpaper ---
+export function drawNobleDamask(ctx, x, y, w, h, noble) {
+  const cols = nobleReqColors(noble);
+  const primary = hexToRgb(GEM_HEX[cols[0]] || "#888888");
+  const secondary = hexToRgb(GEM_HEX[cols[1] || cols[0]] || "#888888");
+
+  // Rich base gradient
+  const bg = ctx.createLinearGradient(x, y, x + w, y + h);
+  bg.addColorStop(0, rgb(darken(primary, 0.3)));
+  bg.addColorStop(1, rgb(darken(secondary, 0.3)));
+  ctx.fillStyle = bg;
+  ctx.fillRect(x, y, w, h);
+
+  // Damask motifs — repeating diamond-scroll pattern
+  const motifColor = rgb(lighten(mix(primary, secondary, 0.5), 0.2), 0.15);
+  const cellW = w / 3, cellH = h / 3;
+  for (let row = 0; row < 3; row++) {
+    for (let col = 0; col < 3; col++) {
+      const cx = x + col * cellW + cellW / 2;
+      const cy = y + row * cellH + cellH / 2;
+      const s = Math.min(cellW, cellH) * 0.35;
+
+      ctx.strokeStyle = motifColor;
+      ctx.fillStyle = motifColor;
+      ctx.lineWidth = 1;
+
+      // Central diamond
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - s); ctx.lineTo(cx + s * 0.5, cy);
+      ctx.lineTo(cx, cy + s); ctx.lineTo(cx - s * 0.5, cy);
+      ctx.closePath();
+      ctx.fill();
+
+      // Scroll curves
+      ctx.beginPath();
+      ctx.arc(cx - s * 0.4, cy - s * 0.4, s * 0.3, 0, Math.PI, false);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(cx + s * 0.4, cy + s * 0.4, s * 0.3, Math.PI, 0, false);
+      ctx.stroke();
+
+      // Accent dots at cardinal points
+      for (const [dx, dy] of [[0, -s * 0.7], [0, s * 0.7], [-s * 0.35, 0], [s * 0.35, 0]]) {
+        ctx.beginPath();
+        ctx.arc(cx + dx, cy + dy, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+
+  // Radial vignette overlay
+  const vig = ctx.createRadialGradient(x + w / 2, y + h / 2, w * 0.2, x + w / 2, y + h / 2, w * 0.8);
+  vig.addColorStop(0, "rgba(0,0,0,0)");
+  vig.addColorStop(1, "rgba(0,0,0,0.25)");
+  ctx.fillStyle = vig;
+  ctx.fillRect(x, y, w, h);
+
+  return true;
+}
+
+// --- Mode 1: Constellation ---
+export function drawNobleProcedural(ctx, x, y, w, h, noble) {
+  if (cardArtMode !== 1) return false;
+
+  const cols = nobleReqColors(noble);
+  const colors = cols.map(c => hexToRgb(GEM_HEX[c] || "#888888"));
+  const rng = mulberry32(nobleSeed(noble) * 571 + 97);
+
+  // Deep night sky gradient tinted by primary gem color
+  const sky = ctx.createRadialGradient(x + w / 2, y + h / 2, 0, x + w / 2, y + h / 2, w * 0.9);
+  sky.addColorStop(0, rgb(darken(colors[0], 0.25)));
+  sky.addColorStop(0.6, "#0d0d1a");
+  sky.addColorStop(1, "#080810");
+  ctx.fillStyle = sky;
+  ctx.fillRect(x, y, w, h);
+
+  // Scattered background stars
+  for (let i = 0; i < 50; i++) {
+    const sx = x + rng() * w;
+    const sy = y + rng() * h;
+    const sr = 0.3 + rng() * 1.0;
+    const alpha = 0.2 + rng() * 0.5;
+    ctx.beginPath();
+    ctx.arc(sx, sy, sr, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+    ctx.fill();
+  }
+
+  // Constellation nodes
+  const nodeCount = 6 + Math.floor(rng() * 3);
+  const nodes = [];
+  for (let i = 0; i < nodeCount; i++) {
+    nodes.push({
+      x: x + 18 + rng() * (w - 36),
+      y: y + 18 + rng() * (h - 36),
+    });
+  }
+
+  // Constellation lines
+  ctx.strokeStyle = rgb(lighten(colors[0], 0.4), 0.3);
+  ctx.lineWidth = 0.8;
+  for (let i = 0; i < nodes.length - 1; i++) {
+    ctx.beginPath();
+    ctx.moveTo(nodes[i].x, nodes[i].y);
+    ctx.lineTo(nodes[i + 1].x, nodes[i + 1].y);
+    ctx.stroke();
+  }
+  // Extra connections
+  if (nodes.length > 3) {
+    ctx.beginPath();
+    ctx.moveTo(nodes[0].x, nodes[0].y);
+    ctx.lineTo(nodes[2].x, nodes[2].y);
+    ctx.stroke();
+  }
+  if (nodes.length > 5) {
+    ctx.beginPath();
+    ctx.moveTo(nodes[1].x, nodes[1].y);
+    ctx.lineTo(nodes[nodes.length - 1].x, nodes[nodes.length - 1].y);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(nodes[3].x, nodes[3].y);
+    ctx.lineTo(nodes[0].x, nodes[0].y);
+    ctx.stroke();
+  }
+
+  // Draw nodes as bright stars with colored glow
+  for (let i = 0; i < nodes.length; i++) {
+    const n = nodes[i];
+    const ci = i % colors.length;
+    // Glow
+    const sg = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, 10);
+    sg.addColorStop(0, rgb(lighten(colors[ci], 0.5), 0.55));
+    sg.addColorStop(0.4, rgb(colors[ci], 0.2));
+    sg.addColorStop(1, rgb(colors[ci], 0));
+    ctx.fillStyle = sg;
+    ctx.fillRect(n.x - 10, n.y - 10, 20, 20);
+    // Star dot
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, 2, 0, Math.PI * 2);
+    ctx.fillStyle = rgb(lighten(colors[ci], 0.8));
+    ctx.fill();
+  }
+
+  // Nebula washes per gem color
+  for (let i = 0; i < colors.length; i++) {
+    const nx = x + 20 + rng() * (w - 40);
+    const ny = y + 20 + rng() * (h - 40);
+    const nr = 25 + rng() * 35;
+    const ng = ctx.createRadialGradient(nx, ny, 0, nx, ny, nr);
+    ng.addColorStop(0, rgb(colors[i], 0.1));
+    ng.addColorStop(0.5, rgb(colors[i], 0.04));
+    ng.addColorStop(1, rgb(colors[i], 0));
+    ctx.fillStyle = ng;
+    ctx.fillRect(nx - nr, ny - nr, nr * 2, nr * 2);
+  }
+
+  return true;
+}
+
+// --- Mode 2: Royal Portrait (25×25 pixel art) ---
+export function drawNoblePixel(ctx, x, y, w, h, noble) {
+  if (cardArtMode !== 2) return false;
+
+  const PX = 25;
+  const cols = nobleReqColors(noble);
+  const c1 = GEM_HEX[cols[0]] || "#888888";
+  const c2 = GEM_HEX[cols[1] || cols[0]] || "#888888";
+  const d1 = (GEM_PALETTE[cols[0]] || GEM_PALETTE.white).dark;
+  const d2 = (GEM_PALETTE[cols[1] || cols[0]] || GEM_PALETTE.white).dark;
+  const rng = mulberry32(nobleSeed(noble) * 311);
+
+  // Create offscreen canvas at native pixel resolution
+  const oc = document.createElement("canvas");
+  oc.width = PX;
+  oc.height = PX;
+  const pc = oc.getContext("2d");
+
+  function px(px_x, px_y, color) {
+    pc.fillStyle = color;
+    pc.fillRect(px_x, px_y, 1, 1);
+  }
+  function pxRect(px_x, px_y, pw, ph, color) {
+    pc.fillStyle = color;
+    pc.fillRect(px_x, px_y, pw, ph);
+  }
+
+  const GOLD = "#d4a017";
+  const GOLD_DARK = "#8a6a0f";
+
+  // Background — split field
+  pxRect(0, 0, PX, PX, d1);
+  pxRect(0, 0, Math.floor(PX / 2), PX, d2);
+
+  // Crown (top center)
+  const crownY = 3;
+  const crownX = 8;
+  pxRect(crownX, crownY, 9, 3, GOLD);
+  // Crown points
+  px(crownX + 1, crownY - 1, GOLD);
+  px(crownX + 4, crownY - 2, GOLD);
+  px(crownX + 4, crownY - 1, GOLD);
+  px(crownX + 7, crownY - 1, GOLD);
+  // Jewels on crown
+  px(crownX + 1, crownY, c1);
+  px(crownX + 4, crownY, c2);
+  px(crownX + 7, crownY, cols[2] ? GEM_HEX[cols[2]] : c1);
+  // Crown band highlight
+  pxRect(crownX, crownY + 2, 9, 1, GOLD_DARK);
+
+  // Face
+  const faceX = 9, faceY = 7;
+  const skin = "#e8c8a0";
+  const skinDark = "#c8a078";
+  pxRect(faceX, faceY, 7, 7, skin);
+  // Hair
+  const hairCol = rng() > 0.5 ? "#5a3a1a" : "#2a2a2a";
+  pxRect(faceX, faceY, 7, 2, hairCol);
+  px(faceX, faceY + 2, hairCol);
+  px(faceX + 6, faceY + 2, hairCol);
+  // Eyes
+  px(faceX + 2, faceY + 3, "#222");
+  px(faceX + 4, faceY + 3, "#222");
+  // Mouth
+  px(faceX + 2, faceY + 5, skinDark);
+  px(faceX + 3, faceY + 5, skinDark);
+  px(faceX + 4, faceY + 5, skinDark);
+
+  // Collar / robe
+  pxRect(8, 14, 9, 3, c1);
+  pxRect(7, 16, 11, 2, c1);
+  // Collar trim
+  pxRect(10, 14, 5, 1, GOLD);
+
+  // Border frame
+  pxRect(0, 0, PX, 1, "#111");
+  pxRect(0, PX - 1, PX, 1, "#111");
+  pxRect(0, 0, 1, PX, "#111");
+  pxRect(PX - 1, 0, 1, PX, "#111");
+
+  // Stamp onto target context with crisp upscaling
+  const prevSmoothing = ctx.imageSmoothingEnabled;
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(oc, x, y, w, h);
+  ctx.imageSmoothingEnabled = prevSmoothing;
+
+  return true;
+}

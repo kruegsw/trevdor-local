@@ -1,6 +1,6 @@
 import { computeLayout } from "./layout.js";
 import { clampCamera } from "./camera.js";
-import { drawCardSprite, drawCardProcedural, loadSpriteSheet, setCardArtMode, getCardArtMode, clearProceduralCache } from "./cardart.js";
+import { drawCardSprite, drawCardProcedural, loadSpriteSheet, setCardArtMode, getCardArtMode, clearProceduralCache, drawNobleDamask, drawNobleProcedural, drawNoblePixel } from "./cardart.js";
 import { rulesCheck } from "./rules.js";
 
 
@@ -1500,7 +1500,7 @@ function drawDeckCard(ctx, { x, y, w, h }, card = {}) {
 
 function drawNobleCached(ctx, { x, y, w, h }, noble = {}) {
   const req = noble.req ?? {};
-  const key = `${noble.points ?? 3}|${req.white ?? 0},${req.blue ?? 0},${req.green ?? 0},${req.red ?? 0},${req.black ?? 0}|${w}|${h}|${_dpr}|${_pipScale}`;
+  const key = `${noble.points ?? 3}|${req.white ?? 0},${req.blue ?? 0},${req.green ?? 0},${req.red ?? 0},${req.black ?? 0}|${w}|${h}|${_dpr}|${_pipScale}|${getCardArtMode()}|${noble.id ?? ""}`;
   let oc = _nobleCache.get(key);
   if (!oc) {
     oc = document.createElement("canvas");
@@ -1530,17 +1530,29 @@ function drawNoble(ctx, { x, y, w, h }, noble = {}) {
   // Points font: in granny mode, match market card size (h * 0.20 * _pipScale)
   const pointsFontSize = Math.max(12, Math.floor(h * 0.20 * _pipScale));
 
-  // --- base card (light grey)
+  // --- base
   roundedRectPath(ctx, x, y, w, h);
-  ctx.fillStyle = "#E9EEF3";
+  ctx.fillStyle = "#222";
   ctx.fill();
 
-  // --- left solid white strip (25% default)
   ctx.save();
   roundedRectPath(ctx, x, y, w, h);
   ctx.clip();
-  ctx.fillStyle = "#FFFFFF";
-  ctx.fillRect(x, y, Math.floor(w * 0.25), h);
+
+  const artMode = getCardArtMode();
+  const hasArt = (artMode === 2)
+    ? drawNoblePixel(ctx, x, y, w, h, noble)
+    : (artMode === 1)
+      ? drawNobleProcedural(ctx, x, y, w, h, noble)
+      : drawNobleDamask(ctx, x, y, w, h, noble);
+
+  if (!hasArt) {
+    ctx.fillStyle = "#E9EEF3";
+    ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillRect(x, y, Math.floor(w * 0.25), h);
+  }
+
   ctx.restore();
 
   // --- outer black border
@@ -1551,11 +1563,13 @@ function drawNoble(ctx, { x, y, w, h }, noble = {}) {
 
   // --- points (top-left)
   if (points > 0) {
-    ctx.fillStyle = "rgba(0,0,0,0.9)";
+    ctx.fillStyle = hasArt ? "#fff" : "rgba(0,0,0,0.9)";
+    if (hasArt) { ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = 3; }
     ctx.font = `700 ${pointsFontSize}px 'Plus Jakarta Sans', system-ui, sans-serif`;
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
     ctx.fillText(String(points), x + pad, y + pad * 0.8);
+    ctx.shadowBlur = 0;
   }
 
   // --- requirements
