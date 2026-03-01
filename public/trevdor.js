@@ -436,26 +436,29 @@ function updateGameLobby() {
                      :                                   "Join";
     const btnStyle = r.gameOver ? ' style="background:#c0c0c0;color:#111"' : '';
     const showCloseBtn = myPreviousRoomIsHost && r.roomId === myPreviousRoomId;
-    // Seat dots with WS status colors
-    let seatDots = '';
+    // Player rows (dot + name per seat)
+    let playerRows = '';
     for (let i = 0; i < 4; i++) {
       const p = players.find(p => p.seat === i);
       if (p) {
         const fill = !p.wsOpen ? '#e53935'
           : (p.lastActivity && (Date.now() - p.lastActivity) > 60000) ? '#ffd700'
           : '#4caf50';
-        seatDots += `<span class="tileSeatDot" style="background:${fill}"></span>`;
+        playerRows += `<div class="tilePlayerRow">` +
+          `<span class="playerDot" style="--dot-fill:${fill}"></span>` +
+          `<span>${escapeHtml(p.name)}</span>` +
+          `</div>`;
       } else {
-        seatDots += `<span class="tileSeatDot empty"></span>`;
+        playerRows += `<div class="tilePlayerRow empty">` +
+          `<span class="tileSeatDot empty"></span>` +
+          `<span>open</span>` +
+          `</div>`;
       }
     }
-    // Player names
-    const namesList = players.map(p => escapeHtml(p.name)).join(', ');
     // Spectators
     const spectators = r.spectators ?? [];
     const specHtml = spectators.length === 0 ? '' :
-      `<div class="tileSpectators">` +
-        `<span class="tileSpecLabel">Spectators:</span>` +
+      `<div class="tileSpecRow">` +
         spectators.map(s => {
           const fill = s.wsOpen ? '#4caf50' : '#e53935';
           return `<span class="tileSpecEntry">` +
@@ -470,10 +473,7 @@ function updateGameLobby() {
         `<span class="tileName">${escapeHtml(r.name)}</span>` +
         `<span class="tileStatus ${statusClass}">${statusText}</span>` +
       `</div>` +
-      `<div class="tileSeatRow">` +
-        `<span class="tileSeatDots">${seatDots}</span>` +
-        `<span class="tilePlayerNames">${namesList}</span>` +
-      `</div>` +
+      `<div class="tilePlayers">${playerRows}</div>` +
       specHtml +
       `<div class="tileBottomRow">` +
         `<button class="joinRoomBtn"${btnStyle} data-room-id="${escapeHtml(r.roomId)}">${watchLabel}</button>` +

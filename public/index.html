@@ -578,15 +578,27 @@
             color: #ffd700;
         }
 
-        .tileSeatRow {
+        .tilePlayers {
             display: flex;
-            align-items: center;
-            gap: 10px;
+            flex-direction: column;
+            gap: 3px;
         }
 
-        .tileSeatDots {
+        .tilePlayerRow {
             display: flex;
-            gap: 4px;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+        }
+
+        .tilePlayerRow.empty {
+            opacity: 0.3;
+        }
+
+        .tilePlayerRow .playerDot {
+            width: 8px;
+            height: 8px;
+            min-width: 8px;
         }
 
         .tileSeatDot {
@@ -595,16 +607,34 @@
             border-radius: 50%;
         }
         .tileSeatDot.empty {
-            border: 1px solid rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.25);
         }
 
-        .tilePlayerNames {
-            font-size: 12px;
-            opacity: 0.5;
-            min-width: 0;
-            overflow: hidden;
-            text-overflow: ellipsis;
+        .tileSpecRow {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            opacity: 0.55;
+            overflow-x: auto;
             white-space: nowrap;
+            scrollbar-width: none;
+        }
+        .tileSpecRow::-webkit-scrollbar {
+            display: none;
+        }
+
+        .tileSpecEntry {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+
+        .tileSpecEntry .playerDot {
+            width: 6px;
+            height: 6px;
+            min-width: 6px;
         }
 
         .tileBottomRow {
@@ -612,32 +642,6 @@
             align-items: center;
             gap: 8px;
             margin-top: 2px;
-        }
-
-        .tileSpectators {
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 2px 8px;
-            font-size: 11px;
-            opacity: 0.55;
-        }
-
-        .tileSpecLabel {
-            opacity: 0.7;
-            margin-right: 2px;
-        }
-
-        .tileSpecEntry {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .tileSpecEntry .playerDot {
-            width: 6px;
-            height: 6px;
-            min-width: 6px;
         }
 
         .joinRoomBtn {
