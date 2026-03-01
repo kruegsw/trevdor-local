@@ -1125,7 +1125,18 @@
         }
 
         /* Gem fills: radial gradients matching canvas GEM_PALETTE */
-        .gem-white  { background: radial-gradient(ellipse at 35% 35%, #b8c8d8, #9aa8b4 50%, #707880) !important; }
+        .gem-white  { background:
+            conic-gradient(
+                rgba(0,0,0,0.15) 0deg 45deg,
+                transparent 45deg 90deg,
+                rgba(0,0,0,0.15) 90deg 135deg,
+                transparent 135deg 180deg,
+                rgba(0,0,0,0.15) 180deg 225deg,
+                transparent 225deg 270deg,
+                rgba(0,0,0,0.15) 270deg 315deg,
+                transparent 315deg 360deg
+            ),
+            radial-gradient(ellipse at 35% 35%, #d4e4f4, #e8e8e8 50%, #b0b0b0) !important; }
         .gem-blue   { background: radial-gradient(ellipse at 35% 35%, #88bbff, #2255cc 60%, #1a3a88) !important; }
         .gem-green  { background: radial-gradient(ellipse at 35% 35%, #66dd99, #1a8a4a 60%, #0d5a2d) !important; }
         .gem-red    { background: radial-gradient(ellipse at 35% 35%, #ff8899, #cc2233 60%, #881122) !important; }
