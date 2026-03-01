@@ -467,11 +467,29 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, tier,
 
       if (dimMarket) ctx.globalAlpha = 1.0;
 
+      // Hover glow (bonus-colored)
+      if (!dimMarket && isHovered(uiID, uiState) && !cardPending && stateObject) {
+        const hcRgb = hexToRgb(CARD_BACKGROUND_COLORS[stateObject.bonus] || "#888");
+        ctx.save();
+        ctx.shadowColor = rgbToCss(hcRgb, 0.8);
+        ctx.shadowBlur = 14;
+        roundedRectPath(ctx, x, y, w, h);
+        ctx.strokeStyle = rgbToCss(hcRgb, 0.5);
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // Pending selection glow (gold with bloom)
       if (cardPending) {
+        ctx.save();
+        ctx.shadowColor = "rgba(255,215,0,0.7)";
+        ctx.shadowBlur = 16;
         roundedRectPath(ctx, x - 2, y - 2, w + 4, h + 4, 16);
         ctx.strokeStyle = "#ffd700";
         ctx.lineWidth = 3;
         ctx.stroke();
+        ctx.restore();
       }
 
       return true;
@@ -716,11 +734,29 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, tier,
 
       if (dimReserved) ctx.globalAlpha = 1.0;
 
+      // Hover glow (bonus-colored)
+      if (isMyReserved && !dimReserved && isHovered(uiID, uiState) && !resPending && stateObject) {
+        const hcRgb = hexToRgb(CARD_BACKGROUND_COLORS[stateObject.bonus] || "#888");
+        ctx.save();
+        ctx.shadowColor = rgbToCss(hcRgb, 0.8);
+        ctx.shadowBlur = 14;
+        roundedRectPath(ctx, x, y, w, h);
+        ctx.strokeStyle = rgbToCss(hcRgb, 0.5);
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // Pending selection glow (gold with bloom)
       if (resPending) {
+        ctx.save();
+        ctx.shadowColor = "rgba(255,215,0,0.7)";
+        ctx.shadowBlur = 16;
         roundedRectPath(ctx, x - 2, y - 2, w + 4, h + 4, 16);
         ctx.strokeStyle = "#ffd700";
         ctx.lineWidth = 3;
         ctx.stroke();
+        ctx.restore();
       }
       return true;
     }
@@ -1146,6 +1182,36 @@ function drawDevelopmentCard(ctx, { x, y, w, h }, card = {}) {
     ctx.fillRect(x, y, w, headerH);
   }
 
+  // Inner edge vignette (drawn inside the existing clip)
+  {
+    const vigInset = Math.min(w, h) * 0.08;
+    let vig;
+    // Top
+    vig = ctx.createLinearGradient(x, y, x, y + vigInset);
+    vig.addColorStop(0, "rgba(0,0,0,0.12)");
+    vig.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = vig;
+    ctx.fillRect(x, y, w, vigInset);
+    // Bottom
+    vig = ctx.createLinearGradient(x, y + h, x, y + h - vigInset);
+    vig.addColorStop(0, "rgba(0,0,0,0.15)");
+    vig.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = vig;
+    ctx.fillRect(x, y + h - vigInset, w, vigInset);
+    // Left
+    vig = ctx.createLinearGradient(x, y, x + vigInset, y);
+    vig.addColorStop(0, "rgba(0,0,0,0.08)");
+    vig.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = vig;
+    ctx.fillRect(x, y, vigInset, h);
+    // Right
+    vig = ctx.createLinearGradient(x + w, y, x + w - vigInset, y);
+    vig.addColorStop(0, "rgba(0,0,0,0.08)");
+    vig.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = vig;
+    ctx.fillRect(x + w - vigInset, y, vigInset, h);
+  }
+
   ctx.restore();
 
   // --- outer black border only
@@ -1153,6 +1219,24 @@ function drawDevelopmentCard(ctx, { x, y, w, h }, card = {}) {
   ctx.strokeStyle = "rgba(0,0,0,1)";
   ctx.lineWidth = 1;
   ctx.stroke();
+
+  // --- tier indicator dots (bottom-right)
+  if (id) {
+    const tierMatch = id.match(/^t(\d)/);
+    if (tierMatch) {
+      const tier = parseInt(tierMatch[1], 10);
+      const dotR = Math.max(2, Math.floor(Math.min(w, h) * 0.02));
+      const dotGap = dotR * 2.5;
+      const dotY = y + h - pad - dotR;
+      const dotStartX = x + w - pad - dotR - (tier - 1) * dotGap;
+      ctx.fillStyle = hasArt ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.3)";
+      for (let i = 0; i < tier; i++) {
+        ctx.beginPath();
+        ctx.arc(dotStartX + i * dotGap, dotY, dotR, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
 
   // --- points (top-left)
   if (points > 0) {
@@ -1172,6 +1256,17 @@ function drawDevelopmentCard(ctx, { x, y, w, h }, card = {}) {
       : Math.max(6, Math.floor(Math.min(w, h) * 0.12));
     const cx = x + w - pad - r;
     const cy = y + pad + r;
+    // Glow behind gem (clipped to card)
+    ctx.save();
+    roundedRectPath(ctx, x, y, w, h);
+    ctx.clip();
+    const glowRgb = hexToRgb(GEM_COLORS[bonus] || "#ccc");
+    const glowGrad = ctx.createRadialGradient(cx, cy, r * 0.3, cx, cy, r * 2.5);
+    glowGrad.addColorStop(0, rgbToCss(glowRgb, 0.35));
+    glowGrad.addColorStop(1, rgbToCss(glowRgb, 0));
+    ctx.fillStyle = glowGrad;
+    ctx.fillRect(cx - r * 2.5, cy - r * 2.5, r * 5, r * 5);
+    ctx.restore();
     drawGemCached(ctx, cx, cy, r, bonus, "");
   }
 
