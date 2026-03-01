@@ -56,6 +56,7 @@ let soundEnabled   = localStorage.getItem("trevdor.sound")   !== "false";
 let cardArtPref    = localStorage.getItem("trevdor.cardArt") !== "false";
 let cursorsPref    = localStorage.getItem("trevdor.cursors") !== "false";
 let chatPref       = localStorage.getItem("trevdor.chat")    !== "false";
+let resourcesPref  = localStorage.getItem("trevdor.resources") !== "false";
 sfx.enabled = soundEnabled;
 setCardArtEnabled(cardArtPref);
 
@@ -89,6 +90,7 @@ const optSound         = document.getElementById("optSound");
 const optCardArt       = document.getElementById("optCardArt");
 const optCursors       = document.getElementById("optCursors");
 const optChat          = document.getElementById("optChat");
+const optResources     = document.getElementById("optResources");
 const resourceBanner   = document.getElementById("resourceBanner");
 const resourceContent  = document.getElementById("resourceContent");
 const chatPanel        = document.getElementById("chatPanel");
@@ -147,7 +149,7 @@ function setScene(scene) {
     lobbyScene.classList.remove("withStatusBar");
     statusBar.classList.remove("hidden");
     chatPanel.classList.toggle("hidden", !chatPref);
-    resourceBanner.classList.remove("hidden");
+    resourceBanner.classList.toggle("hidden", !resourcesPref);
   }
 }
 
@@ -656,27 +658,25 @@ function updateStatusBar() {
 
 const SEAT_ACCENT_COLORS = ["#2D6CDF", "#D94A4A", "#2E9B5F", "#D6B04C"];
 
-const BANNER_TOKEN_COLORS = {
-  white:  { rim: "#bbb",    fill: "#f5f5f5" },
-  blue:   { rim: "#0000FF", fill: "#99b3ff" },
-  green:  { rim: "#2E9B5F", fill: "#8fd4ab" },
-  red:    { rim: "#D94A4A", fill: "#f0a8a8" },
-  black:  { rim: "#2B2B2B", fill: "#888"    },
-  yellow: { rim: "#D6B04C", fill: "#f0e0a0" },
+// Gem colors match GEM_COLORS in render.js; used for rim color
+const BANNER_GEM_COLORS = {
+  white:  { rim: "#b0b0b0", fill: "#e8e8e8" },
+  blue:   { rim: "#0000FF", fill: "#6688dd" },
+  green:  { rim: "#2E9B5F", fill: "#66bb88" },
+  red:    { rim: "#D94A4A", fill: "#e88888" },
+  black:  { rim: "#2B2B2B", fill: "#666"    },
+  yellow: { rim: "#D6B04C", fill: "#e8cc77" },
 };
 
 function updateResourceBanner() {
   const myIdx = uiState.myPlayerIndex;
-  if (typeof myIdx !== "number" || myIdx < 0 || !state?.players?.[myIdx]) {
+  if (!resourcesPref || typeof myIdx !== "number" || myIdx < 0 || !state?.players?.[myIdx]) {
     resourceBanner.classList.add("hidden");
     return;
   }
-  // setScene("game") removes .hidden, but if the guard above re-added it
-  // on a previous call (e.g. before state arrived), restore visibility.
   resourceBanner.classList.remove("hidden");
   const accent = SEAT_ACCENT_COLORS[myIdx] ?? "#888";
   resourceBanner.style.setProperty("--banner-accent", accent);
-  // Soft accent tint fill (like player panels on the board)
   resourceBanner.style.background = `linear-gradient(${accent}18, ${accent}10), rgba(243,243,243,0.88)`;
   const player = state.players[myIdx];
   const playerName = player.name ?? `Player ${myIdx + 1}`;
@@ -691,17 +691,17 @@ function updateResourceBanner() {
     const g = gemCounts[color] || 0;
     const t = tokens[color] || 0;
     if (g === 0 && t === 0) continue;
-    const bc = BANNER_TOKEN_COLORS[color] ?? { rim: "#888", fill: "#ccc" };
+    const gc = BANNER_GEM_COLORS[color] ?? { rim: "#888", fill: "#ccc" };
     html += `<span class="resBannerSlot">`;
-    for (let i = 0; i < g; i++) html += `<span class="resBannerGem" style="background:${bc.fill};border:2px solid ${bc.rim}"></span>`;
-    for (let i = 0; i < t; i++) html += `<span class="resBannerToken" style="background:${bc.fill};border:3px solid ${bc.rim}"></span>`;
+    for (let i = 0; i < g; i++) html += `<span class="resBannerGem" style="background:${gc.fill};border:2px solid ${gc.rim}"></span>`;
+    for (let i = 0; i < t; i++) html += `<span class="resBannerToken" style="background:${gc.rim}"></span>`;
     html += `</span>`;
   }
   const yt = tokens.yellow || 0;
   if (yt > 0) {
-    const bc = BANNER_TOKEN_COLORS.yellow;
+    const gc = BANNER_GEM_COLORS.yellow;
     html += `<span class="resBannerSlot">`;
-    for (let i = 0; i < yt; i++) html += `<span class="resBannerToken" style="background:${bc.fill};border:3px solid ${bc.rim}"></span>`;
+    for (let i = 0; i < yt; i++) html += `<span class="resBannerToken" style="background:${gc.rim}"></span>`;
     html += `</span>`;
   }
   resourceContent.innerHTML = html;
@@ -1222,6 +1222,7 @@ optSound.checked   = soundEnabled;
 optCardArt.checked = cardArtPref;
 optCursors.checked = cursorsPref;
 optChat.checked    = chatPref;
+optResources.checked = resourcesPref;
 
 optionsBtn.addEventListener("click", () => {
   optionsDropdown.classList.toggle("hidden");
@@ -1262,6 +1263,12 @@ optChat.addEventListener("change", () => {
     chatPanel.classList.toggle("hidden", !chatPref);
   }
   if (!chatPref && chatOpen) closeChat();
+});
+
+optResources.addEventListener("change", () => {
+  resourcesPref = optResources.checked;
+  localStorage.setItem("trevdor.resources", resourcesPref);
+  updateResourceBanner();
 });
 
 /* ---------------------------------------------------------
