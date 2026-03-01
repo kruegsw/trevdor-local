@@ -694,14 +694,14 @@ function updateResourceBanner() {
     const gc = BANNER_GEM_COLORS[color] ?? { rim: "#888", fill: "#ccc" };
     html += `<span class="resBannerSlot">`;
     for (let i = 0; i < g; i++) html += `<span class="resBannerGem" style="background:${gc.fill};border:2px solid ${gc.rim}"></span>`;
-    for (let i = 0; i < t; i++) html += `<span class="resBannerToken" style="background:${gc.rim}"></span>`;
+    for (let i = 0; i < t; i++) html += `<span class="resBannerToken" style="background:${gc.rim}"><span class="resBannerTokenGem" style="background:${gc.fill}"></span></span>`;
     html += `</span>`;
   }
   const yt = tokens.yellow || 0;
   if (yt > 0) {
     const gc = BANNER_GEM_COLORS.yellow;
     html += `<span class="resBannerSlot">`;
-    for (let i = 0; i < yt; i++) html += `<span class="resBannerToken" style="background:${gc.rim}"></span>`;
+    for (let i = 0; i < yt; i++) html += `<span class="resBannerToken" style="background:${gc.rim}"><span class="resBannerTokenGem" style="background:${gc.fill}"></span></span>`;
     html += `</span>`;
   }
   resourceContent.innerHTML = html;
