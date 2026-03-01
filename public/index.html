@@ -974,6 +974,14 @@
 
         .chatBadge.hidden { display: none; }
 
+        .chatToastStack {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+
         .chatToast {
             pointer-events: auto;
             max-width: 260px;
@@ -983,12 +991,9 @@
             font-size: 13px;
             padding: 8px 12px;
             border-radius: 10px;
-            margin-bottom: 8px;
             cursor: pointer;
             word-break: break-word;
         }
-
-        .chatToast.hidden { display: none; }
 
         .chatBox {
             pointer-events: auto;
@@ -1448,7 +1453,7 @@
     </div>
 
     <div id="chatPanel" class="hidden">
-      <div id="chatToast" class="chatToast hidden"></div>
+      <div id="chatToastStack" class="chatToastStack"></div>
       <div id="chatBox" class="chatBox hidden">
         <div id="chatMessages" class="chatMessages"></div>
         <div class="chatInputRow">

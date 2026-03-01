@@ -75,7 +75,7 @@ if (lightModePref) document.body.classList.add("lightMode");
 let chatMessages = [];
 let chatOpen = false;
 let chatUnreadCount = 0;
-let chatToastTimer = null;
+const TOAST_DURATION = 4000;
 
 const uiState = createUIState();
 uiState.showCursors = cursorsPref;
@@ -113,7 +113,7 @@ const resourceContent  = document.getElementById("resourceContent");
 const chatPanel        = document.getElementById("chatPanel");
 const chatToggleBtn    = document.getElementById("chatToggleBtn");
 const chatBadge        = document.getElementById("chatBadge");
-const chatToast        = document.getElementById("chatToast");
+const chatToastStack   = document.getElementById("chatToastStack");
 const chatBox          = document.getElementById("chatBox");
 const chatMessagesEl   = document.getElementById("chatMessages");
 const chatInput        = document.getElementById("chatInput");
@@ -213,10 +213,9 @@ function returnToGameLobby() {
   chatMessages = [];
   chatUnreadCount = 0;
   chatOpen = false;
-  if (chatToastTimer) { clearTimeout(chatToastTimer); chatToastTimer = null; }
   chatMessagesEl.innerHTML = "";
   chatBox.classList.add("hidden");
-  chatToast.classList.add("hidden");
+  chatToastStack.innerHTML = "";
   chatBadge.classList.add("hidden");
 
   setScene("gameLobby");
@@ -317,20 +316,18 @@ function showChatToast(msg) {
   const color = chatSenderColor(msg.seat);
   const name = msg.name || "Unknown";
   const truncated = msg.text.length > 80 ? msg.text.slice(0, 80) + "…" : msg.text;
-  chatToast.innerHTML = `<span class="chatSender" style="color:${color}">${escapeHtml(name)}</span> ${escapeHtml(truncated)}`;
-  chatToast.classList.remove("hidden");
-  if (chatToastTimer) clearTimeout(chatToastTimer);
-  chatToastTimer = setTimeout(() => {
-    chatToast.classList.add("hidden");
-    chatToastTimer = null;
-  }, 4000);
+  const el = document.createElement("div");
+  el.className = "chatToast";
+  el.innerHTML = `<span class="chatSender" style="color:${color}">${escapeHtml(name)}</span> ${escapeHtml(truncated)}`;
+  el.addEventListener("click", () => openChat());
+  chatToastStack.appendChild(el);
+  setTimeout(() => el.remove(), TOAST_DURATION);
 }
 
 function openChat() {
   chatOpen = true;
   chatBox.classList.remove("hidden");
-  chatToast.classList.add("hidden");
-  if (chatToastTimer) { clearTimeout(chatToastTimer); chatToastTimer = null; }
+  chatToastStack.innerHTML = "";
   chatUnreadCount = 0;
   updateChatBadge();
   renderChatMessages();
@@ -1441,7 +1438,7 @@ chatInput.addEventListener("keydown", (e) => {
   }
 });
 
-chatToast.addEventListener("click", () => openChat());
+chatToastStack.addEventListener("click", () => openChat());
 
 // Close chat when clicking outside chatPanel
 document.addEventListener("pointerdown", (e) => {
