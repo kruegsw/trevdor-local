@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 	<meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" /> <!-- Canvas needs this for correct mobile scaling -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover" /> <!-- Canvas needs this for correct mobile scaling -->
 	<title>Trevdor</title>
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -58,7 +58,7 @@
         }
 
         #lobbyScene.withStatusBar {
-            padding-top: 30px;
+            padding-top: calc(30px + env(safe-area-inset-top, 0px));
         }
 
         .lobbyContent h1 {
@@ -131,7 +131,8 @@
             left: 0;
             right: 0;
             z-index: 10;
-            height: 30px;
+            height: calc(30px + env(safe-area-inset-top, 0px));
+            padding-top: env(safe-area-inset-top, 0px);
             display: flex;
             align-items: center;
             background: var(--bar-bg, rgba(0, 0, 0, 0.55));
@@ -377,6 +378,9 @@
             padding: 6px 0;
             min-width: 140px;
             color: var(--bar-fg, #fff);
+            max-height: calc(100vh - 30px - env(safe-area-inset-top, 0px) - 8px);
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
         }
 
         .optionToggle {
@@ -1059,6 +1063,7 @@
             display: none;
             flex-direction: column;
             padding: 4px 10px;
+            padding-bottom: calc(4px + env(safe-area-inset-bottom, 0px));
             background: transparent;
             color: var(--bar-fg, #fff);
             font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
