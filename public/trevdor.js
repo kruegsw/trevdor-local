@@ -1589,25 +1589,32 @@ function resize() {
     }
 
     const viewW = rect.width;
-    const usableH = rect.height - topH - bottomH;
-
-    // Scale to fit the tighter bounding box in the usable viewport
-    const scaleX = viewW / contentW;
-    const scaleY = usableH / contentH;
     // In simplified view, let the board fill the screen (cap at 2.5 for ultra-wide);
     // in normal view, never zoom beyond native scale (cap at 1).
     const maxScale = uiState.simplifiedView ? 2.5 : 1;
-    const fitScale = Math.min(scaleX, scaleY, maxScale);
+
+    // Two-pass stabilization: --btp changes banner height which changes fitScale.
+    // Re-measure once after applying the new --btp so sizes converge.
+    let fitScale, boardTokenPx;
+    for (let pass = 0; pass < 2; pass++) {
+      const usableH = rect.height - topH - bottomH;
+      const scaleX = viewW / contentW;
+      const scaleY = usableH / contentH;
+      fitScale = Math.min(scaleX, scaleY, maxScale);
+      boardTokenPx = Math.round(45 * fitScale);
+      resourceBanner.style.setProperty("--btp", boardTokenPx + "px");
+
+      const newBottomH = (resourceBanner && !resourceBanner.classList.contains("hidden"))
+        ? (resourceBanner.offsetHeight || 0) : 0;
+      if (Math.abs(newBottomH - bottomH) <= 2) break;
+      bottomH = newBottomH;
+    }
 
     // Center content in the usable area (below status bar, above banner)
+    const usableH = rect.height - topH - bottomH;
     uiState.camera.scale = fitScale;
     uiState.camera.x = minX - (viewW / fitScale - contentW) / 2;
     uiState.camera.y = (minY + contentH / 2) - (topH + usableH / 2) / fitScale;
-
-    // Set CSS variable so banner tokens match the board token size
-    // Board token = 45 world units (15 * SCALE=3)
-    const boardTokenPx = Math.round(45 * fitScale);
-    resourceBanner.style.setProperty("--btp", boardTokenPx + "px");
   }
 
   drawNow(); // synchronous — canvas was just cleared by dimension change
