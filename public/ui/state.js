@@ -59,5 +59,8 @@ export function createUIState() {
 
     // Simplified view: locks camera and disables drag scrolling
     simplifiedView: false,
+
+    // Granny mode: enlarges gem pips on cards for readability
+    grannyMode: false,
   };
 }

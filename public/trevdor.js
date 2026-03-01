@@ -61,6 +61,7 @@ let simplifiedPref = _storedSimplified !== null
   ? _storedSimplified !== "false"
   : window.innerWidth <= 768;   // default ON mobile, OFF desktop
 let lightModePref  = localStorage.getItem("trevdor.lightMode") === "true";
+let grannyModePref = localStorage.getItem("trevdor.grannyMode") === "true";
 sfx.enabled = soundEnabled;
 setCardArtEnabled(cardArtPref);
 if (lightModePref) document.body.classList.add("lightMode");
@@ -75,6 +76,7 @@ const uiState = createUIState();
 uiState.showCursors = cursorsPref;
 uiState.simplifiedView = simplifiedPref;
 uiState.lightMode = lightModePref;
+uiState.grannyMode = grannyModePref;
 
 /* ---------------------------------------------------------
    DOM references
@@ -99,6 +101,7 @@ const optCursors       = document.getElementById("optCursors");
 const optChat          = document.getElementById("optChat");
 const optResources     = document.getElementById("optResources");
 const optLightMode     = document.getElementById("optLightMode");
+const optGrannyMode    = document.getElementById("optGrannyMode");
 const resourceBanner   = document.getElementById("resourceBanner");
 const resourceContent  = document.getElementById("resourceContent");
 const chatPanel        = document.getElementById("chatPanel");
@@ -1238,6 +1241,7 @@ optCursors.checked = cursorsPref;
 optChat.checked    = chatPref;
 optResources.checked = simplifiedPref;
 optLightMode.checked = lightModePref;
+optGrannyMode.checked = grannyModePref;
 
 optionsBtn.addEventListener("click", () => {
   optionsDropdown.classList.toggle("hidden");
@@ -1294,6 +1298,13 @@ optLightMode.addEventListener("change", () => {
   uiState.lightMode = lightModePref;
   localStorage.setItem("trevdor.lightMode", lightModePref);
   document.body.classList.toggle("lightMode", lightModePref);
+  draw();
+});
+
+optGrannyMode.addEventListener("change", () => {
+  grannyModePref = optGrannyMode.checked;
+  uiState.grannyMode = grannyModePref;
+  localStorage.setItem("trevdor.grannyMode", grannyModePref);
   draw();
 });
 

@@ -168,6 +168,9 @@ function drawGemCached(ctx, cx, cy, r, color, label = "") {
   ctx.drawImage(oc, cx - size / 2, cy - size / 2, size, size);
 }
 
+// Pip scale multiplier for "Granny Mode" — set at the start of each draw() call
+let _pipScale = 1;
+
 function render(ctx) {
   let viewport = { width: 0, height: 0, dpr: 1 };
   let layout = null;
@@ -197,6 +200,8 @@ function render(ctx) {
 
     draw(state, uiState) {
       if (!layout) return;
+
+      _pipScale = uiState.grannyMode ? 2 : 1;
 
       // Invalidate affordability cache when state changes
       const myIdx = uiState.myPlayerIndex;
@@ -1094,7 +1099,7 @@ function drawDevelopmentCard(ctx, { x, y, w, h }, card = {}) {
   } = card;
 
   const pad = Math.max(4, Math.floor(Math.min(w, h) * 0.06));
-  const headerH = Math.floor(h * 0.25);
+  const headerH = Math.floor(h * 0.25 * _pipScale);
 
   // base color derived from bonus (or overridden via bg)
   const baseHex = bg || CARD_BACKGROUND_COLORS[bonus] || "#cccccc";
@@ -1117,8 +1122,9 @@ function drawDevelopmentCard(ctx, { x, y, w, h }, card = {}) {
     ctx.fillRect(x, y, w, headerH);
 
     // Semi-transparent footer band for cost pips
+    const footerH = Math.floor(h * 0.18 * _pipScale);
     ctx.fillStyle = "rgba(0,0,0,0.5)";
-    ctx.fillRect(x, y + h - Math.floor(h * 0.18), w, Math.floor(h * 0.18));
+    ctx.fillRect(x, y + h - footerH, w, footerH);
   } else {
     // Flat color fallback
     ctx.fillStyle = CARD_BACKGROUND_COLORS[bonus];
@@ -1148,7 +1154,7 @@ function drawDevelopmentCard(ctx, { x, y, w, h }, card = {}) {
 
   // --- gem (top-right)
   {
-    const r = Math.max(6, Math.floor(Math.min(w, h) * 0.12));
+    const r = Math.max(6, Math.floor(Math.min(w, h) * 0.12 * _pipScale));
     const cx = x + w - pad - r;
     const cy = y + pad + r;
     drawGemCached(ctx, cx, cy, r, bonus, "");
@@ -1279,7 +1285,7 @@ function drawDevelopmentCard(ctx, { x, y, w, h }, card = {}) {
     .filter(([, n]) => n > 0);
 
   if (entries.length) {
-    const pipSize = Math.max(12, Math.floor(Math.min(w, h) * 0.192));
+    const pipSize = Math.max(12, Math.floor(Math.min(w, h) * 0.192 * _pipScale));
     const gap = Math.max(3, Math.floor(pipSize * 0.18));
     const startX = x + pad;
     const yBottom = y + h - pad - pipSize;
@@ -1527,7 +1533,7 @@ function drawNoble(ctx, { x, y, w, h }, noble = {}) {
     .filter(([, n]) => n > 0);
 
   if (entries.length) {
-    const pipSize = Math.max(12, Math.floor(Math.min(w, h) * 0.192));
+    const pipSize = Math.max(12, Math.floor(Math.min(w, h) * 0.192 * _pipScale));
     const gap = Math.max(3, Math.floor(pipSize * 0.18));
 
     let cy =
