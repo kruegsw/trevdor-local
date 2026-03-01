@@ -688,7 +688,7 @@ function buildPlayerRow(player, pIdx) {
   const isActive = state.activePlayerIndex === pIdx;
   const playTri = isActive ? `<span class="resBannerPlay" style="border-left-color:${accent}"></span>` : "";
   const prestige = playerPrestige(pIdx);
-  let row = `<div class="resBannerRow">`;
+  let row = `<div class="resBannerRow" style="background:${accent}22; border-left: 3px solid ${accent}">`;
   row += `<span class="resBannerName" style="color:${accent}">${playTri}${escapeHtml(playerName)}</span>`;
   row += `<span class="resBannerPts">${prestige} pt</span>`;
   for (const color of gemColors) {
