@@ -1288,10 +1288,8 @@ optResources.addEventListener("change", () => {
   uiState.simplifiedView = simplifiedPref;
   localStorage.setItem("trevdor.simplified", simplifiedPref);
   resourceBanner.classList.toggle("simplified", simplifiedPref);
-  if (simplifiedPref) {
-    uiState.cameraUserAdjusted = false;
-    resize();
-  }
+  uiState.cameraUserAdjusted = false;
+  resize();
   updateResourceBanner();
 });
 
@@ -1435,15 +1433,23 @@ function resize() {
     const contentW = maxX - minX;
     const contentH = maxY - minY;
 
+    // When simplified view is active, reserve space for the banner at the bottom
+    let viewW = rect.width;
+    let viewH = rect.height;
+    if (uiState.simplifiedView && resourceBanner && !resourceBanner.classList.contains("hidden")) {
+      const bannerH = resourceBanner.offsetHeight || 0;
+      viewH -= bannerH;
+    }
+
     // Scale to fit the tighter bounding box in the viewport
-    const scaleX = rect.width / contentW;
-    const scaleY = rect.height / contentH;
+    const scaleX = viewW / contentW;
+    const scaleY = viewH / contentH;
     const fitScale = Math.min(scaleX, scaleY, 1);
 
-    // Center the content in the viewport
+    // Center the content in the available viewport (above banner if present)
     uiState.camera.scale = fitScale;
-    uiState.camera.x = minX - (rect.width / fitScale - contentW) / 2;
-    uiState.camera.y = minY - (rect.height / fitScale - contentH) / 2;
+    uiState.camera.x = minX - (viewW / fitScale - contentW) / 2;
+    uiState.camera.y = minY - (viewH / fitScale - contentH) / 2;
   }
 
   drawNow(); // synchronous — canvas was just cleared by dimension change
