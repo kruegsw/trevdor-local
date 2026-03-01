@@ -56,7 +56,7 @@ let soundEnabled   = localStorage.getItem("trevdor.sound")   !== "false";
 let cardArtPref    = localStorage.getItem("trevdor.cardArt") !== "false";
 let cursorsPref    = localStorage.getItem("trevdor.cursors") !== "false";
 let chatPref       = localStorage.getItem("trevdor.chat")    !== "false";
-let simplifiedPref = localStorage.getItem("trevdor.simplified") === "true";
+let simplifiedPref = localStorage.getItem("trevdor.simplified") !== "false";
 sfx.enabled = soundEnabled;
 setCardArtEnabled(cardArtPref);
 
@@ -94,7 +94,6 @@ const optChat          = document.getElementById("optChat");
 const optResources     = document.getElementById("optResources");
 const resourceBanner   = document.getElementById("resourceBanner");
 const resourceContent  = document.getElementById("resourceContent");
-if (simplifiedPref && window.innerWidth <= 768) resourceBanner.classList.add("simplified");
 const chatPanel        = document.getElementById("chatPanel");
 const chatToggleBtn    = document.getElementById("chatToggleBtn");
 const chatBadge        = document.getElementById("chatBadge");
@@ -712,11 +711,13 @@ function updateResourceBanner() {
   }
   resourceBanner.classList.remove("hidden");
   let html = "";
-  if (simplifiedPref) {
+  if (uiState.simplifiedView) {
+    // Mobile simplified: show all players stacked
     for (let i = 0; i < state.players.length; i++) {
       html += buildPlayerRow(state.players[i], i);
     }
   } else {
+    // Desktop or mobile non-simplified: show local player only
     const myIdx = uiState.myPlayerIndex;
     if (typeof myIdx === "number" && myIdx >= 0 && state.players[myIdx]) {
       html = buildPlayerRow(state.players[myIdx], myIdx);
@@ -1287,7 +1288,6 @@ optResources.addEventListener("change", () => {
   simplifiedPref = optResources.checked;
   uiState.simplifiedView = simplifiedPref && window.innerWidth <= 768;
   localStorage.setItem("trevdor.simplified", simplifiedPref);
-  resourceBanner.classList.toggle("simplified", simplifiedPref && window.innerWidth <= 768);
   uiState.cameraUserAdjusted = false;
   resize();
   updateResourceBanner();
@@ -1393,7 +1393,6 @@ function resize() {
   // Re-evaluate simplified view: only active on mobile-width viewports
   const isMobile = window.innerWidth <= 768;
   uiState.simplifiedView = simplifiedPref && isMobile;
-  resourceBanner.classList.toggle("simplified", simplifiedPref && isMobile);
 
   const dpr = window.devicePixelRatio || 1;
   const rect = canvas.getBoundingClientRect();

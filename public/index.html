@@ -852,18 +852,13 @@
             min-width: 0;
         }
 
-        #resourceBanner.simplified:not(.hidden) {
+        #resourceBanner:not(.hidden) {
             display: flex;
-        }
-
-        @media (max-width: 768px) {
-            #resourceBanner:not(.hidden) {
-                display: flex;
-            }
         }
 
         /* Desktop: sizes scale with --btp (board token pixels, set by JS resize) */
         @media (min-width: 769px) {
+            #optSimplifiedLabel { display: none; }
             #resourceContent {
                 flex-direction: row;
                 flex-wrap: wrap;
@@ -1157,7 +1152,7 @@
                     <input type="checkbox" id="optChat" checked>
                     <span>Chat</span>
                 </label>
-                <label class="optionToggle">
+                <label class="optionToggle" id="optSimplifiedLabel">
                     <input type="checkbox" id="optResources">
                     <span>Simplified View</span>
                 </label>
