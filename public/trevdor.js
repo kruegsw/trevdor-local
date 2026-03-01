@@ -679,12 +679,12 @@ function updateResourceBanner() {
   for (const color of colors) {
     const g = gemCounts[color] || 0;
     const t = tokens[color] || 0;
+    if (g === 0 && t === 0) continue;
     const c = CONFIRM_TOKEN_COLORS[color] ?? { bg: "#888", text: "#fff" };
-    const dim = (g === 0 && t === 0) ? " opacity:0.3;" : "";
-    html += `<span class="resBannerSlot" style="${dim}">`;
+    html += `<span class="resBannerSlot">`;
     html += `<span class="resBannerPip" style="background:${c.bg}"></span>`;
-    html += `<span class="resBannerGem" style="background:${c.bg}">${g}</span>`;
-    html += `<span class="resBannerToken" style="background:${c.bg}">${t}</span>`;
+    if (g > 0) html += `<span class="resBannerGem" style="background:${c.bg}">${g}</span>`;
+    if (t > 0) html += `<span class="resBannerToken" style="background:${c.bg}">${t}</span>`;
     html += `</span>`;
   }
   const yt = tokens.yellow || 0;
