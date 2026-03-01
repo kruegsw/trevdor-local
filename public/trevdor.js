@@ -248,7 +248,7 @@ function updateConnStatus(connected) {
   }
   const currentName = localStorage.getItem("trevdor.name") || "";
   el.innerHTML = `Playing as ` +
-    `<input id="nameInput" class="nameInputInline" type="text" placeholder="your name" maxlength="10" value="${escapeHtmlAttr(currentName)}" />` +
+    `<input id="nameInput" class="nameInputInline" type="text" placeholder="your name" maxlength="20" value="${escapeHtmlAttr(currentName)}" />` +
     `<span id="nameInputMeasure" class="nameInputMeasure"></span>`;
   nameInput = document.getElementById("nameInput");
   const measure = document.getElementById("nameInputMeasure");
