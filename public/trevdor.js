@@ -682,17 +682,15 @@ function updateResourceBanner() {
     if (g === 0 && t === 0) continue;
     const c = CONFIRM_TOKEN_COLORS[color] ?? { bg: "#888", text: "#fff" };
     html += `<span class="resBannerSlot">`;
-    html += `<span class="resBannerPip" style="background:${c.bg}"></span>`;
-    if (g > 0) html += `<span class="resBannerGem" style="background:${c.bg}">${g}</span>`;
-    if (t > 0) html += `<span class="resBannerToken" style="background:${c.bg}">${t}</span>`;
+    for (let i = 0; i < g; i++) html += `<span class="resBannerGem" style="background:${c.bg}"></span>`;
+    for (let i = 0; i < t; i++) html += `<span class="resBannerToken" style="background:${c.bg}"></span>`;
     html += `</span>`;
   }
   const yt = tokens.yellow || 0;
   if (yt > 0) {
     const yc = CONFIRM_TOKEN_COLORS.yellow;
     html += `<span class="resBannerSlot">`;
-    html += `<span class="resBannerPip" style="background:${yc.bg}"></span>`;
-    html += `<span class="resBannerToken" style="background:${yc.bg}">${yt}</span>`;
+    for (let i = 0; i < yt; i++) html += `<span class="resBannerToken" style="background:${yc.bg}"></span>`;
     html += `</span>`;
   }
   resourceContent.innerHTML = html;
