@@ -564,6 +564,10 @@ function updateWaitingRoom() {
    Status bar
    --------------------------------------------------------- */
 
+function truncName(name, max = 10) {
+  return name && name.length > max ? name.slice(0, max) + "…" : name;
+}
+
 function playerPrestige(playerIndex, fromState = state) {
   const player = fromState?.players?.[playerIndex];
   if (!player) return null;
@@ -619,7 +623,7 @@ function updateStatusBar() {
     html += `<div class="${classes}">`;
     html += `<span class="playerDot${isActive ? ' isActive' : ''}" style="--dot-fill:${seatFill(slot)}"></span>`;
     if (slot.occupied) {
-      html += `<span class="statusName">${escapeHtml(slot.name ?? `Player ${slot.seat + 1}`)}</span>`;
+      html += `<span>${escapeHtml(truncName(slot.name ?? `Player ${slot.seat + 1}`))}</span>`;
       if (prestige !== null) html += `<span class="statusPoints">${prestige} pt</span>`;
       if (isMe)              html += `<span class="statusYou">(you)</span>`;
     } else {
@@ -635,7 +639,7 @@ function updateStatusBar() {
       const fill = spec.wsOpen ? '#4caf50' : '#e53935';
       return `<span class="statusSpectatorEntry">` +
         `<span class="playerDot" style="--dot-fill:${fill}"></span>` +
-        `${escapeHtml(spec.name)}${isMe ? " (you)" : ""}` +
+        `${escapeHtml(truncName(spec.name))}${isMe ? " (you)" : ""}` +
         `</span>`;
     }).join("");
     html += `<div class="statusSpectators"><span>Spectators:</span>${specItems}</div>`;
@@ -644,7 +648,7 @@ function updateStatusBar() {
   if (effectState?.gameOver && typeof effectState.winner === "number") {
     const winnerName = effectState.players[effectState.winner]?.name ?? `Player ${effectState.winner + 1}`;
     const winnerPts = playerPrestige(effectState.winner, effectState);
-    html += `<div class="statusTurn statusWinner">Winner: ${escapeHtml(winnerName)} (${winnerPts} pt)</div>`;
+    html += `<div class="statusTurn statusWinner">Winner: ${escapeHtml(truncName(winnerName))} (${winnerPts} pt)</div>`;
   } else if (effectState?.finalRound) {
     html += `<div class="statusTurn statusFinalRound">Final Round! · Turn ${turn ?? ""}</div>`;
   } else if (turn !== null) {
