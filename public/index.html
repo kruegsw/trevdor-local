@@ -232,12 +232,15 @@
         }
 
         .statusTurn {
-            flex: 1;
-            text-align: center;
             padding: 0 14px;
+            height: 100%;
+            display: flex;
+            align-items: center;
             font-size: 12px;
             opacity: 0.55;
             white-space: nowrap;
+            flex-shrink: 0;
+            border-right: 1px solid var(--bar-border, rgba(255,255,255,0.12));
         }
 
         .statusWinner {

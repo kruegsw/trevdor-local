@@ -610,7 +610,18 @@ function updateStatusBar() {
     return clients.find(c => c.seat === i) ?? { seat: i, name: null, occupied: false };
   });
 
-  let html = `<div class="statusRoom">${escapeHtml(roomName)}</div>`;
+  let html = `<div class="statusRoom">${escapeHtml(truncName(roomName, 12))}</div>`;
+
+  // Turn indicator — placed between room name and player seats
+  if (effectState?.gameOver && typeof effectState.winner === "number") {
+    const winnerName = effectState.players[effectState.winner]?.name ?? `Player ${effectState.winner + 1}`;
+    const winnerPts = playerPrestige(effectState.winner, effectState);
+    html += `<div class="statusTurn statusWinner">Winner: ${escapeHtml(truncName(winnerName))} (${winnerPts}\u00a0pt)</div>`;
+  } else if (effectState?.finalRound) {
+    html += `<div class="statusTurn statusFinalRound">Final\u00a0Round! · Turn\u00a0${turn ?? ""}</div>`;
+  } else if (turn !== null) {
+    html += `<div class="statusTurn">Turn\u00a0${turn}</div>`;
+  }
 
   for (const slot of slots) {
     if (!slot.occupied) continue;
@@ -647,16 +658,6 @@ function updateStatusBar() {
         `</span>`;
     }).join("");
     html += `<div class="statusSpectators"><span>Spectators:</span>${specItems}</div>`;
-  }
-
-  if (effectState?.gameOver && typeof effectState.winner === "number") {
-    const winnerName = effectState.players[effectState.winner]?.name ?? `Player ${effectState.winner + 1}`;
-    const winnerPts = playerPrestige(effectState.winner, effectState);
-    html += `<div class="statusTurn statusWinner">Winner: ${escapeHtml(truncName(winnerName))} (${winnerPts} pt)</div>`;
-  } else if (effectState?.finalRound) {
-    html += `<div class="statusTurn statusFinalRound">Final Round! · Turn\u00a0${turn ?? ""}</div>`;
-  } else if (turn !== null) {
-    html += `<div class="statusTurn">Turn\u00a0${turn}</div>`;
   }
 
   statusContent.innerHTML = html;
