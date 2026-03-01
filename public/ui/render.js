@@ -1460,7 +1460,7 @@ function drawNoble(ctx, { x, y, w, h }, noble = {}) {
     ctx.fillText(String(points), x + pad, y + pad * 0.8);
   }
 
-  // --- requirements: corner placement (avoiding top-left where points are)
+  // --- requirements
   const order = ["white", "blue", "green", "red", "black"];
   const entries = order
     .map(c => [c, req[c] ?? 0])
@@ -1468,16 +1468,27 @@ function drawNoble(ctx, { x, y, w, h }, noble = {}) {
 
   if (entries.length) {
     const gemR = pipSize / 2;
-    // Corner positions: bottom-left, bottom-right, top-right (never top-left)
-    const corners = [
-      { cx: x + pad + gemR,         cy: y + h - pad - gemR },   // bottom-left
-      { cx: x + w - pad - gemR,     cy: y + h - pad - gemR },   // bottom-right
-      { cx: x + w - pad - gemR,     cy: y + pad + gemR },       // top-right
-    ];
-    for (let i = 0; i < entries.length && i < corners.length; i++) {
-      const [c, n] = entries[i];
-      const pos = corners[i];
-      drawGemCached(ctx, pos.cx, pos.cy, gemR, c, String(n));
+
+    if (_pipScale > 1) {
+      // Granny mode: corner placement (avoiding top-left where points are)
+      const corners = [
+        { cx: x + pad + gemR,         cy: y + h - pad - gemR },   // bottom-left
+        { cx: x + w - pad - gemR,     cy: y + h - pad - gemR },   // bottom-right
+        { cx: x + w - pad - gemR,     cy: y + pad + gemR },       // top-right
+      ];
+      for (let i = 0; i < entries.length && i < corners.length; i++) {
+        const [c, n] = entries[i];
+        const pos = corners[i];
+        drawGemCached(ctx, pos.cx, pos.cy, gemR, c, String(n));
+      }
+    } else {
+      // Normal mode: vertical stack on the left side, below points
+      let cy = y + pad + Math.max(16, Math.floor(h * 0.22)) + gap;
+      for (const [c, n] of entries) {
+        drawGemCached(ctx, x + pad + gemR, cy + gemR, gemR, c, String(n));
+        cy += pipSize + gap;
+        if (cy > y + h - pad - pipSize) break;
+      }
     }
   }
 
