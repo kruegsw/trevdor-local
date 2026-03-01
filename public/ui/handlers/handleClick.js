@@ -50,9 +50,14 @@ export function handleClick({rulesCheck, getState, uiState, hit}) {
 
         // Non-yellow token → takeTokens flow
         if (uiState.mode === "takeTokens") {
-            // Clicking a color already in pending → clear (user is "undoing")
+            // Clicking a color already in pending → try taking 2 of same (bank ≥4),
+            // otherwise clear (user is "undoing")
             if (uiState.pending.tokens[hit.color]) {
-                clearPending();
+                if ( rulesCheck({getState, uiState, pending: uiState.pending, action: "takeToken", color: hit.color}) ) {
+                    addTokenToPending(hit.color);
+                } else {
+                    clearPending();
+                }
                 if (DEBUG) console.log(uiState);
                 return;
             }
