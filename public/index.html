@@ -862,6 +862,96 @@
             }
         }
 
+        /* Desktop: horizontal layout with larger icons */
+        @media (min-width: 769px) {
+            #resourceContent {
+                flex-direction: row;
+                flex-wrap: wrap;
+                gap: 6px 18px;
+                align-items: center;
+            }
+            .resBannerRow {
+                height: auto;
+                gap: 8px;
+            }
+            #resourceBanner {
+                padding: 8px 16px;
+                font-size: 15px;
+            }
+            .resBannerPlay {
+                border-left-width: 10px;
+                border-top-width: 7px;
+                border-bottom-width: 7px;
+            }
+            /* Desktop token: match confirm popup size (42px) */
+            .resBannerToken {
+                width: 42px;
+                height: 42px;
+                margin-left: -16px;
+                border-width: 2px;
+            }
+            .resBannerToken:first-child { margin-left: 0; }
+            .resBannerToken::before {
+                inset: 5px;
+            }
+            /* Desktop token gem: proportional to confirm popup */
+            .resBannerTokenGem {
+                box-shadow: inset 1px -1px 2px rgba(0,0,0,0.3);
+            }
+            .resBannerTokenGem.gem-white {
+                width: 16px; height: 16px;
+            }
+            .resBannerTokenGem.gem-blue {
+                width: 18px; height: 14px;
+            }
+            .resBannerTokenGem.gem-green {
+                width: 18px; height: 12px;
+            }
+            .resBannerTokenGem.gem-red {
+                width: 14px; height: 14px;
+            }
+            .resBannerTokenGem.gem-black {
+                width: 14px; height: 14px;
+            }
+            .resBannerTokenGem.gem-yellow {
+                width: 14px; height: 14px;
+            }
+            /* Desktop standalone gem: ~16px base */
+            .resBannerGem {
+                margin-left: -10px;
+            }
+            .resBannerGem:first-child { margin-left: 0; }
+            .resBannerGem.gem-white {
+                width: 24px; height: 24px;
+            }
+            .resBannerGem.gem-blue {
+                width: 28px; height: 22px;
+            }
+            .resBannerGem.gem-green {
+                width: 28px; height: 18px;
+            }
+            .resBannerGem.gem-red {
+                width: 22px; height: 22px;
+            }
+            .resBannerGem.gem-black {
+                width: 22px; height: 22px;
+            }
+            .resBannerGem.gem-yellow {
+                width: 22px; height: 22px;
+            }
+            .resBannerGem + .resBannerToken { margin-left: -6px; }
+            /* Desktop crown */
+            .resBannerCrown {
+                width: 28px;
+                height: 24px;
+                margin-left: -10px;
+            }
+            .resBannerCrown:first-child { margin-left: 0; }
+            .resBannerPts {
+                font-size: 14px;
+            }
+        }
+
         .resBannerName {
             white-space: nowrap;
             margin-right: 2px;
