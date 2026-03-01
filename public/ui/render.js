@@ -201,7 +201,11 @@ function render(ctx) {
     draw(state, uiState) {
       if (!layout) return;
 
-      _pipScale = uiState.grannyMode ? 2 : 1;
+      const newPipScale = uiState.grannyMode ? 2 : 1;
+      if (newPipScale !== _pipScale) {
+        _pipScale = newPipScale;
+        _nobleCache.clear();
+      }
 
       // Invalidate affordability cache when state changes
       const myIdx = uiState.myPlayerIndex;
@@ -1386,7 +1390,7 @@ function drawDeckCard(ctx, { x, y, w, h }, card = {}) {
 
 function drawNobleCached(ctx, { x, y, w, h }, noble = {}) {
   const req = noble.req ?? {};
-  const key = `${noble.points ?? 3}|${req.white ?? 0},${req.blue ?? 0},${req.green ?? 0},${req.red ?? 0},${req.black ?? 0}|${w}|${h}|${_dpr}`;
+  const key = `${noble.points ?? 3}|${req.white ?? 0},${req.blue ?? 0},${req.green ?? 0},${req.red ?? 0},${req.black ?? 0}|${w}|${h}|${_dpr}|${_pipScale}`;
   let oc = _nobleCache.get(key);
   if (!oc) {
     oc = document.createElement("canvas");
@@ -1408,114 +1412,19 @@ function drawNoble(ctx, { x, y, w, h }, noble = {}) {
   } = noble;
 
   const pad = Math.max(4, Math.floor(Math.min(w, h) * 0.06));
-  const granny = _pipScale > 1;
 
-  // Pip sizing
+  // Pip sizing (scaled by _pipScale for granny mode)
   const pipSize = Math.max(12, Math.floor(Math.min(w, h) * 0.192 * _pipScale));
   const gap = Math.max(3, Math.floor(pipSize * 0.18));
 
-  // Strip width: fixed 25% in normal mode, dynamic in granny mode
-  let stripW;
-  if (granny) {
-    const nEntries = Object.values(req).filter(n => n > 0).length;
-    const pointsH = Math.max(16, Math.floor(h * 0.20)) + gap;
-    const availH = h - 2 * pad - pointsH;
-    const maxPerCol = Math.max(1, Math.floor((availH + gap) / (pipSize + gap)));
-    const cols = Math.ceil(nEntries / maxPerCol);
-    stripW = Math.floor(Math.max(w * 0.25, cols * pipSize + (cols - 1) * gap + 2 * pad));
-  } else {
-    stripW = Math.floor(w * 0.25);
-  }
-
-  // --- chicken with crown helper (normal mode only)
-  const drawChickenWithCrown = (ctx, area) => {
-    const { x, y, w, h } = area;
-    const p = Math.min(w, h) * 0.08;
-    const ax = x + p, ay = y + p, aw = w - 2 * p, ah = h - 2 * p;
-    const cx = ax + aw * 0.52;
-    const cy = ay + ah * 0.58;
-    const u = Math.min(aw, ah);
-    const bodyR = u * 0.28;
-    const headR = u * 0.16;
-    const YELLOW = "#F2D34B";
-    const YELLOW_DK = "rgba(0,0,0,0.18)";
-    const ORANGE = "#E08A2E";
-    const RED = "#D94A4A";
-    const CROWN = "#D6B04C";
-
-    ctx.beginPath();
-    ctx.arc(cx, cy, bodyR, 0, Math.PI * 2);
-    ctx.fillStyle = YELLOW;
-    ctx.fill();
-    ctx.strokeStyle = YELLOW_DK;
-    ctx.lineWidth = 1;
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.arc(cx - bodyR * 0.35, cy + bodyR * 0.05, bodyR * 0.45, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(255,255,255,0.25)";
-    ctx.fill();
-
-    const hx = cx + bodyR * 0.55;
-    const hy = cy - bodyR * 0.55;
-    ctx.beginPath();
-    ctx.arc(hx, hy, headR, 0, Math.PI * 2);
-    ctx.fillStyle = YELLOW;
-    ctx.fill();
-    ctx.strokeStyle = YELLOW_DK;
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.moveTo(hx + headR * 0.95, hy);
-    ctx.lineTo(hx + headR * 1.55, hy - headR * 0.25);
-    ctx.lineTo(hx + headR * 1.55, hy + headR * 0.25);
-    ctx.closePath();
-    ctx.fillStyle = ORANGE;
-    ctx.fill();
-    ctx.strokeStyle = "rgba(0,0,0,0.15)";
-    ctx.stroke();
-
-    const combY = hy - headR * 0.95;
-    ctx.fillStyle = RED;
-    for (let i = 0; i < 3; i++) {
-      ctx.beginPath();
-      ctx.arc(hx - headR * 0.55 + i * headR * 0.45, combY, headR * 0.22, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    ctx.beginPath();
-    ctx.arc(hx + headR * 0.2, hy - headR * 0.1, Math.max(1.5, headR * 0.12), 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(0,0,0,0.85)";
-    ctx.fill();
-
-    const crownW = headR * 1.55;
-    const crownH = headR * 0.9;
-    const crownX = hx - crownW * 0.5;
-    const crownY = hy - headR * 1.45;
-
-    ctx.beginPath();
-    ctx.moveTo(crownX, crownY + crownH);
-    ctx.lineTo(crownX + crownW * 0.15, crownY + crownH * 0.35);
-    ctx.lineTo(crownX + crownW * 0.35, crownY + crownH);
-    ctx.lineTo(crownX + crownW * 0.5, crownY + crownH * 0.25);
-    ctx.lineTo(crownX + crownW * 0.65, crownY + crownH);
-    ctx.lineTo(crownX + crownW * 0.85, crownY + crownH * 0.35);
-    ctx.lineTo(crownX + crownW, crownY + crownH);
-    ctx.closePath();
-    ctx.fillStyle = CROWN;
-    ctx.fill();
-    ctx.strokeStyle = "rgba(0,0,0,0.18)";
-    ctx.stroke();
-
-    ctx.fillStyle = "rgba(255,255,255,0.65)";
-    const jewelR = Math.max(1.5, headR * 0.12);
-    const jy = crownY + crownH * 0.75;
-    [0.25, 0.5, 0.75].forEach((t) => {
-      ctx.beginPath();
-      ctx.arc(crownX + crownW * t, jy, jewelR, 0, Math.PI * 2);
-      ctx.fill();
-    });
-  };
+  // Strip width: sized to fit pip columns
+  const nEntries = Object.values(req).filter(n => n > 0).length;
+  const pointsFontSize = Math.max(12, Math.floor(h * 0.20));
+  const pointsH = pointsFontSize + gap;
+  const availH = h - 2 * pad - pointsH;
+  const maxPerCol = Math.max(1, Math.floor((availH + gap) / (pipSize + gap)));
+  const cols = Math.ceil(nEntries / maxPerCol);
+  const stripW = Math.floor(Math.max(w * 0.25, cols * pipSize + (cols - 1) * gap + 2 * pad));
 
   // --- base card (light grey)
   roundedRectPath(ctx, x, y, w, h);
@@ -1537,7 +1446,6 @@ function drawNoble(ctx, { x, y, w, h }, noble = {}) {
   ctx.stroke();
 
   // --- points (top of strip)
-  const pointsFontSize = Math.max(12, Math.floor(h * (granny ? 0.20 : 0.22)));
   if (points > 0) {
     ctx.fillStyle = "rgba(0,0,0,0.9)";
     ctx.font = `700 ${pointsFontSize}px 'Plus Jakarta Sans', system-ui, sans-serif`;
@@ -1569,16 +1477,6 @@ function drawNoble(ctx, { x, y, w, h }, noble = {}) {
         cy = startY;
       }
     }
-  }
-
-  // --- chicken art (normal mode only)
-  if (!granny) {
-    const area = { x: x + stripW, y: y, w: w - stripW, h: h };
-    ctx.save();
-    roundedRectPath(ctx, x, y, w, h);
-    ctx.clip();
-    drawChickenWithCrown(ctx, area);
-    ctx.restore();
   }
 
   // --- optional banner (center-right)
