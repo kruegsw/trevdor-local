@@ -836,9 +836,9 @@ function packBannerRow(row) {
   if (!items.length) return;
   // Read the current (CSS default) margins as the starting point
   const originals = Array.from(items).map(el => parseFloat(getComputedStyle(el).marginLeft));
-  // Binary search for the smallest multiplier (1 = no change, up to 3 = 3x overlap)
+  // Binary search for the smallest multiplier (1 = no change, up to 6 = near full overlap)
   // that makes the row fit. Items with margin-left: 0 (first in group) stay at 0.
-  let lo = 1, hi = 3;
+  let lo = 1, hi = 6;
   for (let iter = 0; iter < 10; iter++) {
     const mid = (lo + hi) / 2;
     for (let i = 0; i < items.length; i++) {
