@@ -1500,7 +1500,16 @@ const controller = createUIController({
 
 // Wire controller into event system
 ui.setHandlers({
-  onAction: controller.onUIAction,
+  onAction: (uiAction) => {
+    // In panel view, clicking anything that isn't a reserved card exits back to board
+    if (uiAction.type === "click" && uiState.panelViewPlayerIndex != null) {
+      if (!uiAction.hit || uiAction.hit.kind !== "reserved") {
+        togglePanelView(uiState.panelViewPlayerIndex); // toggle off
+        return;
+      }
+    }
+    controller.onUIAction(uiAction);
+  },
   onUIChange: controller.onUIChange,
 });
 
