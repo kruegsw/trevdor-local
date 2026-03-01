@@ -685,7 +685,7 @@ function updateResourceBanner() {
     if (card.bonus) gemCounts[card.bonus] = (gemCounts[card.bonus] || 0) + 1;
   }
   const tokens = player.tokens ?? {};
-  const colors = ["white", "blue", "green", "red", "black"];
+  const colors = ["yellow", "green", "red", "blue", "black", "white"];
   const isMyTurn = state.activePlayerIndex === myIdx;
   const playTri = isMyTurn ? `<span class="resBannerPlay"></span>` : "";
   let html = `<span class="resBannerName">${playTri}${escapeHtml(playerName)}:</span>`;
@@ -697,13 +697,6 @@ function updateResourceBanner() {
     html += `<span class="resBannerSlot">`;
     for (let i = 0; i < g; i++) html += `<span class="resBannerGem gem-${color}" style="background:${gc.fill}"></span>`;
     for (let i = 0; i < t; i++) html += `<span class="resBannerToken" style="background:${gc.rim}"><span class="resBannerTokenGem gem-${color}" style="background:${gc.fill}"></span></span>`;
-    html += `</span>`;
-  }
-  const yt = tokens.yellow || 0;
-  if (yt > 0) {
-    const gc = BANNER_GEM_COLORS.yellow;
-    html += `<span class="resBannerSlot">`;
-    for (let i = 0; i < yt; i++) html += `<span class="resBannerToken" style="background:${gc.rim}"><span class="resBannerTokenGem gem-yellow" style="background:${gc.fill}"></span></span>`;
     html += `</span>`;
   }
   resourceContent.innerHTML = html;
