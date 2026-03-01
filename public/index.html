@@ -819,7 +819,7 @@
             position: fixed;
             bottom: 0;
             left: 0;
-            right: 60px;
+            right: 0;
             z-index: 10;
             display: none;
             align-items: center;
@@ -854,6 +854,21 @@
         .resBannerName {
             white-space: nowrap;
             margin-right: 2px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .resBannerPlay {
+            display: inline-block;
+            width: 0;
+            height: 0;
+            border-left: 7px solid var(--banner-accent, #888);
+            border-top: 5px solid transparent;
+            border-bottom: 5px solid transparent;
+            flex-shrink: 0;
+            filter: drop-shadow(0 0 4px var(--banner-accent, #888));
         }
 
         .resBannerSlot {
@@ -861,19 +876,46 @@
             align-items: center;
         }
 
-        /* Gem: faceted diamond with colored fill, border, inner highlight */
+        /* Gem: shape varies by color, matching game board gems */
         .resBannerGem {
-            width: 16px;
-            height: 16px;
             flex-shrink: 0;
-            transform: rotate(45deg);
-            border-radius: 2px;
             box-sizing: border-box;
             margin-left: -7px;
-            box-shadow: inset 1px -1px 2px rgba(0,0,0,0.25), inset -1px 1px 2px rgba(255,255,255,0.35);
+            box-shadow: inset 1px -1px 2px rgba(0,0,0,0.3), inset -1px 1px 2px rgba(255,255,255,0.3);
         }
 
         .resBannerGem:first-child { margin-left: 0; }
+
+        /* White: octagon */
+        .resBannerGem.gem-white {
+            width: 16px; height: 16px;
+            clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
+        }
+        /* Blue: oval */
+        .resBannerGem.gem-blue {
+            width: 18px; height: 14px;
+            border-radius: 50%;
+        }
+        /* Green: emerald step-cut (rectangle, clipped corners) */
+        .resBannerGem.gem-green {
+            width: 18px; height: 12px;
+            clip-path: polygon(15% 0%, 85% 0%, 100% 25%, 100% 75%, 85% 100%, 15% 100%, 0% 75%, 0% 25%);
+        }
+        /* Red: round */
+        .resBannerGem.gem-red {
+            width: 15px; height: 15px;
+            border-radius: 50%;
+        }
+        /* Black: cushion-cut (rounded square) */
+        .resBannerGem.gem-black {
+            width: 15px; height: 15px;
+            border-radius: 4px;
+        }
+        /* Yellow: round */
+        .resBannerGem.gem-yellow {
+            width: 15px; height: 15px;
+            border-radius: 50%;
+        }
 
         /* Token: circle with colored rim, cream center, mini gem inside */
         .resBannerToken {
@@ -898,17 +940,39 @@
             background: #e0d3b2;
         }
 
-        /* Mini gem in center */
+        /* Mini gem in center of token */
         .resBannerTokenGem {
             position: absolute;
             top: 50%;
             left: 50%;
-            width: 8px;
-            height: 8px;
-            transform: translate(-50%, -50%) rotate(45deg);
-            border-radius: 1px;
+            transform: translate(-50%, -50%);
             z-index: 1;
-            box-shadow: inset 0.5px -0.5px 1px rgba(0,0,0,0.25);
+            box-shadow: inset 0.5px -0.5px 1px rgba(0,0,0,0.3);
+        }
+
+        .resBannerTokenGem.gem-white {
+            width: 9px; height: 9px;
+            clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
+        }
+        .resBannerTokenGem.gem-blue {
+            width: 10px; height: 8px;
+            border-radius: 50%;
+        }
+        .resBannerTokenGem.gem-green {
+            width: 10px; height: 7px;
+            clip-path: polygon(15% 0%, 85% 0%, 100% 25%, 100% 75%, 85% 100%, 15% 100%, 0% 75%, 0% 25%);
+        }
+        .resBannerTokenGem.gem-red {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+        }
+        .resBannerTokenGem.gem-black {
+            width: 8px; height: 8px;
+            border-radius: 3px;
+        }
+        .resBannerTokenGem.gem-yellow {
+            width: 8px; height: 8px;
+            border-radius: 50%;
         }
 
         /* Spacing: first token after gems gets a small gap */

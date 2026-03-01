@@ -578,7 +578,7 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, tier,
 
       // Name (left-aligned, inset by pad)
       ctx.fillStyle = accentColor;
-      const nameFont = `${isMe ? "bold " : ""}16px 'Plus Jakarta Sans', system-ui, sans-serif`;
+      const nameFont = `bold 16px 'Plus Jakarta Sans', system-ui, sans-serif`;
       ctx.font = nameFont;
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
@@ -614,15 +614,6 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, tier,
       }
 
       ctx.fillText(name, nameLeftX, headerCenterY);
-      if (isActive) {
-        const nameW = measureTextCached(ctx, nameFont, name);
-        ctx.beginPath();
-        ctx.moveTo(nameLeftX, headerCenterY + 10);
-        ctx.lineTo(nameLeftX + nameW, headerCenterY + 10);
-        ctx.strokeStyle = accentColor;
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-      }
 
       // Stats drawn right-to-left: prestige, then tokens, then gems
       ctx.textAlign = "right";
