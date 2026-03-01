@@ -248,11 +248,17 @@ function updateConnStatus(connected) {
   }
   const currentName = localStorage.getItem("trevdor.name") || "";
   el.innerHTML = `Playing as ` +
-    `<input id="nameInput" class="nameInputInline" type="text" placeholder="your name" maxlength="20" value="${escapeHtmlAttr(currentName)}" />`;
+    `<input id="nameInput" class="nameInputInline" type="text" placeholder="your name" maxlength="10" value="${escapeHtmlAttr(currentName)}" />`;
   nameInput = document.getElementById("nameInput");
+  function sizeInput() {
+    const len = nameInput.value.length || nameInput.placeholder.length;
+    nameInput.style.width = (len + 1) + "ch";
+  }
+  sizeInput();
   nameInput.addEventListener("input", () => {
     const n = cleanName(nameInput.value);
     localStorage.setItem("trevdor.name", n);
+    sizeInput();
     if (n) transport.sendRaw({ type: "IDENTIFY", name: n });
   });
 }
