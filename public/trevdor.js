@@ -688,7 +688,7 @@ function updateResourceBanner() {
   const colors = ["yellow", "green", "red", "blue", "black", "white"];
   const isMyTurn = state.activePlayerIndex === myIdx;
   const playTri = isMyTurn ? `<span class="resBannerPlay"></span>` : "";
-  let html = `<span class="resBannerName">${playTri}${escapeHtml(playerName)}:</span>`;
+  let html = `<span class="resBannerName" style="color:${accent}">${playTri}${escapeHtml(playerName)}:</span>`;
   for (const color of colors) {
     const g = gemCounts[color] || 0;
     const t = tokens[color] || 0;

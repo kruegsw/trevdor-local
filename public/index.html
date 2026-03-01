@@ -842,7 +842,9 @@
             align-items: center;
             gap: 8px;
             height: 100%;
-            overflow-x: auto;
+            overflow: hidden;
+            min-width: 0;
+            flex: 1;
         }
 
         @media (max-width: 768px) {
@@ -858,6 +860,10 @@
             display: flex;
             align-items: center;
             gap: 4px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            min-width: 0;
+            flex-shrink: 1;
         }
 
         .resBannerPlay {
@@ -874,6 +880,7 @@
         .resBannerSlot {
             display: flex;
             align-items: center;
+            flex-shrink: 0;
         }
 
         /* Gem: shape varies by color, matching game board gems */
