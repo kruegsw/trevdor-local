@@ -85,9 +85,8 @@
             color: #fff;
             font-size: inherit;
             font-family: inherit;
-            padding: 1px 4px;
+            padding: 1px 0;
             outline: none;
-            width: 8ch;
             margin-left: 2px;
         }
 
@@ -102,6 +101,14 @@
         .nameInputInline::placeholder {
             color: rgba(255,255,255,0.3);
             font-style: italic;
+        }
+
+        .nameInputMeasure {
+            position: absolute;
+            visibility: hidden;
+            white-space: pre;
+            font-size: inherit;
+            font-family: inherit;
         }
 
         .nameHint {

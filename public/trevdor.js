@@ -248,11 +248,13 @@ function updateConnStatus(connected) {
   }
   const currentName = localStorage.getItem("trevdor.name") || "";
   el.innerHTML = `Playing as ` +
-    `<input id="nameInput" class="nameInputInline" type="text" placeholder="your name" maxlength="10" value="${escapeHtmlAttr(currentName)}" />`;
+    `<input id="nameInput" class="nameInputInline" type="text" placeholder="your name" maxlength="10" value="${escapeHtmlAttr(currentName)}" />` +
+    `<span id="nameInputMeasure" class="nameInputMeasure"></span>`;
   nameInput = document.getElementById("nameInput");
+  const measure = document.getElementById("nameInputMeasure");
   function sizeInput() {
-    const len = nameInput.value.length || nameInput.placeholder.length;
-    nameInput.style.width = (len + 1) + "ch";
+    measure.textContent = nameInput.value || nameInput.placeholder;
+    nameInput.style.width = measure.offsetWidth + "px";
   }
   sizeInput();
   nameInput.addEventListener("input", () => {
