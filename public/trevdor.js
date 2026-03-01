@@ -68,7 +68,7 @@ let chatToastTimer = null;
 
 const uiState = createUIState();
 uiState.showCursors = cursorsPref;
-uiState.simplifiedView = simplifiedPref;
+uiState.simplifiedView = simplifiedPref && window.innerWidth <= 768;
 
 /* ---------------------------------------------------------
    DOM references
@@ -94,7 +94,7 @@ const optChat          = document.getElementById("optChat");
 const optResources     = document.getElementById("optResources");
 const resourceBanner   = document.getElementById("resourceBanner");
 const resourceContent  = document.getElementById("resourceContent");
-if (simplifiedPref) resourceBanner.classList.add("simplified");
+if (simplifiedPref && window.innerWidth <= 768) resourceBanner.classList.add("simplified");
 const chatPanel        = document.getElementById("chatPanel");
 const chatToggleBtn    = document.getElementById("chatToggleBtn");
 const chatBadge        = document.getElementById("chatBadge");
@@ -1285,9 +1285,9 @@ optChat.addEventListener("change", () => {
 
 optResources.addEventListener("change", () => {
   simplifiedPref = optResources.checked;
-  uiState.simplifiedView = simplifiedPref;
+  uiState.simplifiedView = simplifiedPref && window.innerWidth <= 768;
   localStorage.setItem("trevdor.simplified", simplifiedPref);
-  resourceBanner.classList.toggle("simplified", simplifiedPref);
+  resourceBanner.classList.toggle("simplified", simplifiedPref && window.innerWidth <= 768);
   uiState.cameraUserAdjusted = false;
   resize();
   updateResourceBanner();
@@ -1389,6 +1389,11 @@ cancelBtn.addEventListener("click", () => {
 
 function resize() {
   if (state) didInitialResize = true;
+
+  // Re-evaluate simplified view: only active on mobile-width viewports
+  const isMobile = window.innerWidth <= 768;
+  uiState.simplifiedView = simplifiedPref && isMobile;
+  resourceBanner.classList.toggle("simplified", simplifiedPref && isMobile);
 
   const dpr = window.devicePixelRatio || 1;
   const rect = canvas.getBoundingClientRect();
