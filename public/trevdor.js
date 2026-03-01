@@ -1610,9 +1610,14 @@ function resize() {
 
 window.addEventListener("load", resize);
 window.addEventListener("resize", resize);
-// Safari delays safe-area-inset recalculation on orientation change;
-// a deferred resize ensures the status bar clears the phone's status bar.
-window.addEventListener("orientationchange", () => setTimeout(resize, 150));
+// Safari delays safe-area-inset recalculation on orientation change
+// (especially landscape → portrait). Multiple deferred resizes ensure
+// the status bar clears the phone's system status bar.
+window.addEventListener("orientationchange", () => {
+  setTimeout(resize, 100);
+  setTimeout(resize, 350);
+  setTimeout(resize, 800);
+});
 
 // Load card sprite sheet (non-blocking — cards use flat color fallback until loaded)
 loadSpriteSheet(basePath).then(() => draw());
