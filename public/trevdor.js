@@ -60,8 +60,10 @@ const _storedSimplified = localStorage.getItem("trevdor.simplified");
 let simplifiedPref = _storedSimplified !== null
   ? _storedSimplified !== "false"
   : window.innerWidth <= 768;   // default ON mobile, OFF desktop
+let lightModePref  = localStorage.getItem("trevdor.lightMode") === "true";
 sfx.enabled = soundEnabled;
 setCardArtEnabled(cardArtPref);
+if (lightModePref) document.body.classList.add("lightMode");
 
 // Chat state
 let chatMessages = [];
@@ -72,6 +74,7 @@ let chatToastTimer = null;
 const uiState = createUIState();
 uiState.showCursors = cursorsPref;
 uiState.simplifiedView = simplifiedPref;
+uiState.lightMode = lightModePref;
 
 /* ---------------------------------------------------------
    DOM references
@@ -95,6 +98,7 @@ const optCardArt       = document.getElementById("optCardArt");
 const optCursors       = document.getElementById("optCursors");
 const optChat          = document.getElementById("optChat");
 const optResources     = document.getElementById("optResources");
+const optLightMode     = document.getElementById("optLightMode");
 const resourceBanner   = document.getElementById("resourceBanner");
 const resourceContent  = document.getElementById("resourceContent");
 const chatPanel        = document.getElementById("chatPanel");
@@ -650,9 +654,9 @@ function updateStatusBar() {
     const winnerPts = playerPrestige(effectState.winner, effectState);
     html += `<div class="statusTurn statusWinner">Winner: ${escapeHtml(truncName(winnerName))} (${winnerPts} pt)</div>`;
   } else if (effectState?.finalRound) {
-    html += `<div class="statusTurn statusFinalRound">Final Round! · Turn ${turn ?? ""}</div>`;
+    html += `<div class="statusTurn statusFinalRound">Final Round! · Turn\u00a0${turn ?? ""}</div>`;
   } else if (turn !== null) {
-    html += `<div class="statusTurn">Turn ${turn}</div>`;
+    html += `<div class="statusTurn">Turn\u00a0${turn}</div>`;
   }
 
   statusContent.innerHTML = html;
@@ -1240,6 +1244,7 @@ optCardArt.checked = cardArtPref;
 optCursors.checked = cursorsPref;
 optChat.checked    = chatPref;
 optResources.checked = simplifiedPref;
+optLightMode.checked = lightModePref;
 
 optionsBtn.addEventListener("click", () => {
   optionsDropdown.classList.toggle("hidden");
@@ -1289,6 +1294,14 @@ optResources.addEventListener("change", () => {
   uiState.cameraUserAdjusted = false;
   updateResourceBanner();   // update banner visibility before resize measures it
   resize();
+});
+
+optLightMode.addEventListener("change", () => {
+  lightModePref = optLightMode.checked;
+  uiState.lightMode = lightModePref;
+  localStorage.setItem("trevdor.lightMode", lightModePref);
+  document.body.classList.toggle("lightMode", lightModePref);
+  draw();
 });
 
 /* ---------------------------------------------------------

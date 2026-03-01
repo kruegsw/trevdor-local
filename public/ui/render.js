@@ -214,7 +214,7 @@ function render(ctx) {
       const canvas = ctx.canvas;
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "#3a3a3c";
+      ctx.fillStyle = uiState.lightMode ? "#c8c8ca" : "#3a3a3c";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       // 2) Set DPR transform so our units are CSS pixels

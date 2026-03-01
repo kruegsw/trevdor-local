@@ -15,7 +15,15 @@
 
         body {
             overflow: hidden; /* no scroll */
-            background: #3a3a3c;
+            background: var(--bg, #3a3a3c);
+        }
+
+        body.lightMode {
+            --bg: #c8c8ca;
+            --bar-bg: rgba(255, 255, 255, 0.7);
+            --bar-fg: #222;
+            --bar-border: rgba(0, 0, 0, 0.12);
+            --dropdown-bg: rgba(255, 255, 255, 0.92);
         }
 
         canvas {
@@ -114,8 +122,8 @@
             height: 30px;
             display: flex;
             align-items: center;
-            background: rgba(0, 0, 0, 0.55);
-            color: #fff;
+            background: var(--bar-bg, rgba(0, 0, 0, 0.55));
+            color: var(--bar-fg, #fff);
             font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
             font-size: 13px;
             user-select: none;
@@ -128,7 +136,7 @@
             gap: 6px;
             padding: 0 14px;
             height: 100%;
-            border-right: 1px solid rgba(255,255,255,0.12);
+            border-right: 1px solid var(--bar-border, rgba(255,255,255,0.12));
             white-space: nowrap;
             flex-shrink: 0;
         }
@@ -187,7 +195,7 @@
             padding: 0 14px;
             font-size: 12px;
             opacity: 0.5;
-            border-right: 1px solid rgba(255,255,255,0.12);
+            border-right: 1px solid var(--bar-border, rgba(255,255,255,0.12));
             white-space: nowrap;
         }
 
@@ -214,7 +222,7 @@
             font-size: 12px;
             opacity: 0.55;
             white-space: nowrap;
-            border-right: 1px solid rgba(255,255,255,0.12);
+            border-right: 1px solid var(--bar-border, rgba(255,255,255,0.12));
         }
 
         .statusSpectatorEntry {
@@ -304,18 +312,19 @@
             height: 100%;
             border: none;
             background: transparent;
-            color: rgba(255,255,255,0.6);
+            color: var(--bar-fg, rgba(255,255,255,0.6));
             font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
             font-size: 12px;
             cursor: pointer;
             pointer-events: auto;
             white-space: nowrap;
-            border-left: 1px solid rgba(255,255,255,0.12);
+            border-left: 1px solid var(--bar-border, rgba(255,255,255,0.12));
+            opacity: 0.7;
         }
 
         .statusLobbyBtn:hover {
-            background: rgba(255,255,255,0.08);
-            color: #fff;
+            background: rgba(128,128,128,0.12);
+            opacity: 1;
         }
 
         .statusOptionsMenu {
@@ -329,16 +338,17 @@
             height: 30px;
             border: none;
             background: transparent;
-            color: rgba(255,255,255,0.6);
+            color: var(--bar-fg, rgba(255,255,255,0.6));
             font-size: 16px;
             cursor: pointer;
-            border-left: 1px solid rgba(255,255,255,0.12);
+            border-left: 1px solid var(--bar-border, rgba(255,255,255,0.12));
             line-height: 30px;
+            opacity: 0.7;
         }
 
         .statusOptionsBtn:hover {
-            background: rgba(255,255,255,0.08);
-            color: #fff;
+            background: rgba(128,128,128,0.12);
+            opacity: 1;
         }
 
         .optionsDropdown {
@@ -346,11 +356,12 @@
             top: 30px;
             right: 0;
             z-index: 20;
-            background: rgba(0, 0, 0, 0.85);
-            border: 1px solid rgba(255,255,255,0.12);
+            background: var(--dropdown-bg, rgba(0, 0, 0, 0.85));
+            border: 1px solid var(--bar-border, rgba(255,255,255,0.12));
             border-radius: 8px;
             padding: 6px 0;
             min-width: 140px;
+            color: var(--bar-fg, #fff);
         }
 
         .optionToggle {
@@ -360,12 +371,12 @@
             padding: 8px 14px;
             cursor: pointer;
             font-size: 13px;
-            color: rgba(255,255,255,0.85);
+            color: var(--bar-fg, rgba(255,255,255,0.85));
             white-space: nowrap;
         }
 
         .optionToggle:hover {
-            background: rgba(255,255,255,0.08);
+            background: rgba(128,128,128,0.12);
         }
 
         .closeGameLobbyBtn {
@@ -913,14 +924,14 @@
             display: none;
             flex-direction: column;
             padding: 4px 10px;
-            background: rgba(0, 0, 0, 0.55);
-            color: #fff;
+            background: var(--bar-bg, rgba(0, 0, 0, 0.55));
+            color: var(--bar-fg, #fff);
             font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
             font-size: 12px;
             font-weight: 600;
             user-select: none;
             pointer-events: none;
-            border: 2px solid rgba(255,255,255,0.12);
+            border: 2px solid var(--bar-border, rgba(255,255,255,0.12));
             border-bottom: none;
             border-radius: 10px 10px 0 0;
         }
@@ -1254,6 +1265,10 @@
                 <label class="optionToggle" id="optSimplifiedLabel">
                     <input type="checkbox" id="optResources">
                     <span>Simplified View</span>
+                </label>
+                <label class="optionToggle">
+                    <input type="checkbox" id="optLightMode">
+                    <span>Light Mode</span>
                 </label>
             </div>
         </div>
