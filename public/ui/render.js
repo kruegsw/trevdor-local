@@ -165,7 +165,10 @@ function getCachedGem(color, r, label, dpr) {
 
 function drawGemCached(ctx, cx, cy, r, color, label = "") {
   const { canvas: oc, size } = getCachedGem(color, r, label, _dpr);
-  ctx.drawImage(oc, cx - size / 2, cy - size / 2, size, size);
+  // Snap to device-pixel grid so cached text stays crisp (avoids bilinear blur)
+  const dx = Math.round((cx - size / 2) * _dpr) / _dpr;
+  const dy = Math.round((cy - size / 2) * _dpr) / _dpr;
+  ctx.drawImage(oc, dx, dy, size, size);
 }
 
 // Pip scale multiplier for "Granny Mode" — set at the start of each draw() call
