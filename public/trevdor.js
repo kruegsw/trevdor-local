@@ -521,9 +521,11 @@ function updateGameLobby() {
         `<span class="onlineStripLabel">Online (${users.length})</span>` +
         visibleUsers.map(u => {
           const isMe = u.clientId === uiState.myClientId;
+          const loc = u.location && u.location !== "Lobby" ? u.location : '';
           return `<span class="onlineStripUser">` +
             `<span class="playerDot" style="--dot-fill:${userDotFill(u)}"></span>` +
             `${escapeHtml(u.name)}${isMe ? ' <span class="youLabel">(you)</span>' : ''}` +
+            (loc ? `<span class="onlineStripLoc">${escapeHtml(loc)}</span>` : '') +
             `</span>`;
         }).join("") +
         (overflow > 0 && !onlineStripExpanded
