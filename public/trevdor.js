@@ -610,16 +610,11 @@ function updateStatusBar() {
       isActive      ? "isActive"   : "",
     ].filter(Boolean).join(" ");
 
-    const gems   = slot.occupied ? playerTotalGems(slot.seat, effectState)   : null;
-    const tokens = slot.occupied ? playerTotalTokens(slot.seat, effectState) : null;
-
     html += `<div class="${classes}">`;
     html += `<span class="playerDot${isActive ? ' isActive' : ''}" style="--dot-fill:${seatFill(slot)}"></span>`;
     if (slot.occupied) {
       html += `<span>${escapeHtml(slot.name ?? `Player ${slot.seat + 1}`)}</span>`;
-      if (prestige !== null) html += `<span class="statusPoints">${prestige}pt</span>`;
-      if (gems   !== null)   html += `<span class="statusGem">${gems}</span>`;
-      if (tokens !== null)   html += `<span class="statusToken">${tokens}</span>`;
+      if (prestige !== null) html += `<span class="statusPoints">${prestige} pt</span>`;
       if (isMe)              html += `<span class="statusYou">(you)</span>`;
     } else {
       html += `<span class="statusEmpty">open</span>`;
@@ -643,7 +638,7 @@ function updateStatusBar() {
   if (effectState?.gameOver && typeof effectState.winner === "number") {
     const winnerName = effectState.players[effectState.winner]?.name ?? `Player ${effectState.winner + 1}`;
     const winnerPts = playerPrestige(effectState.winner, effectState);
-    html += `<div class="statusTurn statusWinner">Winner: ${escapeHtml(winnerName)} (${winnerPts}pt)</div>`;
+    html += `<div class="statusTurn statusWinner">Winner: ${escapeHtml(winnerName)} (${winnerPts} pt)</div>`;
   } else if (effectState?.finalRound) {
     html += `<div class="statusTurn statusFinalRound">Final Round! · Turn ${turn ?? ""}</div>`;
   } else if (turn !== null) {
@@ -679,15 +674,19 @@ function updateResourceBanner() {
   // setScene("game") removes .hidden, but if the guard above re-added it
   // on a previous call (e.g. before state arrived), restore visibility.
   resourceBanner.classList.remove("hidden");
-  resourceBanner.style.setProperty("--banner-accent", SEAT_ACCENT_COLORS[myIdx] ?? "#888");
+  const accent = SEAT_ACCENT_COLORS[myIdx] ?? "#888";
+  resourceBanner.style.setProperty("--banner-accent", accent);
+  // Soft accent tint fill (like player panels on the board)
+  resourceBanner.style.background = `linear-gradient(${accent}18, ${accent}10), rgba(243,243,243,0.88)`;
   const player = state.players[myIdx];
+  const playerName = player.name ?? `Player ${myIdx + 1}`;
   const gemCounts = {};
   for (const card of player.cards ?? []) {
     if (card.bonus) gemCounts[card.bonus] = (gemCounts[card.bonus] || 0) + 1;
   }
   const tokens = player.tokens ?? {};
   const colors = ["white", "blue", "green", "red", "black"];
-  let html = "";
+  let html = `<span class="resBannerName">${escapeHtml(playerName)}:</span>`;
   for (const color of colors) {
     const g = gemCounts[color] || 0;
     const t = tokens[color] || 0;

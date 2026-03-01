@@ -825,13 +825,16 @@
             align-items: center;
             justify-content: center;
             height: 40px;
-            background: rgba(243, 243, 243, 0.92);
-            color: #fff;
+            background: rgba(243, 243, 243, 0.88);
+            color: #333;
             font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
-            font-size: 11px;
+            font-size: 13px;
+            font-weight: 600;
             user-select: none;
             pointer-events: none;
-            border-top: 2px solid var(--banner-accent, #888);
+            border: 2px solid var(--banner-accent, #888);
+            border-bottom: none;
+            border-radius: 10px 10px 0 0;
         }
 
         #resourceContent {
@@ -846,6 +849,11 @@
             #resourceBanner:not(.hidden) {
                 display: flex;
             }
+        }
+
+        .resBannerName {
+            white-space: nowrap;
+            margin-right: 2px;
         }
 
         .resBannerSlot {
