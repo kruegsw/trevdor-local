@@ -616,7 +616,7 @@ function updateStatusBar() {
     html += `<div class="${classes}">`;
     html += `<span class="playerDot${isActive ? ' isActive' : ''}" style="--dot-fill:${seatFill(slot)}"></span>`;
     if (slot.occupied) {
-      html += `<span>${escapeHtml(slot.name ?? `Player ${slot.seat + 1}`)}</span>`;
+      html += `<span class="statusName">${escapeHtml(slot.name ?? `Player ${slot.seat + 1}`)}</span>`;
       if (prestige !== null) html += `<span class="statusPoints">${prestige} pt</span>`;
       if (isMe)              html += `<span class="statusYou">(you)</span>`;
     } else {
