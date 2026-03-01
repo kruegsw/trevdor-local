@@ -779,6 +779,12 @@ function buildPlayerRow(player, pIdx) {
   let row = `<div class="resBannerRow${activeClass}${viewingClass}" data-player-index="${pIdx}" style="background: linear-gradient(${accent}10, ${accent}10), rgba(243,243,243,0.85); border: 1.5px solid ${accent}">`;
   row += `<span class="resBannerName" style="color:${accent}">${playTri}<span class="resBannerNameText">${escapeHtml(playerName)}</span></span>`;
   row += `<span class="resBannerPts">${prestige} pt</span>`;
+  const reservedCount = (player.reserved ?? []).length;
+  if (reservedCount > 0) {
+    row += `<span class="resBannerSlot">`;
+    for (let i = 0; i < reservedCount; i++) row += `<span class="resBannerReserved">R</span>`;
+    row += `</span>`;
+  }
   for (const color of gemColors) {
     const g = gemCounts[color] || 0;
     const t = tokens[color] || 0;
@@ -838,7 +844,7 @@ function packBannerRow(row) {
   if (row.scrollWidth <= row.clientWidth) return;
 
   // Step 2: increase negative margin overlap on gems/tokens/crowns/slots
-  const items = row.querySelectorAll(".resBannerSlot + .resBannerSlot, .resBannerGem, .resBannerToken, .resBannerCrown");
+  const items = row.querySelectorAll(".resBannerSlot + .resBannerSlot, .resBannerGem, .resBannerToken, .resBannerCrown, .resBannerReserved");
   if (!items.length) return;
   const originals = Array.from(items).map(el => parseFloat(getComputedStyle(el).marginLeft));
   // Binary search for the smallest multiplier (1 = no change, up to 6 = near full overlap)
