@@ -699,6 +699,12 @@ function updateResourceBanner() {
     for (let i = 0; i < t; i++) html += `<span class="resBannerToken" style="background:${gc.rim}"><span class="resBannerTokenGem gem-${color}" style="background:${gc.fill}"></span></span>`;
     html += `</span>`;
   }
+  const nobleCount = (player.nobles ?? []).length;
+  if (nobleCount > 0) {
+    html += `<span class="resBannerSlot">`;
+    for (let i = 0; i < nobleCount; i++) html += `<span class="resBannerCrown"></span>`;
+    html += `</span>`;
+  }
   resourceContent.innerHTML = html;
 }
 
