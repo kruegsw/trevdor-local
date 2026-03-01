@@ -1437,26 +1437,29 @@ function resize() {
     const contentW = maxX - minX;
     const contentH = maxY - minY;
 
-    // When simplified view is active, reserve space for the banner at the bottom
-    let viewW = rect.width;
-    let viewH = rect.height;
-    if (uiState.simplifiedView && resourceBanner && !resourceBanner.classList.contains("hidden")) {
-      const bannerH = resourceBanner.offsetHeight || 0;
-      viewH -= bannerH;
+    // Reserve space for fixed overlays so they don't cover the board
+    const topH = (statusBar && !statusBar.classList.contains("hidden"))
+      ? (statusBar.offsetHeight || 30) : 0;
+    let bottomH = 0;
+    if (resourceBanner && !resourceBanner.classList.contains("hidden")) {
+      bottomH = resourceBanner.offsetHeight || 0;
     }
 
-    // Scale to fit the tighter bounding box in the viewport
+    const viewW = rect.width;
+    const usableH = rect.height - topH - bottomH;
+
+    // Scale to fit the tighter bounding box in the usable viewport
     const scaleX = viewW / contentW;
-    const scaleY = viewH / contentH;
+    const scaleY = usableH / contentH;
     // In simplified view, let the board fill the screen (cap at 2.5 for ultra-wide);
     // in normal view, never zoom beyond native scale (cap at 1).
     const maxScale = uiState.simplifiedView ? 2.5 : 1;
     const fitScale = Math.min(scaleX, scaleY, maxScale);
 
-    // Center the content in the available viewport (above banner if present)
+    // Center content in the usable area (below status bar, above banner)
     uiState.camera.scale = fitScale;
     uiState.camera.x = minX - (viewW / fitScale - contentW) / 2;
-    uiState.camera.y = minY - (viewH / fitScale - contentH) / 2;
+    uiState.camera.y = (minY + contentH / 2) - (topH + usableH / 2) / fitScale;
 
     // Set CSS variable so banner tokens match the board token size
     // Board token = 45 world units (15 * SCALE=3)
