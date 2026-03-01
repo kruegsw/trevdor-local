@@ -160,12 +160,23 @@ function roomListSnapshot() {
     const winnerName = gameOver && typeof room.state.winner === "number"
       ? (room.state.players[room.state.winner]?.name ?? `Player ${room.state.winner + 1}`)
       : null;
+    // Build a clientId → live ws lookup from the active clients set
+    const liveWsByClientId = new Map();
+    for (const ws of room.clients) {
+      const info = clientInfo.get(ws);
+      if (info) liveWsByClientId.set(info.clientId, ws);
+    }
     const players = room.seats
-      .map((s, seat) => s ? {
-        name: s.name, seat,
-        wsOpen: s.ws?.readyState === 1,
-        lastActivity: clientInfo.get(s.ws)?.lastActivity ?? null,
-      } : null)
+      .map((s, seat) => {
+        if (!s) return null;
+        const liveWs = liveWsByClientId.get(s.clientId);
+        const liveInfo = liveWs ? clientInfo.get(liveWs) : null;
+        return {
+          name: s.name, seat,
+          wsOpen: liveWs ? (liveWs.readyState === 1) : false,
+          lastActivity: liveInfo?.lastActivity ?? null,
+        };
+      })
       .filter(Boolean);
     const spectators = [];
     for (const ws of room.clients) {

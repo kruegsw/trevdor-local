@@ -448,7 +448,7 @@ function updateGameLobby() {
           `<span class="playerDot" style="--dot-fill:${fill}"></span>` +
           `<span>${escapeHtml(p.name)}</span>` +
           `</div>`;
-      } else {
+      } else if (!r.started) {
         playerRows += `<div class="tilePlayerRow empty">` +
           `<span class="tileSeatDot empty"></span>` +
           `<span>open</span>` +
