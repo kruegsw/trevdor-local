@@ -235,6 +235,7 @@ function render(ctx) {
 
         // Resolve positionIndex → actual playerIndex for panel slots
         if (e.positionIndex != null) {
+          if (uiState.simplifiedView) return; // hide panels in simplified view
           const numPlayers = state.players?.length ?? 0;
           // Fixed layout: posIdx 0=top-right→P2, 1=bottom-right→P4, 2=top-left→P1, 3=bottom-left→P3
           const playerIndex = FIXED_MAP[e.positionIndex];

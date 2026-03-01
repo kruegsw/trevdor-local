@@ -56,7 +56,10 @@ let soundEnabled   = localStorage.getItem("trevdor.sound")   !== "false";
 let cardArtPref    = localStorage.getItem("trevdor.cardArt") !== "false";
 let cursorsPref    = localStorage.getItem("trevdor.cursors") !== "false";
 let chatPref       = localStorage.getItem("trevdor.chat")    !== "false";
-let simplifiedPref = localStorage.getItem("trevdor.simplified") !== "false";
+const _storedSimplified = localStorage.getItem("trevdor.simplified");
+let simplifiedPref = _storedSimplified !== null
+  ? _storedSimplified !== "false"
+  : window.innerWidth <= 768;   // default ON mobile, OFF desktop
 sfx.enabled = soundEnabled;
 setCardArtEnabled(cardArtPref);
 
@@ -68,7 +71,7 @@ let chatToastTimer = null;
 
 const uiState = createUIState();
 uiState.showCursors = cursorsPref;
-uiState.simplifiedView = simplifiedPref && window.innerWidth <= 768;
+uiState.simplifiedView = simplifiedPref;
 
 /* ---------------------------------------------------------
    DOM references
@@ -1286,7 +1289,7 @@ optChat.addEventListener("change", () => {
 
 optResources.addEventListener("change", () => {
   simplifiedPref = optResources.checked;
-  uiState.simplifiedView = simplifiedPref && window.innerWidth <= 768;
+  uiState.simplifiedView = simplifiedPref;
   localStorage.setItem("trevdor.simplified", simplifiedPref);
   uiState.cameraUserAdjusted = false;
   resize();
@@ -1390,9 +1393,7 @@ cancelBtn.addEventListener("click", () => {
 function resize() {
   if (state) didInitialResize = true;
 
-  // Re-evaluate simplified view: only active on mobile-width viewports
-  const isMobile = window.innerWidth <= 768;
-  uiState.simplifiedView = simplifiedPref && isMobile;
+  uiState.simplifiedView = simplifiedPref;
 
   const dpr = window.devicePixelRatio || 1;
   const rect = canvas.getBoundingClientRect();
