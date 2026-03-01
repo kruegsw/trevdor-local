@@ -378,12 +378,58 @@
 
         /* Game lobby (room browser) */
         #gameLobbySection {
-            width: min(480px, 92vw);
+            width: min(700px, 92vw);
+        }
+
+        .lobbyTopRow {
+            display: flex;
+            align-items: flex-end;
+            gap: 12px;
+        }
+
+        .lobbyTopRow .nameRow {
+            flex: 1;
+            width: auto;
+            margin: 18px 0 0;
+        }
+
+        .lobbyTopRow #createGameBtn {
+            margin-bottom: 22px;
+            white-space: nowrap;
+        }
+
+        .lobbyColumns {
+            display: flex;
+            gap: 12px;
+            margin-top: 14px;
+            align-items: flex-start;
+        }
+
+        .lobbyPanel {
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            background: rgba(255,255,255,0.04);
+            padding: 12px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .lobbyPanelNarrow {
+            flex: 0 0 200px;
+        }
+
+        .lobbyPanelHeader {
+            font-size: 12px;
+            opacity: 0.45;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            text-align: left;
         }
 
         #roomList {
             width: 100%;
-            margin: 8px 0 14px;
+            margin: 0;
             max-height: 260px;
             overflow-y: auto;
             text-align: left;
@@ -420,7 +466,9 @@
 
         #connectedUsers {
             width: 100%;
-            margin: 14px 0 14px;
+            margin: 0;
+            max-height: 300px;
+            overflow-y: auto;
             text-align: left;
         }
 
@@ -448,6 +496,43 @@
             margin-left: auto;
             font-size: 12px;
             opacity: 0.4;
+        }
+
+        /* Thin subtle scrollbars for lobby lists */
+        #roomList,
+        #connectedUsers {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255,255,255,0.15) transparent;
+        }
+        #roomList::-webkit-scrollbar,
+        #connectedUsers::-webkit-scrollbar {
+            width: 6px;
+        }
+        #roomList::-webkit-scrollbar-thumb,
+        #connectedUsers::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.15);
+            border-radius: 3px;
+        }
+        #roomList::-webkit-scrollbar-track,
+        #connectedUsers::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        /* Mobile: stack lobby columns vertically */
+        @media (max-width: 520px) {
+            .lobbyTopRow {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .lobbyTopRow #createGameBtn {
+                margin-bottom: 0;
+            }
+            .lobbyColumns {
+                flex-direction: column;
+            }
+            .lobbyPanelNarrow {
+                flex: auto;
+            }
         }
 
         .roomListEmpty {
@@ -1107,14 +1192,23 @@
         <div id="gameLobbySection" class="lobbyContent">
             <h1>Trevdor</h1>
             <p id="connStatus">Connecting…</p>
-            <div class="nameRow">
-                <label for="nameInput" class="nameLabel">Your name</label>
-                <input id="nameInput" class="nameInput" type="text" placeholder="Type your name…" maxlength="20" />
-                <div id="nameHint" class="nameHint"></div>
+            <div class="lobbyTopRow">
+                <div class="nameRow">
+                    <label for="nameInput" class="nameLabel">Your name</label>
+                    <input id="nameInput" class="nameInput" type="text" placeholder="Type your name…" maxlength="20" />
+                    <div id="nameHint" class="nameHint"></div>
+                </div>
+                <button id="createGameBtn">Create Game</button>
             </div>
-            <div id="roomList"></div>
-            <div id="connectedUsers"></div>
-            <button id="createGameBtn">Create Game</button>
+            <div class="lobbyColumns">
+                <div class="lobbyPanel">
+                    <div class="lobbyPanelHeader">Active Games</div>
+                    <div id="roomList"></div>
+                </div>
+                <div class="lobbyPanel lobbyPanelNarrow">
+                    <div id="connectedUsers"></div>
+                </div>
+            </div>
         </div>
 
         <!-- Room lobby: shown after joining or creating a room -->
