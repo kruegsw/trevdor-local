@@ -1121,6 +1121,14 @@
             border-radius: 50%;
         }
 
+        /* Gem fills: radial gradients matching canvas GEM_PALETTE */
+        .gem-white  { background: radial-gradient(ellipse at 35% 35%, #d4e4f4, #e8e8e8 50%, #b0b0b0) !important; }
+        .gem-blue   { background: radial-gradient(ellipse at 35% 35%, #88bbff, #2255cc 60%, #1a3a88) !important; }
+        .gem-green  { background: radial-gradient(ellipse at 35% 35%, #66dd99, #1a8a4a 60%, #0d5a2d) !important; }
+        .gem-red    { background: radial-gradient(ellipse at 35% 35%, #ff8899, #cc2233 60%, #881122) !important; }
+        .gem-black  { background: radial-gradient(ellipse at 35% 35%, #777777, #333333 60%, #111111) !important; }
+        .gem-yellow { background: radial-gradient(ellipse at 35% 35%, #ffe066, #d4a017 60%, #8a6a0f) !important; }
+
         /* Token: circle with colored rim, cream center, mini gem inside */
         .resBannerToken {
             position: relative;
@@ -1134,6 +1142,14 @@
         }
 
         .resBannerToken:first-child { margin-left: 0; }
+
+        /* Token rim colors */
+        .resBannerToken.token-white  { background: #b0b0b0; }
+        .resBannerToken.token-blue   { background: #0000FF; }
+        .resBannerToken.token-green  { background: #2E9B5F; }
+        .resBannerToken.token-red    { background: #D94A4A; }
+        .resBannerToken.token-black  { background: #2B2B2B; }
+        .resBannerToken.token-yellow { background: #D6B04C; }
 
         /* Cream center */
         .resBannerToken::before {

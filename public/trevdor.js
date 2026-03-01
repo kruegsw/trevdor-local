@@ -671,15 +671,7 @@ function updateStatusBar() {
 
 const SEAT_ACCENT_COLORS = ["#2D6CDF", "#D94A4A", "#2E9B5F", "#D6B04C"];
 
-// Gem colors match GEM_COLORS in render.js; used for rim color
-const BANNER_GEM_COLORS = {
-  white:  { rim: "#b0b0b0", fill: "#e8e8e8" },
-  blue:   { rim: "#0000FF", fill: "#6688dd" },
-  green:  { rim: "#2E9B5F", fill: "#66bb88" },
-  red:    { rim: "#D94A4A", fill: "#e88888" },
-  black:  { rim: "#2B2B2B", fill: "#666"    },
-  yellow: { rim: "#D6B04C", fill: "#e8cc77" },
-};
+// Gem colors now defined in CSS via .gem-* classes (radial gradients matching canvas)
 
 function buildPlayerRow(player, pIdx) {
   const accent = SEAT_ACCENT_COLORS[pIdx] ?? "#888";
@@ -700,10 +692,9 @@ function buildPlayerRow(player, pIdx) {
     const g = gemCounts[color] || 0;
     const t = tokens[color] || 0;
     if (g === 0 && t === 0) continue;
-    const gc = BANNER_GEM_COLORS[color] ?? { rim: "#888", fill: "#ccc" };
     row += `<span class="resBannerSlot">`;
-    for (let i = 0; i < g; i++) row += `<span class="resBannerGem gem-${color}" style="background:${gc.fill}"></span>`;
-    for (let i = 0; i < t; i++) row += `<span class="resBannerToken" style="background:${gc.rim}"><span class="resBannerTokenGem gem-${color}" style="background:${gc.fill}"></span></span>`;
+    for (let i = 0; i < g; i++) row += `<span class="resBannerGem gem-${color}"></span>`;
+    for (let i = 0; i < t; i++) row += `<span class="resBannerToken token-${color}"><span class="resBannerTokenGem gem-${color}"></span></span>`;
     row += `</span>`;
   }
   const nobleCount = (player.nobles ?? []).length;
