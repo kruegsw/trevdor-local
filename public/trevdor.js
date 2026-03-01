@@ -58,15 +58,15 @@ const _storedCardArt = localStorage.getItem("trevdor.cardArt");
 let cardArtPref = _storedCardArt === "true" ? 2
   : _storedCardArt === "false" ? 0
   : _storedCardArt != null ? (parseInt(_storedCardArt, 10) || 0)
-  : 2;
+  : 1;
 let cursorsPref    = localStorage.getItem("trevdor.cursors") !== "false";
 let chatPref       = localStorage.getItem("trevdor.chat")    !== "false";
 const _storedSimplified = localStorage.getItem("trevdor.simplified");
 let simplifiedPref = _storedSimplified !== null
   ? _storedSimplified !== "false"
-  : window.innerWidth <= 768;   // default ON mobile, OFF desktop
+  : true;
 let lightModePref  = localStorage.getItem("trevdor.lightMode") === "true";
-let grannyModePref = localStorage.getItem("trevdor.grannyMode") === "true";
+let grannyModePref = localStorage.getItem("trevdor.grannyMode") !== "false";
 sfx.enabled = soundEnabled;
 setCardArtMode(cardArtPref);
 if (lightModePref) document.body.classList.add("lightMode");
@@ -1610,6 +1610,9 @@ function resize() {
 
 window.addEventListener("load", resize);
 window.addEventListener("resize", resize);
+// Safari delays safe-area-inset recalculation on orientation change;
+// a deferred resize ensures the status bar clears the phone's status bar.
+window.addEventListener("orientationchange", () => setTimeout(resize, 150));
 
 // Load card sprite sheet (non-blocking — cards use flat color fallback until loaded)
 loadSpriteSheet(basePath).then(() => draw());

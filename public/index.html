@@ -367,6 +367,11 @@
             opacity: 1;
         }
 
+        /* Raise status bar above everything when dropdown is open */
+        #statusBar:has(.optionsDropdown:not(.hidden)) {
+            z-index: 9999;
+        }
+
         .optionsDropdown {
             position: absolute;
             top: 30px;
