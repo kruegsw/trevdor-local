@@ -458,7 +458,9 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, tier,
       const dimMarket = myTurn && (uiState.mode ?? "idle") === "idle" && stateObject
         && !isAffordable(state, uiState, stateObject, tier, index);
 
-      if (!dimMarket && (isHovered(uiID, uiState) || cardPending)) { y -= 4 };
+      const canInteractCard = !dimMarket && (cardPending || uiState.mode === "reserveCard"
+        || isAffordable(state, uiState, stateObject, tier, index));
+      if (canInteractCard && (isHovered(uiID, uiState) || cardPending)) { y -= 4 };
       if (dimMarket) ctx.globalAlpha = 0.7;
 
       stateObject ? drawDevelopmentCard(ctx, { x, y, w, h }, {
@@ -470,8 +472,8 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, tier,
 
       if (dimMarket) ctx.globalAlpha = 1.0;
 
-      // Hover glow (bonus-colored)
-      if (!dimMarket && isHovered(uiID, uiState) && !cardPending && stateObject) {
+      // Hover glow (bonus-colored) — only for interactable cards
+      if (canInteractCard && isHovered(uiID, uiState) && !cardPending && stateObject) {
         const hcRgb = hexToRgb(CARD_BACKGROUND_COLORS[stateObject.bonus] || "#888");
         ctx.save();
         ctx.shadowColor = rgbToCss(hcRgb, 0.8);
@@ -730,15 +732,17 @@ function drawSelect(ctx, state, uiState, stateObject, { uiID, kind, color, tier,
         && (uiState.mode ?? "idle") === "idle"
         && !isAffordable(state, uiState, stateObject, tier, index);
 
-      if (isMyReserved && !dimReserved && (isHovered(uiID, uiState) || resPending)) { y -= 4 };
+      const canInteractRes = isMyReserved && !dimReserved
+        && (resPending || isAffordable(state, uiState, stateObject, tier, index));
+      if (canInteractRes && (isHovered(uiID, uiState) || resPending)) { y -= 4 };
       if (dimReserved) ctx.globalAlpha = 0.7;
 
       drawReserved(ctx, { x, y, w, h }, stateObject);
 
       if (dimReserved) ctx.globalAlpha = 1.0;
 
-      // Hover glow (bonus-colored)
-      if (isMyReserved && !dimReserved && isHovered(uiID, uiState) && !resPending && stateObject) {
+      // Hover glow (bonus-colored) — only for interactable reserved cards
+      if (canInteractRes && isHovered(uiID, uiState) && !resPending && stateObject) {
         const hcRgb = hexToRgb(CARD_BACKGROUND_COLORS[stateObject.bonus] || "#888");
         ctx.save();
         ctx.shadowColor = rgbToCss(hcRgb, 0.8);
