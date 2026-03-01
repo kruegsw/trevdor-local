@@ -78,39 +78,37 @@
             display: block;
         }
 
-        .nameRow {
-            width: min(420px, 86vw);
-            margin: 18px auto 14px;
-            text-align: left;
-        }
-
-        .nameLabel {
-            display: block;
-            font-size: 14px;
-            opacity: 0.85;
-            margin-bottom: 6px;
-        }
-
-        .nameInput {
-            width: 100%;
-            padding: 12px 12px;
-            border-radius: 12px;
-            border: 1px solid rgba(255,255,255,0.18);
-            background: rgba(0,0,0,0.35);
+        .nameInputInline {
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
             color: #fff;
+            font-size: inherit;
+            font-family: inherit;
+            padding: 1px 4px;
             outline: none;
-            font-size: 16px;
+            width: 130px;
+            margin-left: 2px;
         }
 
-        .nameInput:focus {
-            border-color: rgba(255,255,255,0.35);
+        .nameInputInline:hover {
+            border-bottom-color: rgba(255,255,255,0.4);
+        }
+
+        .nameInputInline:focus {
+            border-bottom-color: rgba(255,255,255,0.6);
+        }
+
+        .nameInputInline::placeholder {
+            color: rgba(255,255,255,0.3);
+            font-style: italic;
         }
 
         .nameHint {
-            margin-top: 6px;
             font-size: 12px;
             opacity: 0.75;
             min-height: 16px;
+            color: #ff6b6b;
         }
 
         #statusBar {
@@ -382,6 +380,31 @@
             background: rgba(128,128,128,0.12);
         }
 
+        .optionCycle {
+            user-select: none;
+        }
+
+        .cycleIndicator {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            border: 1.5px solid rgba(128,128,128,0.5);
+            font-size: 11px;
+            font-weight: 700;
+            line-height: 1;
+            color: rgba(255,255,255,0.85);
+            background: transparent;
+        }
+
+        .cycleIndicator[data-mode="1"],
+        .cycleIndicator[data-mode="2"] {
+            background: rgba(76,175,80,0.35);
+            border-color: rgba(76,175,80,0.7);
+        }
+
         .closeGameLobbyBtn {
             padding: 6px 14px !important;
             font-size: 14px !important;
@@ -397,18 +420,6 @@
         /* Game lobby (room browser) */
         #gameLobbySection {
             width: min(820px, 94vw);
-        }
-
-        .lobbyTopRow {
-            display: flex;
-            align-items: flex-end;
-            gap: 12px;
-        }
-
-        .lobbyTopRow .nameRow {
-            flex: 1;
-            width: auto;
-            margin: 18px 0 0;
         }
 
         /* Create game tile (+ card) */
@@ -630,10 +641,6 @@
 
         /* Mobile: single column tiles */
         @media (max-width: 520px) {
-            .lobbyTopRow {
-                flex-direction: column;
-                align-items: stretch;
-            }
             #roomList {
                 grid-template-columns: 1fr;
             }
@@ -1319,13 +1326,7 @@
         <div id="gameLobbySection" class="lobbyContent">
             <h1>Trevdor</h1>
             <p id="connStatus">Connecting…</p>
-            <div class="lobbyTopRow">
-                <div class="nameRow">
-                    <label for="nameInput" class="nameLabel">Your name</label>
-                    <input id="nameInput" class="nameInput" type="text" placeholder="Type your name…" maxlength="20" />
-                    <div id="nameHint" class="nameHint"></div>
-                </div>
-            </div>
+            <div id="nameHint" class="nameHint"></div>
             <div id="onlineStrip"></div>
             <div class="lobbyPanelHeader">Active Games</div>
             <div id="roomList"></div>
@@ -1354,10 +1355,10 @@
                     <input type="checkbox" id="optSound" checked>
                     <span>Sound</span>
                 </label>
-                <label class="optionToggle">
-                    <input type="checkbox" id="optCardArt" checked>
+                <div class="optionToggle optionCycle" id="optCardArtToggle">
+                    <span class="cycleIndicator" id="cardArtIndicator"></span>
                     <span>Card Art</span>
-                </label>
+                </div>
                 <label class="optionToggle">
                     <input type="checkbox" id="optCursors" checked>
                     <span>Cursors</span>

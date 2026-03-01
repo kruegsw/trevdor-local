@@ -9,7 +9,7 @@
     - handle resize + redraw
 */
 
-import { render, drawGem, loadSpriteSheet, drawCardSprite, setCardArtEnabled } from "./ui/render.js";
+import { render, drawGem, loadSpriteSheet, drawCardSprite, drawCardProcedural, setCardArtMode, getCardArtMode } from "./ui/render.js";
 import { createUIEvents } from "./ui/events.js";
 import { createUIState } from "./ui/state.js";
 import { createUIController } from "./ui/controller.js";
@@ -53,7 +53,12 @@ let mySessionId = localStorage.getItem("trevdor.sessionId") || null;
 
 // Options preferences (persisted in localStorage, default on)
 let soundEnabled   = localStorage.getItem("trevdor.sound")   !== "false";
-let cardArtPref    = localStorage.getItem("trevdor.cardArt") !== "false";
+// Card art mode: 0=none, 1=procedural, 2=sprites (backwards-compat: "true"→2, "false"→0)
+const _storedCardArt = localStorage.getItem("trevdor.cardArt");
+let cardArtPref = _storedCardArt === "true" ? 2
+  : _storedCardArt === "false" ? 0
+  : _storedCardArt != null ? (parseInt(_storedCardArt, 10) || 0)
+  : 2;
 let cursorsPref    = localStorage.getItem("trevdor.cursors") !== "false";
 let chatPref       = localStorage.getItem("trevdor.chat")    !== "false";
 const _storedSimplified = localStorage.getItem("trevdor.simplified");
@@ -63,7 +68,7 @@ let simplifiedPref = _storedSimplified !== null
 let lightModePref  = localStorage.getItem("trevdor.lightMode") === "true";
 let grannyModePref = localStorage.getItem("trevdor.grannyMode") === "true";
 sfx.enabled = soundEnabled;
-setCardArtEnabled(cardArtPref);
+setCardArtMode(cardArtPref);
 if (lightModePref) document.body.classList.add("lightMode");
 
 // Chat state
@@ -96,7 +101,8 @@ const cancelBtn        = document.getElementById("cancelBtn");
 const optionsBtn       = document.getElementById("optionsBtn");
 const optionsDropdown  = document.getElementById("optionsDropdown");
 const optSound         = document.getElementById("optSound");
-const optCardArt       = document.getElementById("optCardArt");
+const optCardArtToggle = document.getElementById("optCardArtToggle");
+const cardArtIndicator = document.getElementById("cardArtIndicator");
 const optCursors       = document.getElementById("optCursors");
 const optChat          = document.getElementById("optChat");
 const optResources     = document.getElementById("optResources");
@@ -220,31 +226,40 @@ function returnToGameLobby() {
    Name input
    --------------------------------------------------------- */
 
-const nameInput = document.getElementById("nameInput");
 const nameHint  = document.getElementById("nameHint");
 
 const savedName       = localStorage.getItem("trevdor.name")      || "";
 const STORED_ROOM_ID  = localStorage.getItem("trevdor.roomId")    || null;
 
-nameInput.value = savedName;
-
 function cleanName(s) {
   return (s ?? "").trim().replace(/\s+/g, " ").slice(0, 20);
 }
 
-function setNameHint() {
-  let n = cleanName(nameInput.value);
-  nameHint.textContent = n ? `Playing as: ${n}` : "Enter a name to be shown to other players.";
+// nameInput lives inside #connStatus — rendered by updateConnStatus()
+let nameInput;
+
+function updateConnStatus(connected) {
+  const el = document.getElementById("connStatus");
+  if (!el) return;
+  if (!connected) {
+    el.innerHTML = `Connecting…`;
+    nameInput = null;
+    return;
+  }
+  const currentName = localStorage.getItem("trevdor.name") || "";
+  el.innerHTML = `Playing as ` +
+    `<input id="nameInput" class="nameInputInline" type="text" placeholder="your name" maxlength="20" value="${escapeHtmlAttr(currentName)}" />`;
+  nameInput = document.getElementById("nameInput");
+  nameInput.addEventListener("input", () => {
+    const n = cleanName(nameInput.value);
+    localStorage.setItem("trevdor.name", n);
+    if (n) transport.sendRaw({ type: "IDENTIFY", name: n });
+  });
 }
 
-setNameHint();
-
-nameInput.addEventListener("input", () => {
-  let n = cleanName(nameInput.value);
-  localStorage.setItem("trevdor.name", n);
-  setNameHint();
-  if (n) transport.sendRaw({ type: "IDENTIFY", name: n });
-});
+function escapeHtmlAttr(s) {
+  return (s ?? "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+}
 
 /* ---------------------------------------------------------
    Utility
@@ -969,15 +984,17 @@ function renderConfirmGems(container) {
     c.style.cssText = `position:absolute;top:0;left:0;width:${w}px;height:${h}px;border-radius:8px;z-index:0;`;
     const ctx = c.getContext("2d");
     ctx.scale(dpr, dpr);
-    if (drawCardSprite(ctx, 0, 0, w, h, cardId)) {
-      // Tinted header band
-      const bonus = el.querySelector(".confirmCardGem")?.dataset.gemColor ?? "white";
+    const bonus = el.querySelector(".confirmCardGem")?.dataset.gemColor ?? "white";
+    if (drawCardSprite(ctx, 0, 0, w, h, cardId) || drawCardProcedural(ctx, 0, 0, w, h, cardId, bonus)) {
+      // Tinted header band — lighter for procedural
       const cc = CONFIRM_CARD_COLORS[bonus] ?? { bg: "#ccc" };
-      ctx.fillStyle = cc.bg.replace(")", ",0.55)").replace("rgb", "rgba");
-      // Simple approach: parse hex to rgba
-      const hex = cc.bg.replace("#", "");
-      const r = parseInt(hex.slice(0,2),16), g = parseInt(hex.slice(2,4),16), b = parseInt(hex.slice(4,6),16);
-      ctx.fillStyle = `rgba(${r},${g},${b},0.55)`;
+      if (getCardArtMode() === 2) {
+        const hex = cc.bg.replace("#", "");
+        const r = parseInt(hex.slice(0,2),16), g = parseInt(hex.slice(2,4),16), b = parseInt(hex.slice(4,6),16);
+        ctx.fillStyle = `rgba(${r},${g},${b},0.55)`;
+      } else {
+        ctx.fillStyle = "rgba(0,0,0,0.2)";
+      }
       ctx.fillRect(0, 0, w, h * 0.25);
       // Footer band
       ctx.fillStyle = "rgba(0,0,0,0.5)";
@@ -1215,15 +1232,13 @@ const transport = createTransport({
 
   onOpen:  () => {
     if (DEBUG) console.log("[ws] open");
-    const connStatus = document.getElementById("connStatus");
-    if (connStatus) connStatus.textContent = "Game Lobby";
+    updateConnStatus(true);
     const n = cleanName(nameInput.value);
     if (n) transport.sendRaw({ type: "IDENTIFY", name: n });
   },
   onClose: () => {
     if (DEBUG) console.log("[ws] close");
-    const connStatus = document.getElementById("connStatus");
-    if (connStatus && !currentRoomId) connStatus.textContent = "Connecting…";
+    if (!currentRoomId) updateConnStatus(false);
   },
   onError: (e) => { if (DEBUG) console.log("[ws] error", e); },
 });
@@ -1276,9 +1291,14 @@ document.getElementById("closeRoomBtn").addEventListener("click", () => {
    Options menu
    --------------------------------------------------------- */
 
+function updateCardArtIndicator() {
+  cardArtIndicator.dataset.mode = cardArtPref;
+  cardArtIndicator.textContent = cardArtPref === 0 ? "" : String(cardArtPref);
+}
+
 // Set initial checkbox state from saved preferences
 optSound.checked   = soundEnabled;
-optCardArt.checked = cardArtPref;
+updateCardArtIndicator();
 optCursors.checked = cursorsPref;
 optChat.checked    = chatPref;
 optResources.checked = simplifiedPref;
@@ -1302,10 +1322,11 @@ optSound.addEventListener("change", () => {
   localStorage.setItem("trevdor.sound", soundEnabled);
 });
 
-optCardArt.addEventListener("change", () => {
-  cardArtPref = optCardArt.checked;
-  setCardArtEnabled(cardArtPref);
+optCardArtToggle.addEventListener("click", () => {
+  cardArtPref = (cardArtPref + 1) % 3;
+  setCardArtMode(cardArtPref);
   localStorage.setItem("trevdor.cardArt", cardArtPref);
+  updateCardArtIndicator();
   draw();
 });
 
