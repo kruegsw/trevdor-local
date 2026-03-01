@@ -358,10 +358,12 @@ function tokenCount(tokens) {
 }
 
 function playSoundsForStateChange(prev, next) {
-  // Game starts (first STATE after null)
+  // Game starts (first STATE after null, only on a fresh game — not rejoin)
   if (prev === null && next !== null) {
-    sfx.shuffle();
-    setTimeout(() => sfx.gameStart(), 850);
+    if (next.turn === 1) {
+      sfx.shuffle();
+      setTimeout(() => sfx.gameStart(), 850);
+    }
     return;
   }
   if (!prev || !next) return;
