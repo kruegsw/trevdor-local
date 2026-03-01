@@ -1111,7 +1111,7 @@
             display: flex;
         }
 
-        /* Desktop: sizes scale with --btp (board token pixels, set by JS resize) */
+        /* Desktop: fixed 40px token size (mobile is 24px) */
         @media (min-width: 769px) {
             #resourceContent {
                 flex-direction: row;
@@ -1132,68 +1132,68 @@
                 border-top-width: 7px;
                 border-bottom-width: 7px;
             }
-            /* Token: exact board token size */
+            /* Token: 40px circle */
             .resBannerToken {
-                width: var(--btp, 58px);
-                height: var(--btp, 58px);
-                margin-left: calc(var(--btp, 58px) * -0.38);
+                width: 40px;
+                height: 40px;
+                margin-left: -15px;
                 border-width: 2px;
             }
             .resBannerToken:first-child { margin-left: 0; }
             .resBannerToken::before {
-                inset: calc(var(--btp, 58px) * 0.12);
+                inset: 5px;
             }
             /* Token inner gem: ~38% of token */
             .resBannerTokenGem {
                 box-shadow: inset 1px -1px 2px rgba(0,0,0,0.3);
             }
             .resBannerTokenGem.gem-white {
-                width: calc(var(--btp, 58px) * 0.38); height: calc(var(--btp, 58px) * 0.38);
+                width: 15px; height: 15px;
             }
             .resBannerTokenGem.gem-blue {
-                width: calc(var(--btp, 58px) * 0.41); height: calc(var(--btp, 58px) * 0.31);
+                width: 16px; height: 12px;
             }
             .resBannerTokenGem.gem-green {
-                width: calc(var(--btp, 58px) * 0.41); height: calc(var(--btp, 58px) * 0.28);
+                width: 16px; height: 11px;
             }
             .resBannerTokenGem.gem-red {
-                width: calc(var(--btp, 58px) * 0.34); height: calc(var(--btp, 58px) * 0.34);
+                width: 14px; height: 14px;
             }
             .resBannerTokenGem.gem-black {
-                width: calc(var(--btp, 58px) * 0.34); height: calc(var(--btp, 58px) * 0.34);
+                width: 14px; height: 14px;
             }
             .resBannerTokenGem.gem-yellow {
-                width: calc(var(--btp, 58px) * 0.34); height: calc(var(--btp, 58px) * 0.34);
+                width: 14px; height: 14px;
             }
             /* Standalone gem: ~52% of token */
             .resBannerGem {
-                margin-left: calc(var(--btp, 58px) * -0.24);
+                margin-left: -10px;
             }
             .resBannerGem:first-child { margin-left: 0; }
             .resBannerGem.gem-white {
-                width: calc(var(--btp, 58px) * 0.52); height: calc(var(--btp, 58px) * 0.52);
+                width: 21px; height: 21px;
             }
             .resBannerGem.gem-blue {
-                width: calc(var(--btp, 58px) * 0.59); height: calc(var(--btp, 58px) * 0.45);
+                width: 24px; height: 18px;
             }
             .resBannerGem.gem-green {
-                width: calc(var(--btp, 58px) * 0.59); height: calc(var(--btp, 58px) * 0.38);
+                width: 24px; height: 15px;
             }
             .resBannerGem.gem-red {
-                width: calc(var(--btp, 58px) * 0.48); height: calc(var(--btp, 58px) * 0.48);
+                width: 19px; height: 19px;
             }
             .resBannerGem.gem-black {
-                width: calc(var(--btp, 58px) * 0.48); height: calc(var(--btp, 58px) * 0.48);
+                width: 19px; height: 19px;
             }
             .resBannerGem.gem-yellow {
-                width: calc(var(--btp, 58px) * 0.48); height: calc(var(--btp, 58px) * 0.48);
+                width: 19px; height: 19px;
             }
-            .resBannerGem + .resBannerToken { margin-left: calc(var(--btp, 58px) * -0.14); }
+            .resBannerGem + .resBannerToken { margin-left: -6px; }
             /* Crown: ~62% x 52% of token */
             .resBannerCrown {
-                width: calc(var(--btp, 58px) * 0.62);
-                height: calc(var(--btp, 58px) * 0.52);
-                margin-left: calc(var(--btp, 58px) * -0.24);
+                width: 25px;
+                height: 21px;
+                margin-left: -10px;
             }
             .resBannerCrown:first-child { margin-left: 0; }
             .resBannerPts {
