@@ -1,6 +1,6 @@
 import { computeLayout } from "./layout.js";
 import { clampCamera } from "./camera.js";
-import { drawCardSprite, loadSpriteSheet, setCardArtEnabled } from "./cardart.js";
+import { drawCardSprite, drawCardProcedural, loadSpriteSheet, setCardArtMode, getCardArtMode, clearProceduralCache } from "./cardart.js";
 import { rulesCheck } from "./rules.js";
 
 
@@ -189,6 +189,7 @@ function render(ctx) {
       _gemCache.clear(); // DPR or layout may have changed
       _nobleCache.clear();
       _textWidthCache.clear();
+      clearProceduralCache();
 
       ctx.textBaseline = "alphabetic";
       ctx.textAlign = "left";
@@ -831,7 +832,7 @@ function drawToken(ctx, color, { x, y, w, h }, { count }) {
   }
 }
 
-export { render, drawGem, loadSpriteSheet, drawCardSprite, setCardArtEnabled };
+export { render, drawGem, loadSpriteSheet, drawCardSprite, drawCardProcedural, setCardArtMode, getCardArtMode, clearProceduralCache };
 
 
 
@@ -1118,11 +1119,11 @@ function drawDevelopmentCard(ctx, { x, y, w, h }, card = {}) {
   roundedRectPath(ctx, x, y, w, h);
   ctx.clip();
 
-  const hasSprite = id && drawCardSprite(ctx, x, y, w, h, id);
+  const hasArt = id && (drawCardSprite(ctx, x, y, w, h, id) || drawCardProcedural(ctx, x, y, w, h, id, bonus));
 
-  if (hasSprite) {
-    // Semi-transparent header band tinted with bonus color
-    ctx.fillStyle = colors.spriteHeaderCss;
+  if (hasArt) {
+    // Semi-transparent header band — lighter for procedural, bonus-tinted for sprites
+    ctx.fillStyle = (getCardArtMode() === 2) ? colors.spriteHeaderCss : "rgba(0,0,0,0.2)";
     ctx.fillRect(x, y, w, headerH);
 
     // Semi-transparent footer band for cost pips (sized to fit rows)
@@ -1152,11 +1153,11 @@ function drawDevelopmentCard(ctx, { x, y, w, h }, card = {}) {
 
   // --- points (top-left)
   if (points > 0) {
-    ctx.fillStyle = hasSprite ? "#fff" : "rgba(0,0,0,.9)";
+    ctx.fillStyle = hasArt ? "#fff" : "rgba(0,0,0,.9)";
     ctx.font = `700 ${Math.max(12, Math.floor(h * 0.20))}px 'Plus Jakarta Sans', system-ui, sans-serif`;
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
-    if (hasSprite) { ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = 3; }
+    if (hasArt) { ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = 3; }
     ctx.fillText(String(points), x + pad, y + pad * 0.8);
     ctx.shadowBlur = 0;
   }
@@ -1279,11 +1280,11 @@ function drawDevelopmentCard(ctx, { x, y, w, h }, card = {}) {
       ctx.restore(); // card clip
     } else {
       // Generic centered banner text (e.g. deck card "Trevdor")
-      ctx.fillStyle = hasSprite ? "#fff" : ((bonus == "black") ? "#fff" : "rgba(0,0,0,1)");
+      ctx.fillStyle = hasArt ? "#fff" : ((bonus == "black") ? "#fff" : "rgba(0,0,0,1)");
       ctx.font = `600 ${Math.max(10, Math.floor(h * 0.10))}px 'Plus Jakarta Sans', system-ui, sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      if (hasSprite) { ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = 3; }
+      if (hasArt) { ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = 3; }
       ctx.fillText(banner, x + w / 2, y + h * 0.52);
       ctx.shadowBlur = 0;
     }
@@ -1304,19 +1305,30 @@ function drawDevelopmentCard(ctx, { x, y, w, h }, card = {}) {
     // Determine how many fit per row
     const perRow = Math.max(1, Math.floor((maxX - startX + gap) / (pipSize + gap)));
     const rows = Math.ceil(entries.length / perRow);
-    const yBottom = y + h - pad - rows * pipSize - (rows - 1) * gap;
 
+    // Bottom row is the first (fullest) row; overflow row goes above
+    // Split: bottom row gets perRow items, top row gets the remainder
+    const bottomRowCount = Math.min(entries.length, perRow);
+    const topRowCount = entries.length - bottomRowCount;
+    const yBottomRow = y + h - pad - pipSize;
+    const yTopRow = yBottomRow - pipSize - gap;
+
+    // Draw top row (overflow) first, if any
     let cx = startX;
-    let cy = yBottom;
-    for (let i = 0; i < entries.length; i++) {
+    for (let i = 0; i < topRowCount; i++) {
       const [c, n] = entries[i];
       const gemR = pipSize / 2;
-      drawGemCached(ctx, cx + gemR, cy + gemR, gemR, c, String(n));
+      drawGemCached(ctx, cx + gemR, yTopRow + gemR, gemR, c, String(n));
       cx += pipSize + gap;
-      if ((i + 1) % perRow === 0 && i + 1 < entries.length) {
-        cx = startX;
-        cy += pipSize + gap;
-      }
+    }
+
+    // Draw bottom row
+    cx = startX;
+    for (let i = topRowCount; i < entries.length; i++) {
+      const [c, n] = entries[i];
+      const gemR = pipSize / 2;
+      drawGemCached(ctx, cx + gemR, yBottomRow + gemR, gemR, c, String(n));
+      cx += pipSize + gap;
     }
   }
 }
@@ -1448,30 +1460,24 @@ function drawNoble(ctx, { x, y, w, h }, noble = {}) {
     ctx.fillText(String(points), x + pad, y + pad * 0.8);
   }
 
-  // --- requirements: laid out in rows (left-to-right, wrapping to next row)
+  // --- requirements: corner placement (avoiding top-left where points are)
   const order = ["white", "blue", "green", "red", "black"];
   const entries = order
     .map(c => [c, req[c] ?? 0])
     .filter(([, n]) => n > 0);
 
   if (entries.length) {
-    const startX = x + pad;
-    const maxX = x + w - pad;
-    const perRow = Math.max(1, Math.floor((maxX - startX + gap) / (pipSize + gap)));
-    const rows = Math.ceil(entries.length / perRow);
-    const yBottom = y + h - pad - rows * pipSize - (rows - 1) * gap;
-
-    let cx = startX;
-    let cy = yBottom;
-    for (let i = 0; i < entries.length; i++) {
+    const gemR = pipSize / 2;
+    // Corner positions: bottom-left, bottom-right, top-right (never top-left)
+    const corners = [
+      { cx: x + pad + gemR,         cy: y + h - pad - gemR },   // bottom-left
+      { cx: x + w - pad - gemR,     cy: y + h - pad - gemR },   // bottom-right
+      { cx: x + w - pad - gemR,     cy: y + pad + gemR },       // top-right
+    ];
+    for (let i = 0; i < entries.length && i < corners.length; i++) {
       const [c, n] = entries[i];
-      const gemR = pipSize / 2;
-      drawGemCached(ctx, cx + gemR, cy + gemR, gemR, c, String(n));
-      cx += pipSize + gap;
-      if ((i + 1) % perRow === 0 && i + 1 < entries.length) {
-        cx = startX;
-        cy += pipSize + gap;
-      }
+      const pos = corners[i];
+      drawGemCached(ctx, pos.cx, pos.cy, gemR, c, String(n));
     }
   }
 
