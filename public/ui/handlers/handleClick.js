@@ -6,17 +6,10 @@ export function handleClick({rulesCheck, getState, uiState, hit}) {
 
     const currentPlayer = state.players[state.activePlayerIndex];
 
-    function clearPendingTokens() {
-        uiState.pending.tokens = {};
-    }
-
-    function clearPendingCard() {
-        uiState.pending.card = "";
-    }
-
     function clearPending() {
-        clearPendingTokens();
-        clearPendingCard();
+        uiState.pending.tokens = {};
+        uiState.pending.card = "";
+        uiState.mode = "idle";
     }
 
     function addTokenToPending(color) {
@@ -24,32 +17,59 @@ export function handleClick({rulesCheck, getState, uiState, hit}) {
     }
 
     function addCardToPending(card) {
-        uiState.pending.card = card
+        uiState.pending.card = card;
     }
 
     // 1) Clicked empty space => clear UI selection
     if (!hit) {
         clearPending();
-        uiState.mode = "idle";
         return;
     }
 
     if (DEBUG) console.log(hit);
 
-    // 2) Token pile => toggle UI-only picks (limit total to 3)
+    // 2) Token pile click
     if (hit.kind === "token") {
 
-        // yellow token --> reserve card
-        if (hit.color == "yellow") {
+        // Yellow token → reserve card flow
+        if (hit.color === "yellow") {
+            // If already in reserveCard mode (yellow already grabbed), clear instead
+            if (uiState.mode === "reserveCard") {
+                clearPending();
+                return;
+            }
+            // Starting fresh reserve: clear any previous pending
             clearPending();
             if ( rulesCheck({getState, uiState, pending: uiState.pending, action: "takeToken", color: hit.color}) ) {
                 addTokenToPending(hit.color);
                 uiState.mode = "reserveCard";
             }
-        // red blue green black white --> take tokens
+            if (DEBUG) console.log(uiState);
+            return;
+        }
+
+        // Non-yellow token → takeTokens flow
+        if (uiState.mode === "takeTokens") {
+            // Clicking a color already in pending → clear (user is "undoing")
+            if (uiState.pending.tokens[hit.color]) {
+                clearPending();
+                if (DEBUG) console.log(uiState);
+                return;
+            }
+            // Try to add to current pending
+            if ( rulesCheck({getState, uiState, pending: uiState.pending, action: "takeToken", color: hit.color}) ) {
+                addTokenToPending(hit.color);
+            } else {
+                // Doesn't fit current pending → clear and start fresh
+                clearPending();
+                if ( rulesCheck({getState, uiState, pending: uiState.pending, action: "takeToken", color: hit.color}) ) {
+                    addTokenToPending(hit.color);
+                    uiState.mode = "takeTokens";
+                }
+            }
         } else {
-            delete uiState.pending.tokens.yellow;
-            clearPendingCard();
+            // Not in takeTokens mode → clear and start fresh
+            clearPending();
             if ( rulesCheck({getState, uiState, pending: uiState.pending, action: "takeToken", color: hit.color}) ) {
                 addTokenToPending(hit.color);
                 uiState.mode = "takeTokens";
@@ -59,20 +79,23 @@ export function handleClick({rulesCheck, getState, uiState, hit}) {
         return;
     }
 
+    // 3) Market card click
     if (hit.kind === "market.card") {
 
         const card = {meta: hit.meta, tier: hit.tier, index: hit.index};
 
-        // yellow token --> reserve card
         if (uiState.mode === "reserveCard") {
+            // In reserve mode (yellow grabbed) → try to complete the reserve
             if ( rulesCheck({getState, uiState, pending: uiState.pending, action: "reserveCard", card}) ) {
                 addCardToPending(card);
-                uiState.mode = "reserveCard";
+            } else {
+                clearPending();
             }
         } else {
+            // Any other mode → clear and try buy
+            clearPending();
             if ( rulesCheck({getState, uiState, pending: uiState.pending, action: "buyCard", card}) ) {
                 uiState.mode = "buyCard";
-                clearPending();
                 addCardToPending(card);
             }
         }
@@ -81,16 +104,19 @@ export function handleClick({rulesCheck, getState, uiState, hit}) {
         return;
     }
 
+    // 4) Reserved card click → buy
     if (hit.kind === "reserved") {
 
         const card = {meta: hit.meta, tier: hit.tier, index: hit.index};
 
+        // Clear any pending and try to buy reserved card
+        clearPending();
         if ( rulesCheck({getState, uiState, pending: uiState.pending, action: "buyCard", card}) ) {
             uiState.mode = "buyCard";
-            clearPending();
             addCardToPending(card);
         }
         if (DEBUG) console.log(uiState);
+        return;
     }
 
     // Confirm => commit picks to game state (triggered by HTML overlay button)
