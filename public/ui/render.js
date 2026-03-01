@@ -1422,111 +1422,6 @@ function drawNoble(ctx, { x, y, w, h }, noble = {}) {
     _nCols * _nPipSize + (_nCols - 1) * _nGap + 2 * pad
   ));
 
-    // --- helpers (local)
-  const drawChickenWithCrown = (ctx, area) => {
-    const { x, y, w, h } = area;
-
-    // Fit icon inside area with some padding
-    const p = Math.min(w, h) * 0.08;
-    const ax = x + p, ay = y + p, aw = w - 2 * p, ah = h - 2 * p;
-    const cx = ax + aw * 0.52;
-    const cy = ay + ah * 0.58;
-
-    // scale unit based on smallest dimension
-    const u = Math.min(aw, ah);
-
-    const bodyR = u * 0.28;
-    const headR = u * 0.16;
-
-    // colors
-    const YELLOW = "#F2D34B";
-    const YELLOW_DK = "rgba(0,0,0,0.18)";
-    const ORANGE = "#E08A2E";
-    const RED = "#D94A4A";
-    const CROWN = "#D6B04C";
-
-    // --- body (big circle)
-    ctx.beginPath();
-    ctx.arc(cx, cy, bodyR, 0, Math.PI * 2);
-    ctx.fillStyle = YELLOW;
-    ctx.fill();
-    ctx.strokeStyle = YELLOW_DK;
-    ctx.lineWidth = 1;
-    ctx.stroke();
-
-    // --- wing (small circle on left)
-    ctx.beginPath();
-    ctx.arc(cx - bodyR * 0.35, cy + bodyR * 0.05, bodyR * 0.45, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(255,255,255,0.25)";
-    ctx.fill();
-
-    // --- head (circle above-right)
-    const hx = cx + bodyR * 0.55;
-    const hy = cy - bodyR * 0.55;
-    ctx.beginPath();
-    ctx.arc(hx, hy, headR, 0, Math.PI * 2);
-    ctx.fillStyle = YELLOW;
-    ctx.fill();
-    ctx.strokeStyle = YELLOW_DK;
-    ctx.stroke();
-
-    // --- beak (triangle)
-    ctx.beginPath();
-    ctx.moveTo(hx + headR * 0.95, hy);
-    ctx.lineTo(hx + headR * 1.55, hy - headR * 0.25);
-    ctx.lineTo(hx + headR * 1.55, hy + headR * 0.25);
-    ctx.closePath();
-    ctx.fillStyle = ORANGE;
-    ctx.fill();
-    ctx.strokeStyle = "rgba(0,0,0,0.15)";
-    ctx.stroke();
-
-    // --- comb (3 bumps)
-    const combY = hy - headR * 0.95;
-    ctx.fillStyle = RED;
-    for (let i = 0; i < 3; i++) {
-      ctx.beginPath();
-      ctx.arc(hx - headR * 0.55 + i * headR * 0.45, combY, headR * 0.22, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    // --- eye (dot)
-    ctx.beginPath();
-    ctx.arc(hx + headR * 0.2, hy - headR * 0.1, Math.max(1.5, headR * 0.12), 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(0,0,0,0.85)";
-    ctx.fill();
-
-    // --- crown (simple 3-point crown) on top of head
-    const crownW = headR * 1.55;
-    const crownH = headR * 0.9;
-    const crownX = hx - crownW * 0.5;
-    const crownY = hy - headR * 1.45;
-
-    ctx.beginPath();
-    ctx.moveTo(crownX, crownY + crownH);
-    ctx.lineTo(crownX + crownW * 0.15, crownY + crownH * 0.35);
-    ctx.lineTo(crownX + crownW * 0.35, crownY + crownH);
-    ctx.lineTo(crownX + crownW * 0.5, crownY + crownH * 0.25);
-    ctx.lineTo(crownX + crownW * 0.65, crownY + crownH);
-    ctx.lineTo(crownX + crownW * 0.85, crownY + crownH * 0.35);
-    ctx.lineTo(crownX + crownW, crownY + crownH);
-    ctx.closePath();
-    ctx.fillStyle = CROWN;
-    ctx.fill();
-    ctx.strokeStyle = "rgba(0,0,0,0.18)";
-    ctx.stroke();
-
-    // crown jewels (dots)
-    ctx.fillStyle = "rgba(255,255,255,0.65)";
-    const jewelR = Math.max(1.5, headR * 0.12);
-    const jy = crownY + crownH * 0.75;
-    [0.25, 0.5, 0.75].forEach((t) => {
-      ctx.beginPath();
-      ctx.arc(crownX + crownW * t, jy, jewelR, 0, Math.PI * 2);
-      ctx.fill();
-    });
-  };
-
   // --- base card (light grey)
   roundedRectPath(ctx, x, y, w, h);
   ctx.fillStyle = "#E9EEF3";
@@ -1587,22 +1482,6 @@ function drawNoble(ctx, { x, y, w, h }, noble = {}) {
     }
   }
 
-  // --- chicken "art" on the right 3/4
-  {
-    const area = {
-      x: x + stripW,
-      y: y,
-      w: w - stripW,
-      h: h,
-    };
-
-    // clip to the noble rounded rect so the art doesn't spill
-    ctx.save();
-    roundedRectPath(ctx, x, y, w, h);
-    ctx.clip();
-    drawChickenWithCrown(ctx, area);
-    ctx.restore();
-  }
 
   // --- optional banner (center-right)
   if (banner) {
