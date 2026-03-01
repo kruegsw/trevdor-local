@@ -1121,8 +1121,13 @@ function drawDevelopmentCard(ctx, { x, y, w, h }, card = {}) {
     ctx.fillStyle = colors.spriteHeaderCss;
     ctx.fillRect(x, y, w, headerH);
 
-    // Semi-transparent footer band for cost pips
-    const footerH = Math.floor(h * 0.18 * _pipScale);
+    // Semi-transparent footer band for cost pips (sized to fit rows)
+    const _fPip = Math.max(12, Math.floor(Math.min(w, h) * 0.192 * _pipScale));
+    const _fGap = Math.max(3, Math.floor(_fPip * 0.18));
+    const _fCols = Math.max(1, Math.floor((w - 2 * pad + _fGap) / (_fPip + _fGap)));
+    const _fEntries = Object.values(cost).filter(n => n > 0).length;
+    const _fRows = Math.max(1, Math.ceil(_fEntries / _fCols));
+    const footerH = _fRows * _fPip + (_fRows - 1) * _fGap + 2 * pad;
     ctx.fillStyle = "rgba(0,0,0,0.5)";
     ctx.fillRect(x, y + h - footerH, w, footerH);
   } else {
@@ -1152,9 +1157,11 @@ function drawDevelopmentCard(ctx, { x, y, w, h }, card = {}) {
     ctx.shadowBlur = 0;
   }
 
-  // --- gem (top-right)
+  // --- gem (top-right) — in granny mode, match cost pip size
   {
-    const r = Math.max(6, Math.floor(Math.min(w, h) * 0.12 * _pipScale));
+    const r = _pipScale > 1
+      ? Math.max(12, Math.floor(Math.min(w, h) * 0.192 * _pipScale)) / 2
+      : Math.max(6, Math.floor(Math.min(w, h) * 0.12));
     const cx = x + w - pad - r;
     const cy = y + pad + r;
     drawGemCached(ctx, cx, cy, r, bonus, "");
@@ -1288,14 +1295,24 @@ function drawDevelopmentCard(ctx, { x, y, w, h }, card = {}) {
     const pipSize = Math.max(12, Math.floor(Math.min(w, h) * 0.192 * _pipScale));
     const gap = Math.max(3, Math.floor(pipSize * 0.18));
     const startX = x + pad;
-    const yBottom = y + h - pad - pipSize;
+    const maxX = x + w - pad;
+
+    // Determine how many fit per row
+    const perRow = Math.max(1, Math.floor((maxX - startX + gap) / (pipSize + gap)));
+    const rows = Math.ceil(entries.length / perRow);
+    const yBottom = y + h - pad - rows * pipSize - (rows - 1) * gap;
 
     let cx = startX;
-    for (const [c, n] of entries) {
+    let cy = yBottom;
+    for (let i = 0; i < entries.length; i++) {
+      const [c, n] = entries[i];
       const gemR = pipSize / 2;
-      drawGemCached(ctx, cx + gemR, yBottom + gemR, gemR, c, String(n));
+      drawGemCached(ctx, cx + gemR, cy + gemR, gemR, c, String(n));
       cx += pipSize + gap;
-      if (cx > x + w - pad - pipSize) break;
+      if ((i + 1) % perRow === 0 && i + 1 < entries.length) {
+        cx = startX;
+        cy += pipSize + gap;
+      }
     }
   }
 }
@@ -1391,7 +1408,7 @@ function drawNoble(ctx, { x, y, w, h }, noble = {}) {
   } = noble;
 
   const pad = Math.max(4, Math.floor(Math.min(w, h) * 0.06));
-  const stripW = Math.floor(w * 0.25);
+  const stripW = Math.floor(w * (_pipScale > 1 ? 0.45 : 0.25));
 
     // --- helpers (local)
   const drawChickenWithCrown = (ctx, area) => {
