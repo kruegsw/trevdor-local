@@ -56,7 +56,7 @@ let soundEnabled   = localStorage.getItem("trevdor.sound")   !== "false";
 let cardArtPref    = localStorage.getItem("trevdor.cardArt") !== "false";
 let cursorsPref    = localStorage.getItem("trevdor.cursors") !== "false";
 let chatPref       = localStorage.getItem("trevdor.chat")    !== "false";
-let resourcesPref  = localStorage.getItem("trevdor.resources") !== "false";
+let simplifiedPref = localStorage.getItem("trevdor.simplified") === "true";
 sfx.enabled = soundEnabled;
 setCardArtEnabled(cardArtPref);
 
@@ -149,7 +149,7 @@ function setScene(scene) {
     lobbyScene.classList.remove("withStatusBar");
     statusBar.classList.remove("hidden");
     chatPanel.classList.toggle("hidden", !chatPref);
-    resourceBanner.classList.toggle("hidden", !resourcesPref);
+    resourceBanner.classList.remove("hidden");
   }
 }
 
@@ -668,42 +668,57 @@ const BANNER_GEM_COLORS = {
   yellow: { rim: "#D6B04C", fill: "#e8cc77" },
 };
 
-function updateResourceBanner() {
-  const myIdx = uiState.myPlayerIndex;
-  if (!resourcesPref || typeof myIdx !== "number" || myIdx < 0 || !state?.players?.[myIdx]) {
-    resourceBanner.classList.add("hidden");
-    return;
-  }
-  resourceBanner.classList.remove("hidden");
-  const accent = SEAT_ACCENT_COLORS[myIdx] ?? "#888";
-  resourceBanner.style.setProperty("--banner-accent", accent);
-  resourceBanner.style.background = `linear-gradient(${accent}18, ${accent}10), rgba(243,243,243,0.88)`;
-  const player = state.players[myIdx];
-  const playerName = player.name ?? `Player ${myIdx + 1}`;
+function buildPlayerRow(player, pIdx) {
+  const accent = SEAT_ACCENT_COLORS[pIdx] ?? "#888";
+  const playerName = player.name ?? `Player ${pIdx + 1}`;
   const gemCounts = {};
   for (const card of player.cards ?? []) {
     if (card.bonus) gemCounts[card.bonus] = (gemCounts[card.bonus] || 0) + 1;
   }
   const tokens = player.tokens ?? {};
-  const colors = ["yellow", "green", "red", "blue", "black", "white"];
-  const isMyTurn = state.activePlayerIndex === myIdx;
-  const playTri = isMyTurn ? `<span class="resBannerPlay"></span>` : "";
-  let html = `<span class="resBannerName" style="color:${accent}">${playTri}${escapeHtml(playerName)}:</span>`;
-  for (const color of colors) {
+  const gemColors = ["yellow", "green", "red", "blue", "black", "white"];
+  const isActive = state.activePlayerIndex === pIdx;
+  const playTri = isActive ? `<span class="resBannerPlay" style="border-left-color:${accent}"></span>` : "";
+  const prestige = playerPrestige(pIdx);
+  let row = `<div class="resBannerRow">`;
+  row += `<span class="resBannerName" style="color:${accent}">${playTri}${escapeHtml(playerName)}</span>`;
+  row += `<span class="resBannerPts">${prestige} pt</span>`;
+  for (const color of gemColors) {
     const g = gemCounts[color] || 0;
     const t = tokens[color] || 0;
     if (g === 0 && t === 0) continue;
     const gc = BANNER_GEM_COLORS[color] ?? { rim: "#888", fill: "#ccc" };
-    html += `<span class="resBannerSlot">`;
-    for (let i = 0; i < g; i++) html += `<span class="resBannerGem gem-${color}" style="background:${gc.fill}"></span>`;
-    for (let i = 0; i < t; i++) html += `<span class="resBannerToken" style="background:${gc.rim}"><span class="resBannerTokenGem gem-${color}" style="background:${gc.fill}"></span></span>`;
-    html += `</span>`;
+    row += `<span class="resBannerSlot">`;
+    for (let i = 0; i < g; i++) row += `<span class="resBannerGem gem-${color}" style="background:${gc.fill}"></span>`;
+    for (let i = 0; i < t; i++) row += `<span class="resBannerToken" style="background:${gc.rim}"><span class="resBannerTokenGem gem-${color}" style="background:${gc.fill}"></span></span>`;
+    row += `</span>`;
   }
   const nobleCount = (player.nobles ?? []).length;
   if (nobleCount > 0) {
-    html += `<span class="resBannerSlot">`;
-    for (let i = 0; i < nobleCount; i++) html += `<span class="resBannerCrown"></span>`;
-    html += `</span>`;
+    row += `<span class="resBannerSlot">`;
+    for (let i = 0; i < nobleCount; i++) row += `<span class="resBannerCrown"></span>`;
+    row += `</span>`;
+  }
+  row += `</div>`;
+  return row;
+}
+
+function updateResourceBanner() {
+  if (!state?.players?.length) {
+    resourceBanner.classList.add("hidden");
+    return;
+  }
+  resourceBanner.classList.remove("hidden");
+  let html = "";
+  if (simplifiedPref) {
+    for (let i = 0; i < state.players.length; i++) {
+      html += buildPlayerRow(state.players[i], i);
+    }
+  } else {
+    const myIdx = uiState.myPlayerIndex;
+    if (typeof myIdx === "number" && myIdx >= 0 && state.players[myIdx]) {
+      html = buildPlayerRow(state.players[myIdx], myIdx);
+    }
   }
   resourceContent.innerHTML = html;
 }
@@ -1223,7 +1238,7 @@ optSound.checked   = soundEnabled;
 optCardArt.checked = cardArtPref;
 optCursors.checked = cursorsPref;
 optChat.checked    = chatPref;
-optResources.checked = resourcesPref;
+optResources.checked = simplifiedPref;
 
 optionsBtn.addEventListener("click", () => {
   optionsDropdown.classList.toggle("hidden");
@@ -1267,8 +1282,8 @@ optChat.addEventListener("change", () => {
 });
 
 optResources.addEventListener("change", () => {
-  resourcesPref = optResources.checked;
-  localStorage.setItem("trevdor.resources", resourcesPref);
+  simplifiedPref = optResources.checked;
+  localStorage.setItem("trevdor.simplified", simplifiedPref);
   updateResourceBanner();
 });
 
