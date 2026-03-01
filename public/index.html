@@ -1111,93 +1111,93 @@
             display: flex;
         }
 
-        /* Desktop: fixed 80px token size (mobile is 24px) */
+        /* Desktop: fixed 40px token size (mobile is 24px) */
         @media (min-width: 769px) {
             #resourceContent {
                 flex-direction: row;
                 flex-wrap: wrap;
-                gap: 12px 36px;
+                gap: 6px 18px;
                 align-items: center;
             }
             .resBannerRow {
                 height: auto;
-                gap: 16px;
+                gap: 8px;
             }
             #resourceBanner {
-                padding: 16px 32px;
-                font-size: 30px;
+                padding: 8px 16px;
+                font-size: 15px;
             }
             .resBannerPlay {
-                border-left-width: 20px;
-                border-top-width: 14px;
-                border-bottom-width: 14px;
+                border-left-width: 10px;
+                border-top-width: 7px;
+                border-bottom-width: 7px;
             }
-            /* Token: 80px circle */
+            /* Token: 40px circle */
             .resBannerToken {
-                width: 80px;
-                height: 80px;
-                margin-left: -30px;
-                border-width: 4px;
+                width: 40px;
+                height: 40px;
+                margin-left: -15px;
+                border-width: 2px;
             }
             .resBannerToken:first-child { margin-left: 0; }
             .resBannerToken::before {
-                inset: 10px;
+                inset: 5px;
             }
             /* Token inner gem: ~38% of token */
             .resBannerTokenGem {
-                box-shadow: inset 2px -2px 4px rgba(0,0,0,0.3);
+                box-shadow: inset 1px -1px 2px rgba(0,0,0,0.3);
             }
             .resBannerTokenGem.gem-white {
-                width: 30px; height: 30px;
+                width: 15px; height: 15px;
             }
             .resBannerTokenGem.gem-blue {
-                width: 32px; height: 24px;
+                width: 16px; height: 12px;
             }
             .resBannerTokenGem.gem-green {
-                width: 32px; height: 22px;
+                width: 16px; height: 11px;
             }
             .resBannerTokenGem.gem-red {
-                width: 28px; height: 28px;
+                width: 14px; height: 14px;
             }
             .resBannerTokenGem.gem-black {
-                width: 28px; height: 28px;
+                width: 14px; height: 14px;
             }
             .resBannerTokenGem.gem-yellow {
-                width: 28px; height: 28px;
+                width: 14px; height: 14px;
             }
             /* Standalone gem: ~52% of token */
             .resBannerGem {
-                margin-left: -20px;
+                margin-left: -10px;
             }
             .resBannerGem:first-child { margin-left: 0; }
             .resBannerGem.gem-white {
-                width: 42px; height: 42px;
+                width: 21px; height: 21px;
             }
             .resBannerGem.gem-blue {
-                width: 48px; height: 36px;
+                width: 24px; height: 18px;
             }
             .resBannerGem.gem-green {
-                width: 48px; height: 30px;
+                width: 24px; height: 15px;
             }
             .resBannerGem.gem-red {
-                width: 38px; height: 38px;
+                width: 19px; height: 19px;
             }
             .resBannerGem.gem-black {
-                width: 38px; height: 38px;
+                width: 19px; height: 19px;
             }
             .resBannerGem.gem-yellow {
-                width: 38px; height: 38px;
+                width: 19px; height: 19px;
             }
-            .resBannerGem + .resBannerToken { margin-left: -12px; }
+            .resBannerGem + .resBannerToken { margin-left: -6px; }
             /* Crown: ~62% x 52% of token */
             .resBannerCrown {
-                width: 50px;
-                height: 42px;
-                margin-left: -20px;
+                width: 25px;
+                height: 21px;
+                margin-left: -10px;
             }
             .resBannerCrown:first-child { margin-left: 0; }
             .resBannerPts {
-                font-size: 30px;
+                font-size: 15px;
             }
         }
 
