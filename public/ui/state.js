@@ -62,5 +62,8 @@ export function createUIState() {
 
     // Granny mode: enlarges gem pips on cards for readability
     grannyMode: false,
+
+    // Panel view toggle: null = board view, 0-3 = viewing that player's panel
+    panelViewPlayerIndex: null,
   };
 }

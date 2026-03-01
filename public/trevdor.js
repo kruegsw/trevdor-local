@@ -778,7 +778,8 @@ function buildPlayerRow(player, pIdx) {
   const playTri = isActive ? `<span class="resBannerPlay" style="border-left-color:${accent}"></span>` : "";
   const prestige = playerPrestige(pIdx);
   const activeClass = isActive ? " resBannerRowActive" : "";
-  let row = `<div class="resBannerRow${activeClass}" style="background: linear-gradient(${accent}10, ${accent}10), rgba(243,243,243,0.85); border: 1.5px solid ${accent}">`;
+  const viewingClass = uiState.panelViewPlayerIndex === pIdx ? " resBannerRowViewing" : "";
+  let row = `<div class="resBannerRow${activeClass}${viewingClass}" data-player-index="${pIdx}" style="background: linear-gradient(${accent}10, ${accent}10), rgba(243,243,243,0.85); border: 1.5px solid ${accent}">`;
   row += `<span class="resBannerName" style="color:${accent}">${playTri}<span class="resBannerNameText">${escapeHtml(playerName)}</span></span>`;
   row += `<span class="resBannerPts">${prestige} pt</span>`;
   for (const color of gemColors) {
@@ -800,6 +801,17 @@ function buildPlayerRow(player, pIdx) {
   return row;
 }
 
+function togglePanelView(playerIndex) {
+  if (uiState.panelViewPlayerIndex === playerIndex) {
+    uiState.panelViewPlayerIndex = null;
+  } else {
+    uiState.panelViewPlayerIndex = playerIndex;
+  }
+  uiState.cameraUserAdjusted = false;
+  updateResourceBanner();
+  resize();
+}
+
 function updateResourceBanner() {
   if (!state?.players?.length || !uiState.simplifiedView) {
     resourceBanner.classList.add("hidden");
@@ -811,6 +823,12 @@ function updateResourceBanner() {
     html += buildPlayerRow(state.players[i], i);
   }
   resourceContent.innerHTML = html;
+  resourceContent.querySelectorAll(".resBannerRow").forEach(row => {
+    row.addEventListener("click", () => {
+      const pIdx = parseInt(row.dataset.playerIndex, 10);
+      if (pIdx < state.players.length) togglePanelView(pIdx);
+    });
+  });
 }
 
 /* ---------------------------------------------------------
@@ -1383,6 +1401,7 @@ optResources.addEventListener("change", () => {
   simplifiedPref = optResources.checked;
   uiState.simplifiedView = simplifiedPref;
   localStorage.setItem("trevdor.simplified", simplifiedPref);
+  if (!simplifiedPref) uiState.panelViewPlayerIndex = null; // reset panel view when leaving simplified
   uiState.cameraUserAdjusted = false;
   updateResourceBanner();   // update banner visibility before resize measures it
   resize();
@@ -1515,8 +1534,15 @@ function resize() {
   if (bounds && !uiState.cameraUserAdjusted) {
     let rects;
     if (uiState.simplifiedView) {
-      // Simplified view: center on the board only (nobles → tokens)
-      rects = [bounds.boardRect];
+      if (uiState.panelViewPlayerIndex != null && bounds.panelRects) {
+        // Panel view: zoom to the viewed player's panel
+        const REVERSE_MAP = [2, 0, 3, 1]; // playerIndex → positionIndex
+        const posIdx = REVERSE_MAP[uiState.panelViewPlayerIndex];
+        rects = [bounds.panelRects[posIdx]];
+      } else {
+        // Normal simplified: center on the board only (nobles → tokens)
+        rects = [bounds.boardRect];
+      }
     } else {
       const numPlayers = state?.players?.length ?? 0;
       // Compute tight bounding box of board + visible panels only
