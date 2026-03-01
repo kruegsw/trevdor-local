@@ -1408,7 +1408,19 @@ function drawNoble(ctx, { x, y, w, h }, noble = {}) {
   } = noble;
 
   const pad = Math.max(4, Math.floor(Math.min(w, h) * 0.06));
-  const stripW = Math.floor(w * (_pipScale > 1 ? 0.45 : 0.25));
+
+  // Determine strip width: widen to fit 2 columns of pips if needed in granny mode
+  const _nPipSize = Math.max(12, Math.floor(Math.min(w, h) * 0.192 * _pipScale));
+  const _nGap = Math.max(3, Math.floor(_nPipSize * 0.18));
+  const _nEntries = Object.values(req).filter(n => n > 0).length;
+  const _nPointsH = Math.max(16, Math.floor(h * 0.20)) + _nGap;  // space used by points number
+  const _nAvailH = h - 2 * pad - _nPointsH;
+  const _nMaxPerCol = Math.max(1, Math.floor((_nAvailH + _nGap) / (_nPipSize + _nGap)));
+  const _nCols = Math.ceil(_nEntries / _nMaxPerCol);
+  const stripW = Math.floor(Math.max(
+    w * 0.25,
+    _nCols * _nPipSize + (_nCols - 1) * _nGap + 2 * pad
+  ));
 
     // --- helpers (local)
   const drawChickenWithCrown = (ctx, area) => {
@@ -1534,37 +1546,44 @@ function drawNoble(ctx, { x, y, w, h }, noble = {}) {
   ctx.lineWidth = 1;
   ctx.stroke();
 
-  // --- points (top of strip)
+  // --- points (top of strip) — matches dev card points size
   if (points > 0) {
     ctx.fillStyle = "rgba(0,0,0,0.9)";
-    ctx.font = `700 ${Math.max(12, Math.floor(h * 0.22))}px 'Plus Jakarta Sans', system-ui, sans-serif`;
+    ctx.font = `700 ${Math.max(12, Math.floor(h * 0.20))}px 'Plus Jakarta Sans', system-ui, sans-serif`;
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
     ctx.fillText(String(points), x + pad, y + pad * 0.8);
   }
 
-  // --- requirements stacked vertically
+  // --- requirements stacked vertically, wrapping to columns as needed
   const order = ["white", "blue", "green", "red", "black"];
   const entries = order
     .map(c => [c, req[c] ?? 0])
     .filter(([, n]) => n > 0);
 
   if (entries.length) {
-    const pipSize = Math.max(12, Math.floor(Math.min(w, h) * 0.192 * _pipScale));
-    const gap = Math.max(3, Math.floor(pipSize * 0.18));
+    const pipSize = _nPipSize;
+    const gap = _nGap;
 
-    let cy =
+    const startY =
       y +
       pad +
-      Math.max(16, Math.floor(h * 0.22)) +
+      Math.max(16, Math.floor(h * 0.20)) +
       gap;
 
-    for (const [c, n] of entries) {
+    let cx = x + pad;
+    let cy = startY;
+    for (let i = 0; i < entries.length; i++) {
+      const [c, n] = entries[i];
       const gemR = pipSize / 2;
-      drawGemCached(ctx, x + pad + gemR, cy + gemR, gemR, c, String(n));
+      drawGemCached(ctx, cx + gemR, cy + gemR, gemR, c, String(n));
       cy += pipSize + gap;
 
-      if (cy > y + h - pad - pipSize) break;
+      // Wrap to next column if we'd overflow
+      if (cy > y + h - pad - pipSize && i + 1 < entries.length) {
+        cx += pipSize + gap;
+        cy = startY;
+      }
     }
   }
 
